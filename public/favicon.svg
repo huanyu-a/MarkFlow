@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="32" height="32">
+  <!-- 渐变绿色圆角背景 -->
+  <defs>
+    <linearGradient id="logo-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2ecc71" />
+      <stop offset="100%" stop-color="#27ae60" />
+    </linearGradient>
+  </defs>
+  <rect width="24" height="24" rx="6" fill="url(#logo-grad)" />
+  <!-- 白色羽毛笔 Logo，使用 translation 和 scale 实现精细居中 -->
+  <g transform="translate(3, 3) scale(0.75)" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <path d="M12 19l7-7 3 3-7 7-3-3z"></path>
+    <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path>
+    <path d="M2 2l7.586 7.586"></path>
+    <circle cx="11" cy="11" r="2"></circle>
+  </g>
+</svg>
