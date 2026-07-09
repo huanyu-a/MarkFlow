@@ -1,4 +1,4 @@
-import { leaf } from '@engine/utils/helpers'
+import { esc, leaf } from '@engine/utils/helpers'
 import type { ThemeColors } from '@engine/composables/useTheme'
 import { color, fontSize, fontWeight, letterSpacing, neutral, spacing } from '@engine/tokens'
 
@@ -170,12 +170,12 @@ export const PTitle = {
 
       const numBlock =
         hasNum && hide !== 'num'
-          ? `<strong style="display:block;font-size:${numFontSize};line-height:1;color:${numColor};letter-spacing:${letterSpacing.tighter};white-space:nowrap;opacity:0.25"><span leaf="">${num}</span></strong>`
+          ? `<strong style="display:block;font-size:${numFontSize};line-height:1;color:${numColor};letter-spacing:${letterSpacing.tighter};white-space:nowrap;opacity:0.25"><span leaf="">${esc(num)}</span></strong>`
           : ''
       const titleBlock =
         hasNum && hide !== 'num'
-          ? `<strong style="display:block;font-size:${titleFontSize};font-weight:${fontWeight.black};color:${titleColor};line-height:1.26;letter-spacing:${letterSpacing.tight};margin-top:${titleMarginTop};margin-left:${titleMarginLeft}"><span leaf="">${hasPrefix ? prefix + ' ' : ''}${leaf(title)}${hasSuffix ? ' ' + suffix : ''}</span></strong>`
-          : `<strong style="display:block;font-size:${titleFontSize};font-weight:${fontWeight.black};color:${titleColor};line-height:1.26;letter-spacing:${letterSpacing.tight}"><span leaf="">${hasPrefix ? prefix + ' ' : ''}${leaf(title)}${hasSuffix ? ' ' + suffix : ''}</span></strong>`
+          ? `<strong style="display:block;font-size:${titleFontSize};font-weight:${fontWeight.black};color:${titleColor};line-height:1.26;letter-spacing:${letterSpacing.tight};margin-top:${titleMarginTop};margin-left:${titleMarginLeft}"><span leaf="">${hasPrefix ? prefix + ' ' : ''}${esc(title)}${hasSuffix ? ' ' + suffix : ''}</span></strong>`
+          : `<strong style="display:block;font-size:${titleFontSize};font-weight:${fontWeight.black};color:${titleColor};line-height:1.26;letter-spacing:${letterSpacing.tight}"><span leaf="">${hasPrefix ? prefix + ' ' : ''}${esc(title)}${hasSuffix ? ' ' + suffix : ''}</span></strong>`
       const subtitleHtml = subtitle
         ? `<span style="display:block;margin-left:${hasNum && hide !== 'num' ? subtitleMarginLeft : '0'};font-size:${subtitleFontSize};color:${subtitleColor};font-weight:${fontWeight.bold};text-transform:uppercase;letter-spacing:1.6px"><span leaf="">${leaf(subtitle)}</span></span>`
         : ''

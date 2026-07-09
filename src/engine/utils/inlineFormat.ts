@@ -1,5 +1,5 @@
 import type { ThemeColors } from '../composables/useTheme'
-import { esc, leaf, lightenHex, pangu } from './helpers'
+import { esc, leaf, lightenHex, pangu, safeUrl } from './helpers'
 import { getCachedImageUrl } from '@/lib/editor/imageStorage'
 import { color, fontSize, fontWeight, neutral, radius, spacing } from '../tokens'
 
@@ -67,8 +67,8 @@ export function inlineFormat(text: string, t: ThemeColors, formulaMap?: Map<stri
     /<Icon\s+name="([^"]+)"[^/]*?(?:size="([^"]*)")?\s*\/?>/gi,
     (_m, name: string, iconSize?: string) => {
       const size = iconSize || '1em'
-      const encoded = encodeURIComponent(name)
-      return `<img src="https://api.iconify.design/${encoded}.svg" alt="${esc(name)}" style="width:${size};height:${size};vertical-align:-0.125em;display:inline-block">`
+      const iconUrl = safeUrl(`https://api.iconify.design/${encodeURIComponent(name)}.svg`, 'src')
+      return `<img src="${iconUrl}" alt="${esc(name)}" style="width:${size};height:${size};vertical-align:-0.125em;display:inline-block">`
     },
   )
 
@@ -137,13 +137,14 @@ export function inlineFormat(text: string, t: ThemeColors, formulaMap?: Map<stri
         const id = src.replace('img://', '')
         resolvedSrc = getCachedImageUrl(id) || src
       }
+      const safeSrc = safeUrl(resolvedSrc, 'src')
       if (size) {
         const parts = size.split(/\s+/)
         const w = parts[0] || '100%'
         const h = parts[1] || '250px'
-        return `<img src="${esc(resolvedSrc)}" alt="${esc(alt)}" style="width:${w};max-height:${h};border-radius:${radius.md};display:block">`
+        return `<img src="${esc(safeSrc)}" alt="${esc(alt)}" style="width:${w};max-height:${h};border-radius:${radius.md};display:block">`
       }
-      return `<img src="${esc(resolvedSrc)}" alt="${esc(alt)}" style="max-width:100%;border-radius:${radius.md};display:block">`
+      return `<img src="${esc(safeSrc)}" alt="${esc(alt)}" style="max-width:100%;border-radius:${radius.md};display:block">`
     },
   )
   // 还原行内代码占位符

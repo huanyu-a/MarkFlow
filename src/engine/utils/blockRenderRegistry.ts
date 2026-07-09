@@ -1,5 +1,5 @@
 import type { ThemeColors } from '../composables/useTheme'
-import { esc, leaf, parseAttrs } from './helpers'
+import { esc, leaf, parseAttrs, safeUrl } from './helpers'
 import { inlineFormat } from './inlineFormat'
 import { renderCodeBlock } from './codeBlock'
 import { getCachedImageUrl } from '@/lib/editor/imageStorage'
@@ -68,7 +68,9 @@ export function extractBlock(
   openTagRegex: RegExp,
   closeTagRegex: RegExp,
 ): { attrs: Record<string, string>; body: string; next: number; warning?: string } | null {
+  if (!lines || start < 0 || start >= lines.length) return null
   const line = lines[start]
+  if (!line) return null
   const openMatch = line.match(openTagRegex)
   if (!openMatch) return null
 
@@ -236,10 +238,11 @@ const leadContainerRenderer: BlockRenderer = {
 
 // ─── ::: 容器语法 (tip / note / warning / info / caution / important / details) ───
 const HINT_TYPES = ['tip', 'note', 'warning', 'info', 'caution', 'important'] as const
+const HINT_MATCH_RE = new RegExp(`^:{3,4}\\s*(${HINT_TYPES.join('|')})\\b`)
 const hintContainerRenderer: BlockRenderer = {
   name: 'hintContainer',
   priority: 5,
-  match: (line) => new RegExp(`^:{3,4}\\s*(${HINT_TYPES.join('|')})\\b`).test(line),
+  match: (line) => HINT_MATCH_RE.test(line),
   render: (ctx, line, lines, i) => {
     // Support both ::: and :::: prefixes
     const m = line.match(/^(:{3,4})\s*(tip|note|warning|info|caution|important)\b\s*(.*)/)
@@ -856,12 +859,13 @@ const imageRenderer: BlockRenderer = {
       const id = src.replace('img://', '')
       resolvedSrc = getCachedImageUrl(id) || src
     }
+    const safeSrc = safeUrl(resolvedSrc, 'src')
     let html = ''
     if (size) {
       const parts = size.split(/\s+/)
-      html += `<section style="max-height:${parts[1] || '250px'};overflow-y:auto;border-radius:${radius.lg};margin:${spacing[5]} 0px;display:flex;justify-content:center"><img src="${esc(resolvedSrc)}" alt="${esc(alt)}" style="width:${parts[0] || '100%'};display:block;margin:0 auto"></section>`
+      html += `<section style="max-height:${parts[1] || '250px'};overflow-y:auto;border-radius:${radius.lg};margin:${spacing[5]} 0px;display:flex;justify-content:center"><img src="${esc(safeSrc)}" alt="${esc(alt)}" style="width:${parts[0] || '100%'};display:block;margin:0 auto"></section>`
     } else {
-      html += `<section style="margin:${spacing[5]} 0px;display:flex;justify-content:center"><img src="${esc(resolvedSrc)}" alt="${esc(alt)}" style="max-width:100%;border-radius:${radius.md};display:block;margin:0 auto"></section>`
+      html += `<section style="margin:${spacing[5]} 0px;display:flex;justify-content:center"><img src="${esc(safeSrc)}" alt="${esc(alt)}" style="max-width:100%;border-radius:${radius.md};display:block;margin:0 auto"></section>`
     }
     return { html, next: i + 1 }
   },

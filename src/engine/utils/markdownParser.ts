@@ -1,5 +1,5 @@
 import type { ThemeColors } from '../composables/useTheme'
-import { leaf, esc, parseAttrs } from './helpers'
+import { leaf, esc, parseAttrs, safeUrl } from './helpers'
 import { extractMath, restoreMath } from './math'
 import { protectCode, restoreCode } from './codeProtect'
 import { renderMath } from './mathRenderer'
@@ -152,17 +152,19 @@ export function parseMarkdown(
 
   // 收集脚注：[text](url "desc") 带引号标题的链接 → 脚注
   const footnotes: { label: string; url: string; desc: string }[] = []
+  const footnoteKeyToIdx = new Map<string, number>() // O(1) 去重
   const footnoteRegex = /\[([^\]]+)\]\(([^)\s]+)\s+"([^"]+)"\)/g
   let processedMd = processedMdText.replace(footnoteRegex, (_match, _label, url, desc) => {
-    // 检查是否已存在相同的脚注（根据 url 和 desc 判断）
-    const existing = footnotes.findIndex((f) => f.url === url && f.desc === desc)
+    const key = `${url}|${desc}`
+    const existing = footnoteKeyToIdx.get(key)
     let num: number
-    if (existing >= 0) {
+    if (existing !== undefined) {
       // 已存在，复用序号
       num = existing + 1
     } else {
       // 新脚注，分配新序号
       num = footnotes.length + 1
+      footnoteKeyToIdx.set(key, footnotes.length)
       footnotes.push({ label: _label, url, desc })
     }
     return `__FN_${num - 1}__|${_label}|`
@@ -170,11 +172,13 @@ export function parseMarkdown(
 
   // 收集标准脚注：[^label]: definition
   const stdFootnotes: { label: string; definition: string }[] = []
+  const stdFnLabels = new Set<string>() // O(1) 去重
   const stdFnDefRe = /^\[\^(\w+)\]:\s+(.+)$/gm
   let stdFnMatch: RegExpExecArray | null
   while ((stdFnMatch = stdFnDefRe.exec(processedMd)) !== null) {
     const label = stdFnMatch[1]
-    if (!stdFootnotes.find(f => f.label === label)) {
+    if (!stdFnLabels.has(label)) {
+      stdFnLabels.add(label)
       stdFootnotes.push({ label, definition: stdFnMatch[2].trim() })
     }
   }
@@ -274,7 +278,8 @@ export function parseMarkdown(
     fnParts.push(`<section style="font-size:${fontSize.md};color:${color.inkMuted};line-height:${lineHeight.loosest}">`)
     // Link-style footnotes [text](url "desc")
     footnotes.forEach((fn, idx) => {
-      fnParts.push(`<p style="margin:${spacing[2]} 0px"><span style="color:${t.accent};font-weight:${fontWeight.semibold}">[${idx + 1}]</span> ${leaf(fn.desc)}：<a href="${esc(fn.url)}" style="color:${t.accent};word-break:break-all">${esc(fn.url)}</a></p>`)
+      const fnUrl = safeUrl(fn.url, 'href')
+      fnParts.push(`<p style="margin:${spacing[2]} 0px"><span style="color:${t.accent};font-weight:${fontWeight.semibold}">[${idx + 1}]</span> ${leaf(fn.desc)}：<a href="${esc(fnUrl)}" style="color:${t.accent};word-break:break-all">${esc(fnUrl)}</a></p>`)
     })
     // Standard footnotes [^label]: definition
     stdFootnotes.forEach((fn, idx) => {

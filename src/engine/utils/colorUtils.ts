@@ -54,7 +54,7 @@ export const NAMED_COLORS: Record<string, string> = {
  * @returns 标准 hex 字符串，如 '#e74c3c'；无法解析时返回原值
  */
 export function resolveColor(color: string): string {
-  if (!color) return color
+  if (!color) return '#000000'
   // 已经是 hex
   if (color.startsWith('#')) return color
   // rgb/rgba → hex

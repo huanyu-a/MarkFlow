@@ -37,7 +37,7 @@ export const Engage_DA02 = {
       ],
     },
   ],
-  render(attrs: Record<string, string> = {}, _body: string = '', _t: unknown = ''): string {
+  render(attrs: Record<string, string>, _body: string, ..._rest: unknown[]): string {
     const title = attrs.title || '感谢你的阅读与支持！'
     const subtitle = attrs.subtitle || '喜欢就互动一下吧～ 💚'
     const colors = parseColors(attrs.color)

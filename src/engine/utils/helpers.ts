@@ -98,6 +98,42 @@ export function withAlpha(color: string, alpha = 0.06): string {
   return `color-mix(in srgb, ${color} ${Math.round(alpha * 100)}%, transparent)`
 }
 
+/**
+ * 安全 URL 白名单校验
+ * 防止 javascript:、data:text/html 等危险协议注入 src/href 属性
+ * @param url  待校验的 URL
+ * @param type 'src' 允许 data:image/* / data:font/* / http/https / img://
+ *             'href' 允许 http/https / mailto: / tel: / 相对路径 / 锚点
+ * @returns 安全 URL，危险协议返回 'about:blank'
+ */
+export function safeUrl(url: string, type: 'src' | 'href' = 'src'): string {
+  if (!url) return url
+  const trimmed = url.trim()
+  // 相对路径和锚点始终安全
+  if (trimmed.startsWith('/') || trimmed.startsWith('#') || trimmed.startsWith('.')) return trimmed
+  if (type === 'href') {
+    // href 额外允许 mailto: / tel:
+    if (/^mailto:/i.test(trimmed) || /^tel:/i.test(trimmed)) return trimmed
+  }
+  try {
+    const protocol = new URL(trimmed).protocol.toLowerCase()
+    if (protocol === 'http:' || protocol === 'https:') return trimmed
+    if (type === 'src') {
+      if (protocol === 'data:') {
+        // 仅允许安全的 data: 类型
+        if (/^data:image\//.test(trimmed) || /^data:font\//.test(trimmed)) return trimmed
+        return 'about:blank'
+      }
+      if (protocol === 'img:') return trimmed // 内部 img:// 协议
+    }
+  } catch {
+    // URL 构造失败（不含 :// 的合法相对路径等）
+    // 不包含协议分隔符的视为安全文本
+    if (!trimmed.includes(':')) return trimmed
+  }
+  return 'about:blank'
+}
+
 export function parseAttrs(s: string): Record<string, string> {
   const attrs: Record<string, string> = {}
   // 匹配 key="value"、key=value（无引号）和无值布尔属性（如 round）
