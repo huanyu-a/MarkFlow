@@ -90,7 +90,7 @@ export const Img_DA01 = {
       description: '图片 y 轴偏移效果，如 10px / -20px / 50%',
     },
   ],
-  example: `<img src="https://robocopmao.github.io/r-markdown/banner4.webp" alt="示例图片" width="100%" height="auto" radius="8px" fit="cover" align="left" left="10px" top="5px" />`,
+  example: `<img src="https://robocopmao.github.io/r-markdown/banner4.webp" alt="模块化排版引擎架构示意图：Markdown 解析层 → 模块匹配层 → 主题令牌注入 → 内联样式 HTML 输出" width="100%" height="auto" radius="8px" fit="cover" align="left" left="10px" top="5px" />`,
 
   render(attrs: Record<string, string>, _body: string, _t: ThemeColors, marginSize: string = '24px'): string {
     const src = attrs.src || ''

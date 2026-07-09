@@ -19,6 +19,7 @@ interface ArticleModeProps {
 }
 
 export function ArticleMode({ markdown, setMarkdown, colors, onToast }: ArticleModeProps) {
+  const themeTokens = useStore((s) => s.themeTokens)
   const guideTrigger = useStore((s) => s.guideTrigger.article)
   // store ↔ 编辑器双向同步（防抖回写 + 外部变更信号）
   const {
@@ -32,8 +33,8 @@ export function ArticleMode({ markdown, setMarkdown, colors, onToast }: ArticleM
   const [mermaidMap, setMermaidMap] = useState<Map<string, { svg: string; error?: string }> | undefined>(undefined)
 
   const rendered = useMemo(
-    () => renderMarkdown(debouncedMarkdown, colors, mermaidMap, onToast),
-    [debouncedMarkdown, colors, mermaidMap, onToast],
+    () => renderMarkdown(debouncedMarkdown, colors, mermaidMap, onToast, themeTokens),
+    [debouncedMarkdown, colors, mermaidMap, onToast, themeTokens],
   )
   const editorScrollerRef = useRef<HTMLElement | null>(null)
   const previewScrollRef = useRef<HTMLDivElement>(null)

@@ -58,6 +58,7 @@ export function AiTypesetPanel({ mode, onToast, onClose, autoRun }: AiTypesetPan
   // AI 配置统一从 store 读取（在设置弹窗中配置）
   const aiConfig = useStore((s) => s.aiConfig)
   const colors = useStore((s) => s.colors)
+  const themeTokens = useStore((s) => s.themeTokens)
   const { fullscreen, toggleFullscreen } = usePanelFullscreen()
 
   // AI 调用状态
@@ -84,11 +85,11 @@ export function AiTypesetPanel({ mode, onToast, onClose, autoRun }: AiTypesetPan
   const originalRendered = useMemo(() => {
     if (!beforeContentRef.current) return null
     try {
-      return renderMarkdown(beforeContentRef.current, colors)
+      return renderMarkdown(beforeContentRef.current, colors, undefined, undefined, themeTokens)
     } catch {
       return null
     }
-  }, [beforeContentRef.current, colors])
+  }, [beforeContentRef.current, colors, themeTokens])
 
   const resultRendered = useMemo(() => {
     if (!streamingResult.trim()) return null
@@ -97,11 +98,11 @@ export function AiTypesetPanel({ mode, onToast, onClose, autoRun }: AiTypesetPan
     const fenceMatch = content.match(/^```(?:markdown|md|html)?\s*\n([\s\S]*?)\n```\s*$/i)
     if (fenceMatch) content = fenceMatch[1].trim()
     try {
-      return renderMarkdown(content, colors)
+      return renderMarkdown(content, colors, undefined, undefined, themeTokens)
     } catch {
       return null
     }
-  }, [streamingResult, colors])
+  }, [streamingResult, colors, themeTokens])
 
   // 撤销
   const handleUndo = useCallback(() => {

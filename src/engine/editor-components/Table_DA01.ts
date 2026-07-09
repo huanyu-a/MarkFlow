@@ -23,6 +23,7 @@ import type { ThemeColors } from '@engine/composables/useTheme'
 import { fontSize, fontWeight, neutral, radius, spacing } from '@engine/tokens'
 import { esc } from '@engine/utils/helpers'
 import { inlineFormat } from '@engine/utils/inlineFormat'
+import { buildUnifiedRenderer, type UnifiedComponentDef } from './unifiedRender'
 
 function parseRow(rowStr: string): string[] {
   let s = rowStr.trim()
@@ -130,25 +131,33 @@ function renderTable(attrs: Record<string, string>, body: string, t: ThemeColors
   return html
 }
 
-export const Table_DA01 = {
-  id: 'Table_DA01',
-  name: '表格',
-  tag: 'table',
-  description: 'Markdown 表格，支持 default / striped / card 三种风格',
-  attrs: [
-    { key: 'style', label: '表格风格', required: false, default: 'default', options: ['default', 'striped', 'card'] },
-  ],
-  example: `::: table style=card 项目进度表
-| 任务名称 | 负责人 | 状态 | 截止日期 |
-|----------|--------|------|----------|
-| 需求分析 | 张三 | 已完成 | 2024-01-15 |
-| UI 设计 | 李四 | 进行中 | 2024-02-01 |
-| 后端开发 | 王五 | 未开始 | 2024-03-10 |
-| 测试验收 | 赵六 | 未开始 | 2024-03-31 |
+export const Table_DA01: UnifiedComponentDef = {
+  spec: {
+    name: 'table',
+    label: '表格',
+    bodyFormat: 'markdown',
+    example: `:::table style="card" title="四种输出模式对比"
+| 输出方式 | 适合场景 | 输出格式 | 特点 |
+|----------|----------|----------|------|
+| 复制富文本 | 公众号、知乎、语雀 | HTML 内联样式 | 保留完整排版，粘贴即用 |
+| 导出长图 | 知识星球、社群传播 | PNG 长图 | 整篇内容一张图，方便转发 |
+| A4 文档 | 正式报告、打印交付 | PDF | 自动分页，支持页码页眉 |
+| 自由画布 | 网页 PPT、品牌页面 | HTML 源码 | 高度视觉化，可嵌入任意网页 |
 :::
-数据截止至 2024-03-31`,
+数据来源：MarkFlow 使用统计（2026 年 6 月）`,
+    fields: [
+      { name: 'style', required: false, description: '表格风格（default/striped/card）' },
+      { name: 'title', required: false, description: '标题' },
+    ],
+  },
 
-  render(attrs: Record<string, string>, body: string, t: ThemeColors): string {
+  render(attrs, _rawBody, body, t) {
+    return renderTable(attrs, body.markdown, t)
+  },
+
+  renderLegacy(attrs, body, t) {
     return renderTable(attrs, body, t)
   },
 }
+
+export const tableRenderer = buildUnifiedRenderer(Table_DA01)

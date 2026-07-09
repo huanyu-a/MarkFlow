@@ -18,7 +18,7 @@ export const Statement_DA01 = {
   name: '居中强调语',
   tag: 'statement',
   attrs: [{ key: 'color', label: '文字颜色', required: false, default: '' }],
-  example: `<statement color="#7c3aed">这是一段居中的强调文字，适合用来突出核心观点或结论。</statement>`,
+  example: `<statement>好排版不是让文章变好看，而是让读者在 3 秒内决定「这篇文章值得读」。</statement>`,
 
   render(attrs: Record<string, string>, body: string, _t: ThemeColors): string {
     const color = attrs.color || 'rgb(51,65,85)'

@@ -7,13 +7,13 @@ import { color, fontSize, fontWeight, letterSpacing, lineHeight, radius, spacing
  * CTA_DA01 - 行动号召卡片（默认A型01号样式）
  *
  * 编辑器语法：
- *   <cta label="GET STARTED" title="准备好开始你的创作了吗？" button="立即复制下方代码">
+ *   <cta label="GET STARTED" title="准备好开始你的创作了吗？" action="立即复制下方代码">
  *   </cta>
  *
  * 属性：
- *   label   - 标签文字（如 GET STARTED）
- *   title   - 标题
- *   button  - 按钮文字
+ *   label  - 标签文字（如 GET STARTED）
+ *   title  - 标题
+ *   action - 按钮文字
  *   color   - 自定义颜色（默认使用主题色）
  *   light   - 浅色背景（设置为任意值启用浅色背景模式）
  */
@@ -38,7 +38,7 @@ export const CTA_DA01 = {
       description: '主标题文字，用于号召行动',
     },
     {
-      key: 'button',
+      key: 'action',
       label: '按钮文字',
       required: false,
       default: '',
@@ -59,7 +59,7 @@ export const CTA_DA01 = {
       description: '设置为任意值启用浅色背景模式',
     },
   ],
-  example: `<cta label="GET STARTED" title="准备好开始你的创作了吗？" button="立即复制下方代码" color="#6366f1" light="true"></cta>`,
+  example: `<cta label="GET STARTED" title="准备好用模块化排版改造你的下一篇文章了吗？" action="打开组件库 → 挑选模块 → 开始创作"></cta>`,
 
   render(attrs: Record<string, string>, body: string, t: ThemeColors): string {
     const hex = resolveColor(attrs.color || t.accent)
@@ -75,8 +75,8 @@ export const CTA_DA01 = {
       if (attrs.title)
         html += `<p style="margin:0px 0px ${spacing[7]};font-size:${fontSize['4xl']};font-weight:${fontWeight.extrabold};line-height:${lineHeight.normal};color:${color.textPrimary}">${leaf(attrs.title)}</p>`
 
-      if (attrs.button)
-        html += `<span style="display:inline-block;padding:${spacing[5]} ${spacing[9]};background:${hex};border-radius:${radius.lg};font-weight:${fontWeight.bold};letter-spacing:${letterSpacing.widest};color:${color.surface}">${leaf(attrs.button)}</span>`
+      if (attrs.action)
+        html += `<span style="display:inline-block;padding:${spacing[5]} ${spacing[9]};background:${hex};border-radius:${radius.lg};font-weight:${fontWeight.bold};letter-spacing:${letterSpacing.widest};color:${color.surface}">${leaf(attrs.action)}</span>`
 
       if (body.trim())
         html += `<section style="margin-top:${spacing[7]};font-size:${fontSize.md};color:${color.ink};line-height:${lineHeight.looser}">${leaf(body.trim())}</section>`
@@ -95,8 +95,8 @@ export const CTA_DA01 = {
     if (attrs.title)
       html += `<p style="margin:0px 0px ${spacing[7]};font-size:${fontSize['4xl']};font-weight:${fontWeight.extrabold};line-height:${lineHeight.normal}">${leaf(attrs.title)}</p>`
 
-    if (attrs.button)
-      html += `<span style="display:inline-block;padding:${spacing[5]} ${spacing[9]};background:rgba(255,255,255,0.2);border-radius:${radius.lg};font-weight:${fontWeight.bold};letter-spacing:${letterSpacing.widest};backdrop-filter:blur(4px)">${leaf(attrs.button)}</span>`
+    if (attrs.action)
+      html += `<span style="display:inline-block;padding:${spacing[5]} ${spacing[9]};background:rgba(255,255,255,0.2);border-radius:${radius.lg};font-weight:${fontWeight.bold};letter-spacing:${letterSpacing.widest};backdrop-filter:blur(4px)">${leaf(attrs.action)}</span>`
 
     if (body.trim())
       html += `<section style="margin-top:${spacing[7]};font-size:${fontSize.md};opacity:0.85;line-height:${lineHeight.looser}">${leaf(body.trim())}</section>`

@@ -3,12 +3,11 @@ import { esc, leaf, parseAttrs } from './helpers'
 import { inlineFormat } from './inlineFormat'
 import { renderCodeBlock } from './codeBlock'
 import { getCachedImageUrl } from '@/lib/editor/imageStorage'
-import { color, fontSize, fontWeight, letterSpacing, lineHeight, neutral, radius, shadowRaw, spacing } from '../tokens'
+import { color, fontSize, fontWeight, letterSpacing, lineHeight, neutral, radius, shadowRaw, spacing, type ResolvedTokens } from '../tokens'
 import {
   parseCtaBlock,
   parseCtaInline,
   parseCtaTag,
-  parseCompare,
   parseCallout,
   parseGallery,
 } from './components'
@@ -33,11 +32,15 @@ import { Table_DA01 } from '@engine/editor-components/Table_DA01'
 
 export interface BlockRenderContext {
   t: ThemeColors
+  /** 主题 resolve 后的令牌（主题化渲染时优先读取） */
+  tokens: ResolvedTokens
+  /** 原始静态令牌（兜底） */
+  tokensRaw: ResolvedTokens
   md: string
   formulaMap?: Map<string, string>
   mermaidMap?: Map<string, { svg: string; error?: string }>
   pTitleLevel1List: Array<{ num: string; title: string; subtitle: string }>
-  parseMarkdownFn?: (md: string, t: ThemeColors, formulaMap?: Map<string, string>, mermaidMap?: Map<string, { svg: string; error?: string }>) => string
+  parseMarkdownFn?: (md: string, t: ThemeColors, formulaMap?: Map<string, string>, mermaidMap?: Map<string, { svg: string; error?: string }>, tokens?: ResolvedTokens) => string
 }
 
 export interface BlockRenderResult {
@@ -143,6 +146,11 @@ function hasImageAbove(lines: string[], index: number): boolean {
   return false
 }
 
+/** 从 ctx.tokens 读取主题化值，未覆盖时回落 ctx.tokensRaw（基础静态令牌） */
+function tk(ctx: BlockRenderContext): ResolvedTokens {
+  return ctx.tokens ?? ctx.tokensRaw
+}
+
 function hasTableBelow(lines: string[], index: number): boolean {
   for (let k = index + 1; k < lines.length; k++) {
     const line = lines[k].trim()
@@ -162,10 +170,15 @@ const emptyLineRenderer: BlockRenderer = {
 const separatorRenderer: BlockRenderer = {
   name: 'separator',
   match: (line) => /^---+\s*$/.test(line.trim()),
-  render: (_ctx, _line, _lines, i) => ({
-    html: `<section style="border:none;height:1px;background:linear-gradient(90deg,transparent,${neutral.gray350},transparent);margin:${spacing[10]} 0px"></section>`,
-    next: i + 1,
-  }),
+  render: (ctx, _line, _lines, i) => {
+    const tokens = tk(ctx)
+    const isDark = tokens.headingColor === 'accent' || tokens.headingColor === 'dark'
+    const lineColor = isDark ? `${ctx.t.accent}55` : neutral.gray350
+    return {
+      html: `<section style="border:none;height:1px;background:linear-gradient(90deg,transparent,${lineColor},transparent);margin:${spacing[10]} 0px"></section>`,
+      next: i + 1,
+    }
+  },
 }
 
 const stepsRenderer: BlockRenderer = {
@@ -181,7 +194,7 @@ const stepsRenderer: BlockRenderer = {
       .filter((l: string) => /^-\s*.+\s*\|\s*.+/.test(l.trim())).length
     const useDA02 = block.attrs.type === 'DA02' || (!block.attrs.type && stepCount > 3)
     const renderer = useDA02 ? Steps_DA02 : Steps_DA01
-    return { html: renderer.render(block.attrs, block.body, ctx.t), next: block.next, warning: block.warning }
+    return { html: renderer.renderLegacy(block.attrs, block.body, ctx.t), next: block.next, warning: block.warning }
   },
 }
 
@@ -249,7 +262,7 @@ const hintContainerRenderer: BlockRenderer = {
     const renderBody = (text: string): string => {
       if (!text) return ''
       return ctx.parseMarkdownFn
-        ? ctx.parseMarkdownFn(text, ctx.t, ctx.formulaMap, ctx.mermaidMap)
+        ? ctx.parseMarkdownFn(text, ctx.t, ctx.formulaMap, ctx.mermaidMap, ctx.tokens)
         : inlineFormat(text, ctx.t, ctx.formulaMap)
     }
 
@@ -261,7 +274,8 @@ const hintContainerRenderer: BlockRenderer = {
     const title = customTitle || defaultTitles[type] || type
     const bg = bgs[type] || '#f0f4fa'
     const accent = accents[type] || ctx.t.accent
-    let html = `<section style="margin:${spacing[7]} 0px;padding:${spacing[7]} ${spacing[6]};background:${bg};border-left:4px solid ${accent};border-radius:0px ${radius.xl} ${radius.xl} 0px">`
+    const r = tk(ctx).radiusMap
+    let html = `<section style="margin:${spacing[7]} 0px;padding:${spacing[7]} ${spacing[6]};background:${bg};border-left:4px solid ${accent};border-radius:0px ${r.xl} ${r.xl} 0px">`
     html += `<p style="margin:0px 0px ${spacing[2]};font-size:${fontSize.xl};font-weight:${fontWeight.bold};color:${accent}">${esc((icons[type] || '') + ' ' + title)}</p>`
     if (body) {
       html += `<section style="font-size:${fontSize.xl};color:${neutral.gray700};line-height:${lineHeight.looser};letter-spacing:${letterSpacing.wider};text-align:justify">${renderBody(body)}</section>`
@@ -331,7 +345,7 @@ const tableContainerRenderer: BlockRenderer = {
     }
 
     // 使用 Table_DA01 渲染表格（返回完整闭合 HTML）
-    html += Table_DA01.render(attrs, markdownBody, t)
+    html += Table_DA01.renderLegacy(attrs, markdownBody, t)
 
     // Footer
     if (footer) {
@@ -350,7 +364,7 @@ const alignRenderer: BlockRenderer = {
   render: (ctx, _line, lines, i) => {
     const block = extractBlock(lines, i, /^<align\b([^>]*)>(.*)$/, /<\/align>/)
     if (!block) return null
-    return { html: Align_DA01.render(block.attrs, block.body, ctx.t), next: block.next, warning: block.warning }
+    return { html: Align_DA01.renderLegacy(block.attrs, block.body, ctx.t), next: block.next, warning: block.warning }
   },
 }
 
@@ -372,7 +386,7 @@ const breakingRenderer: BlockRenderer = {
       extractBlock(lines, i, /^<breaking\b([^>]*)>(.*)$/, /<\/breaking>/) ||
       extractBlock(lines, i, /^<breaking\b([^>]*)>/, /<\/breaking>/)
     if (!block) return null
-    return { html: Breaking_DA01.render(block.attrs, block.body, ctx.t), next: block.next, warning: block.warning }
+    return { html: Breaking_DA01.renderLegacy(block.attrs, block.body, ctx.t), next: block.next, warning: block.warning }
   },
 }
 
@@ -387,11 +401,7 @@ const ctaRenderer: BlockRenderer = {
   },
 }
 
-const compareRenderer: BlockRenderer = {
-  name: 'compare',
-  match: (line) => /^<compare\b/.test(line),
-  render: (ctx, _line, lines, i) => parseCompare(lines, i, ctx.t),
-}
+// compareRenderer 已移除，对比功能由 :::compare（Layout_DA08）提供
 
 const readingPathRenderer: BlockRenderer = {
   name: 'readingPath',
@@ -499,13 +509,17 @@ const quoteRenderer: BlockRenderer = {
   match: (line) => /^>/.test(line),
   render: (ctx, _line, lines, i) => {
     const { t, formulaMap } = ctx
+    const tokens = tk(ctx)
     const ql: string[] = []
     let j = i
     while (j < lines.length && /^>/.test(lines[j])) {
       ql.push(lines[j].replace(/^>\s?/, ''))
       j++
     }
-    let html = `<section style="margin:${spacing[6]} 0px;padding:${spacing[5]} ${spacing[7]};background:${neutral.gray150};border-left:3px solid ${t.accent};border-radius:0px ${radius.md} ${radius.md} 0px;color:${neutral.gray700};font-size:${fontSize.xl}">`
+    // 根据主题 quoteStyle 决定引用块外观
+    const quoteBg = tokens.quote.bg === 'transparent' ? 'transparent' : t.accent + '12'
+    const quoteBorder = tokens.quote.bg === 'transparent' ? `3px solid ${t.accent}` : `1px solid ${t.accent}33`
+    let html = `<section style="margin:${spacing[6]} 0px;padding:${spacing[5]} ${spacing[7]};background:${quoteBg};border-left:${quoteBorder};border-radius:0px ${tokens.quote.borderRadius} ${tokens.quote.borderRadius} 0px;color:${neutral.gray700};font-size:${tokens.bodyFontSize}">`
     ql.forEach((l) => {
       html += `<section><p style="margin:${spacing[1]} 0px;line-height:${lineHeight.loosest};text-align:justify;letter-spacing:${letterSpacing.wider}">${inlineFormat(l, t, formulaMap)}</p></section>`
     })
@@ -522,7 +536,7 @@ const caseFlowTagRenderer: BlockRenderer = {
       extractBlock(lines, i, /^<case-flow\b([^>]*)>(.*)$/, /<\/case-flow>/) ||
       extractBlock(lines, i, /^<case-flow\b([^>]*)>/, /<\/case-flow>/)
     if (!block) return null
-    return { html: LabeledFlow_DA01.render(block.attrs, block.body, ctx.t), next: block.next, warning: block.warning }
+    return { html: LabeledFlow_DA01.renderLegacy(block.attrs, block.body, ctx.t), next: block.next, warning: block.warning }
   },
 }
 
@@ -536,7 +550,7 @@ const caseFlowInlineRenderer: BlockRenderer = {
       caseLines.push(lines[j])
       j++
     }
-    return { html: LabeledFlow_DA01.render({}, caseLines.join('\n'), ctx.t), next: j }
+    return { html: LabeledFlow_DA01.renderLegacy({}, caseLines.join('\n'), ctx.t), next: j }
   },
 }
 
@@ -548,7 +562,7 @@ const timelineRenderer: BlockRenderer = {
       extractBlock(lines, i, /^<timeline\b([^>]*)>(.*)$/, /<\/timeline>/) ||
       extractBlock(lines, i, /^<timeline\b([^>]*)>/, /<\/timeline>/)
     if (!block) return null
-    return { html: Timeline_DA01.render(block.attrs, block.body, ctx.t), next: block.next, warning: block.warning }
+    return { html: Timeline_DA01.renderLegacy(block.attrs, block.body, ctx.t), next: block.next, warning: block.warning }
   },
 }
 
@@ -558,7 +572,7 @@ const sliderRenderer: BlockRenderer = {
   render: (ctx, _line, lines, i) => {
     const block = extractBlock(lines, i, /^<slider\b([^>]*)>(.*)$/, /<\/slider>/)
     if (!block) return null
-    return { html: Slider_DA01.render(block.attrs, block.body, ctx.t), next: block.next, warning: block.warning }
+    return { html: Slider_DA01.renderLegacy(block.attrs, block.body, ctx.t), next: block.next, warning: block.warning }
   },
 }
 
@@ -579,45 +593,52 @@ const headingRenderer: BlockRenderer = {
   match: (line) => /^#{1,6}\s+/.test(line),
   render: (ctx, line, _lines, i) => {
     const { t, formulaMap } = ctx
+    const tokens = tk(ctx)
+    const headingColor = tokens.headingColor === 'accent'
+      ? t.accent
+      : tokens.headingColor === 'dark'
+        ? t.dark
+        : color.textPrimary
+    const headingWeight = tokens.headingWeight
     const h1m = line.match(/^#\s+(.+)/)
     if (h1m) {
       return {
-        html: `<h1 style="margin:0px 0px ${spacing[7]};font-size:${fontSize['6xl']};font-weight:${fontWeight.bold};color:${color.textPrimary};line-height:${lineHeight.normal}">${inlineFormat(h1m[1], t, formulaMap)}</h1>`,
+        html: `<h1 style="margin:0px 0px ${spacing[7]};font-size:${tokens.headingSizes[1]};font-weight:${headingWeight};color:${headingColor};line-height:${lineHeight.normal}">${inlineFormat(h1m[1], t, formulaMap)}</h1>`,
         next: i + 1,
       }
     }
     const h2m = line.match(/^##\s+(.+)/)
     if (h2m) {
       return {
-        html: `<h2 style="margin:${spacing[11]} 0px ${spacing[5]};font-size:${fontSize['4xl']};font-weight:${fontWeight.bold};color:${color.textPrimary};line-height:${lineHeight.normal}">${inlineFormat(h2m[1], t, formulaMap)}</h2>`,
+        html: `<h2 style="margin:${spacing[11]} 0px ${spacing[5]};font-size:${tokens.headingSizes[2]};font-weight:${headingWeight};color:${headingColor};line-height:${lineHeight.normal}">${inlineFormat(h2m[1], t, formulaMap)}</h2>`,
         next: i + 1,
       }
     }
     const h3m = line.match(/^###\s+(.+)/)
     if (h3m) {
       return {
-        html: `<h3 style="margin:${spacing[10]} 0px ${spacing[4]};font-size:${fontSize['2xl']};font-weight:${fontWeight.bold};color:${color.inkStrong};line-height:${lineHeight.normal}">${inlineFormat(h3m[1], t, formulaMap)}</h3>`,
+        html: `<h3 style="margin:${spacing[10]} 0px ${spacing[4]};font-size:${tokens.headingSizes[3]};font-weight:${headingWeight};color:${headingColor};line-height:${lineHeight.normal}">${inlineFormat(h3m[1], t, formulaMap)}</h3>`,
         next: i + 1,
       }
     }
     const h4m = line.match(/^####\s+(.+)/)
     if (h4m) {
       return {
-        html: `<h4 style="margin:${spacing[9]} 0px ${spacing[3]};font-size:${fontSize.lg};font-weight:${fontWeight.bold};color:${color.textQuaternary};line-height:${lineHeight.normal}">${inlineFormat(h4m[1], t, formulaMap)}</h4>`,
+        html: `<h4 style="margin:${spacing[9]} 0px ${spacing[3]};font-size:${tokens.headingSizes[4]};font-weight:${headingWeight};color:${color.textQuaternary};line-height:${lineHeight.normal}">${inlineFormat(h4m[1], t, formulaMap)}</h4>`,
         next: i + 1,
       }
     }
     const h5m = line.match(/^#####\s+(.+)/)
     if (h5m) {
       return {
-        html: `<h5 style="margin:${spacing[8]} 0px ${spacing[2]};font-size:${fontSize.base};font-weight:${fontWeight.bold};color:${color.textQuaternary};line-height:${lineHeight.normal}">${inlineFormat(h5m[1], t, formulaMap)}</h5>`,
+        html: `<h5 style="margin:${spacing[8]} 0px ${spacing[2]};font-size:${tokens.headingSizes[5]};font-weight:${headingWeight};color:${color.textQuaternary};line-height:${lineHeight.normal}">${inlineFormat(h5m[1], t, formulaMap)}</h5>`,
         next: i + 1,
       }
     }
     const h6m = line.match(/^######\s+(.+)/)
     if (h6m) {
       return {
-        html: `<h6 style="margin:${spacing[8]} 0px ${spacing[2]};font-size:${fontSize.sm};font-weight:${fontWeight.bold};color:${color.textQuaternary};line-height:${lineHeight.normal};text-transform:uppercase;letter-spacing:${letterSpacing.wider}">${inlineFormat(h6m[1], t, formulaMap)}</h6>`,
+        html: `<h6 style="margin:${spacing[8]} 0px ${spacing[2]};font-size:${tokens.headingSizes[6]};font-weight:${headingWeight};color:${color.textQuaternary};line-height:${lineHeight.normal};text-transform:uppercase;letter-spacing:${letterSpacing.wider}">${inlineFormat(h6m[1], t, formulaMap)}</h6>`,
         next: i + 1,
       }
     }
@@ -715,6 +736,7 @@ const tableRenderer: BlockRenderer = {
       j++
     }
     const colCount = Math.max(headers.length, ...rows.map(r => r.length), 2)
+    const r = tk(ctx).radiusMap
 
     let html = ''
     if (isContinuation) {
@@ -722,7 +744,7 @@ const tableRenderer: BlockRenderer = {
     }
 
     // 卡片容器 — 圆角阴影风格
-    html += `<section style="margin:${spacing[7]} 0px;background:#fff;border-radius:${radius['2xl']};overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.06),0 1px 2px rgba(0,0,0,0.04)">`
+    html += `<section style="margin:${spacing[7]} 0px;background:#fff;border-radius:${r['2xl']};overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.06),0 1px 2px rgba(0,0,0,0.04)">`
     html += `<section style="overflow-x:auto"><table style="border-collapse:collapse;width:100%">`
 
     // 表头 — 渐变底色
@@ -730,10 +752,10 @@ const tableRenderer: BlockRenderer = {
     headers.forEach((h, hi) => {
       const isFirst = hi === 0
       const isLast = hi === headers.length - 1
-      html += `<th style="vertical-align:top;padding:13px ${spacing[6]};text-align:left;font-size:13px;font-weight:${fontWeight.semibold};color:#fff;background:${t.accent};${isFirst ? `border-radius:${radius['2xl']} 0 0 0` : ''}${isLast ? `border-radius:0 ${radius['2xl']} 0 0` : ''};letter-spacing:0.3px">${inlineFormat(h, t, formulaMap) || '&nbsp;'}</th>`
+      html += `<th style="vertical-align:top;padding:13px ${spacing[6]};text-align:left;font-size:13px;font-weight:${fontWeight.semibold};color:#fff;background:${t.accent};${isFirst ? `border-radius:${r['2xl']} 0 0 0` : ''}${isLast ? `border-radius:0 ${r['2xl']} 0 0` : ''};letter-spacing:0.3px">${inlineFormat(h, t, formulaMap) || '&nbsp;'}</th>`
     })
     for (let k = headers.length; k < colCount; k++) {
-      html += `<th style="vertical-align:top;padding:13px ${spacing[6]};text-align:left;font-size:13px;font-weight:${fontWeight.semibold};color:#fff;background:${t.accent};border-radius:0 ${radius['2xl']} 0 0;letter-spacing:0.3px">&nbsp;</th>`
+      html += `<th style="vertical-align:top;padding:13px ${spacing[6]};text-align:left;font-size:13px;font-weight:${fontWeight.semibold};color:#fff;background:${t.accent};border-radius:0 ${r['2xl']} 0 0;letter-spacing:0.3px">&nbsp;</th>`
     }
     html += `</tr></thead>`
 
@@ -755,7 +777,7 @@ const tableRenderer: BlockRenderer = {
         const isLastCell = isLastRow && isLast
         const isFirstCell = isLastRow && isFirst
         const borderStyle = (isLastRow && !footer) ? 'border-bottom:none' : `border-bottom:1px solid ${neutral.gray100}`
-        const radiusStyle = (isFirstCell && !footer) ? `border-radius:0 0 0 ${radius['2xl']}` : (isLastCell && !footer) ? `border-radius:0 0 ${radius['2xl']} 0` : ''
+        const radiusStyle = (isFirstCell && !footer) ? `border-radius:0 0 0 ${r['2xl']}` : (isLastCell && !footer) ? `border-radius:0 0 ${r['2xl']} 0` : ''
         const bgStyle = ri % 2 === 1 ? `background:${neutral.gray50}` : 'background:#fff'
         html += `<td style="vertical-align:top;padding:11px ${spacing[6]};text-align:left;font-size:13px;color:#475569;${borderStyle};${radiusStyle};${bgStyle}">${inlineFormat(cell, t, formulaMap) || '&nbsp;'}</td>`
       })
@@ -768,7 +790,7 @@ const tableRenderer: BlockRenderer = {
 
     // Footer
     if (footer) {
-      html += `<tfoot><tr><td colspan="${colCount}" style="padding:9px ${spacing[6]};text-align:center;font-size:11px;color:#94a3b8;background:linear-gradient(180deg,${neutral.gray50} 0%,#f1f5f9 100%);border-top:1px solid ${neutral.gray200};border-radius:0 0 ${radius['2xl']} ${radius['2xl']}">${esc(footer)}</td></tr></tfoot>`
+      html += `<tfoot><tr><td colspan="${colCount}" style="padding:9px ${spacing[6]};text-align:center;font-size:11px;color:#94a3b8;background:linear-gradient(180deg,${neutral.gray50} 0%,#f1f5f9 100%);border-top:1px solid ${neutral.gray200};border-radius:0 0 ${r['2xl']} ${r['2xl']}">${esc(footer)}</td></tr></tfoot>`
     }
 
     html += `</table></section></section>`
@@ -860,7 +882,7 @@ const govHeaderRenderer: BlockRenderer = {
   render: (ctx, _line, lines, i) => {
     const block = extractBlock(lines, i, /^<gov-header\b([^>]*)>(.*)$/, /<\/gov-header>/)
     if (!block) return null
-    return { html: GovHeader_DA01.render(block.attrs, block.body, ctx.t), next: block.next, warning: block.warning }
+    return { html: GovHeader_DA01.renderLegacy(block.attrs, block.body, ctx.t), next: block.next, warning: block.warning }
   },
 }
 
@@ -871,6 +893,7 @@ const paragraphRenderer: BlockRenderer = {
   match: () => true,
   render: (ctx, line, lines, i) => {
     const { t, formulaMap } = ctx
+    const tokens = tk(ctx)
     const trimmedLine = line.trim()
     const cleanLine = trimmedLine
       .replace(/^(\*\*|\*|__|_)*/, '')
@@ -904,11 +927,16 @@ const paragraphRenderer: BlockRenderer = {
       const sectionStyle = isTableCaption ? `margin:${spacing[7]} 0px ${spacing[4]}` : `margin:${spacing[4]} 0px ${spacing[7]}`
       html += `<section data-caption-kind="${captionKind}" style="${sectionStyle};display:flex;justify-content:center;width:100%"><p class="${captionClass}" style="margin:0px;font-size:${fontSize.base};color:${color.inkMuted};line-height:${lineHeight.relaxed};text-align:center;white-space:nowrap">${inlineFormat(trimmedLine, t, formulaMap)}</p></section>`
     } else {
-      html += `<section style="margin:0px 0px ${spacing[10]}"><p style="margin:0px;font-size:${fontSize.xl};color:${color.textTertiary};line-height:${lineHeight.document};letter-spacing:${letterSpacing.wider};text-align:justify;overflow-wrap:break-word">${inlineFormat(line, t, formulaMap)}</p></section>`
+      html += `<section style="margin:0px 0px ${spacing[10]}"><p style="margin:0px;font-size:${tokens.bodyFontSize};color:${color.textTertiary};line-height:${tokens.bodyLineHeight};letter-spacing:${letterSpacing.wider};text-align:justify;overflow-wrap:break-word">${inlineFormat(line, t, formulaMap)}</p></section>`
     }
     return { html, next: i + 1 }
   },
 }
+
+// 排版模块 renderer 由 layout-modules 统一注册
+import { layoutModuleRenderers } from '../layout-modules'
+// 统一 ::: 容器 renderer（基础组件多行版）
+import { unifiedRenderers } from '../editor-components/unifiedRegistry'
 
 export function createDefaultBlockRenderers(): BlockRenderer[] {
   // 按 priority 升序排列（数字越小越优先匹配），未指定 priority 的默认 100。
@@ -927,7 +955,6 @@ export function createDefaultBlockRenderers(): BlockRenderer[] {
     leadTagRenderer,
     breakingRenderer,
     ctaRenderer,
-    compareRenderer,
     readingPathRenderer,
     titleRenderer,
     pTitleRenderer,
@@ -949,5 +976,9 @@ export function createDefaultBlockRenderers(): BlockRenderer[] {
     imgTagRenderer,
     govHeaderRenderer,
     paragraphRenderer,
+    // ★ 排版模块（统一由 layout-modules/index 收集）
+    ...layoutModuleRenderers,
+    // ★ 统一 ::: 容器 renderer（基础多行组件）
+    ...unifiedRenderers,
   ].sort((a, b) => (a.priority ?? 100) - (b.priority ?? 100))
 }

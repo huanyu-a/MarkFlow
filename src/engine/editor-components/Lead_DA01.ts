@@ -27,7 +27,7 @@ export const Lead_DA01 = {
     { key: 'bg', label: '背景颜色', required: false, default: '' },
     { key: 'round', label: '圆角', required: false, default: '' },
   ],
-  example: `<lead color="#7c3aed" text-color="#4a5568" bg="#f8f7ff" round="12px">在开始之前，先聊一个背景：最近几年，越来越多的人开始重新审视自己的生活方式。</lead>`,
+  example: `<lead>在开始之前，先聊一个背景：过去三年，内容创作者的平均产出量增长了 4 倍，但读者的平均阅读完成率却下降了 28%。问题不在内容质量——而在「信息呈现」的方式没有跟上读者注意力的变化。这篇指南将带你用模块化排版，把每一篇文章都变成读者愿意读完的样子。</lead>`,
 
   render(attrs: Record<string, string>, body: string, t: ThemeColors): string {
     const color = attrs.color || t.accent

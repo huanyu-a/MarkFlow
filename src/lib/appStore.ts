@@ -1,6 +1,8 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { THEMES, makeColors, type ThemeColors } from '@engine/composables/useTheme'
+import { resolveTokens, type ResolvedTokens } from '@engine/tokens'
+import { THEME_PROFILES, getDefaultThemeProfile, getThemeProfile, resolveThemeProfile } from '@engine/themes'
 import { DEFAULT_DOCUMENT_SETTINGS, type DocumentSettings } from '@/modes/document/documentModel'
 import type { FontFamilyOption } from '@/lib/fonts'
 import type { OutputType, VisualTone } from '@/data/designPrompts'
@@ -152,6 +154,12 @@ export interface AppState {
   accent: string
   accentDark: string
   colors: ThemeColors
+  /** 当前主题风格 ID（对应 THEME_PROFILES 中的 id） */
+  themeProfileId: string
+  /** 当前主题 resolve 后的令牌 */
+  themeTokens: ResolvedTokens
+  /** 所有可用主题（供 UI 层展示） */
+  themeProfiles: typeof THEME_PROFILES
   // 图床设置
   imageHostConfig: ImageHostConfig
   setImageHostConfig: (config: Partial<ImageHostConfig>) => void
@@ -180,6 +188,8 @@ export interface AppState {
   setCardFont: (f: FontFamilyOption) => void
   restoreDocumentSettingsDemo: () => void
   setTheme: (accent: string, dark: string) => void
+  /** 切换主题风格（按 profile id），同步更新 accent/dark/colors/tokens */
+  setThemeProfile: (id: string) => void
 }
 
 export const useAppStore = create<AppState>()(
@@ -194,6 +204,9 @@ export const useAppStore = create<AppState>()(
       accent: DEFAULT_ACCENT,
       accentDark: DEFAULT_DARK,
       colors: makeColors(DEFAULT_ACCENT, DEFAULT_DARK),
+      themeProfileId: 'default',
+      themeTokens: resolveTokens(resolveThemeProfile(getDefaultThemeProfile())),
+      themeProfiles: THEME_PROFILES,
       imageHostConfig: DEFAULT_IMAGE_HOST_CONFIG,
       aiConfig: DEFAULT_AI_CONFIG,
       setAiConfig: (patch) =>
@@ -279,6 +292,17 @@ export const useAppStore = create<AppState>()(
         applyCssVars(accent, dark)
         set({ accent, accentDark: dark, colors: makeColors(accent, dark) })
       },
+      setThemeProfile: (id) => {
+        const profile = getThemeProfile(id) ?? getDefaultThemeProfile()
+        applyCssVars(profile.accent, profile.dark)
+        set({
+          themeProfileId: profile.id,
+          accent: profile.accent,
+          accentDark: profile.dark,
+          colors: makeColors(profile.accent, profile.dark),
+          themeTokens: resolveTokens(resolveThemeProfile(profile)),
+        })
+      },
     }),
     {
       name: 'm2v-app-store',
@@ -291,6 +315,7 @@ export const useAppStore = create<AppState>()(
         cardFont: state.cardFont,
         accent: state.accent,
         accentDark: state.accentDark,
+        themeProfileId: state.themeProfileId,
         imageHostConfig: stripImageHostSecrets(state.imageHostConfig),
         aiConfig: { apiUrl: state.aiConfig.apiUrl, apiKey: state.aiConfig.apiKey, model: state.aiConfig.model },
         allowIntranetResources: state.allowIntranetResources,
@@ -310,6 +335,14 @@ export const useAppStore = create<AppState>()(
             cardFont: legacy.cardFont ?? state.cardFont,
           })
         }
+
+        // 恢复主题风格：优先用已持久化的 themeProfileId，否则回退到默认主题
+        const persistedProfileId = state.themeProfileId
+        const profile = persistedProfileId
+          ? (getThemeProfile(persistedProfileId) ?? getDefaultThemeProfile())
+          : getDefaultThemeProfile()
+        state.themeProfileId = profile.id
+        state.themeTokens = resolveTokens(resolveThemeProfile(profile))
 
         state.colors = makeColors(state.accent, state.accentDark)
         applyCssVars(state.accent, state.accentDark)

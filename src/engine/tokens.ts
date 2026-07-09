@@ -9,6 +9,8 @@
  *   与引擎层在未来统一。
  */
 
+import type { ThemeTokenOverrides } from './themes'
+
 // ── 颜色 ───────────────────────────────────────────────
 
 /** 项目中性色板（对应引擎中实际使用的灰阶） */
@@ -203,4 +205,88 @@ export function style(
  */
 export function alphaAccent(accent: string, alphaHex: string): string {
   return `${accent}${alphaHex}`
+}
+
+// ── 主题令牌 resolve ───────────────────────────────────
+
+/**
+ * ResolvedTokens = 基础令牌 + 主题增量覆盖。
+ * renderer 优先读 ctx.tokens（已 resolve 的主题值），未设置时回落 ctx.tokensRaw。
+ */
+export interface ResolvedTokens {
+  /** h1-h6 各层级字号 */
+  headingSizes: Record<1 | 2 | 3 | 4 | 5 | 6, string>
+  /** 标题字重 */
+  headingWeight: string
+  /** 标题着色模式：textPrimary=中性色, accent=主题色, dark=深色 */
+  headingColor: 'textPrimary' | 'accent' | 'dark'
+  /** 正文字号 */
+  bodyFontSize: string
+  /** 正文行高 */
+  bodyLineHeight: string
+  /** 引用块风格参数 */
+  quote: {
+    borderRadius: string
+    /** transparent = 纯边框风格；否则 = 浅色背景（accent 10% 透明度由 renderer 计算） */
+    bg: string
+    border: string
+    /** 是否在 bg 风格下给文字也着强调色 */
+    accentText: boolean
+  }
+  /** 主题化圆角映射 */
+  radiusMap: Record<string, string>
+  /** 间距缩放（乘法器，renderer 按需使用） */
+  spacingMultiplier: number
+}
+
+function pxMult(pxStr: string, mult: number): string {
+  const n = parseFloat(pxStr)
+  if (Number.isNaN(n)) return pxStr
+  return `${Math.round(n * mult * 100) / 100}px`
+}
+
+/**
+ * 把主题增量覆盖 merge 到基础令牌上，返回完整的 ResolvedTokens。
+ * 无 overrides 时返回与当前基础令牌一致的默认值（保持现状）。
+ */
+export function resolveTokens(overrides?: ThemeTokenOverrides): ResolvedTokens {
+  const m = overrides?.spacingMultiplier ?? 1
+  return {
+    headingSizes: overrides?.headingSizes ?? {
+      1: fontSize['6xl'],
+      2: fontSize['4xl'],
+      3: fontSize['2xl'],
+      4: fontSize.lg,
+      5: fontSize.base,
+      6: fontSize.sm,
+    },
+    headingWeight: overrides?.headingWeight ?? fontWeight.bold,
+    headingColor: overrides?.headingColor ?? 'textPrimary',
+    bodyFontSize: overrides?.bodyFontSize ?? fontSize.xl,
+    bodyLineHeight: overrides?.bodyLineHeight ?? lineHeight.document,
+    quote: {
+      borderRadius: overrides?.blockborderRadius ?? radius.lg,
+      bg: overrides?.blockBg ?? 'transparent',
+      border: overrides?.blockBorder ?? 'currentColor',
+      accentText: overrides?.blockAccentText ?? false,
+    },
+    radiusMap: overrides?.radiusMap ?? {
+      sm: radius.sm,
+      md: radius.md,
+      lg: radius.lg,
+      xl: radius.xl,
+      '2xl': radius['2xl'],
+      '3xl': radius['3xl'],
+      '4xl': radius['4xl'],
+    },
+    spacingMultiplier: m,
+  }
+}
+
+/**
+ * 把基础间距值按主题 spacingScale 等比缩放。
+ * 供 renderer 按需调用：themeSpacing(spacing[7], tokens)
+ */
+export function themeSpacing(base: string, tokens: ResolvedTokens): string {
+  return pxMult(base, tokens.spacingMultiplier)
 }

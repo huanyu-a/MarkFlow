@@ -16,6 +16,7 @@
  *   render   - (attrs, body, theme) => HTML（内联样式，可直接粘贴公众号）
  */
 import type { ThemeColors } from '@engine/composables/useTheme'
+import type { UnifiedComponentDef } from './unifiedRender'
 
 export interface ComponentDef {
   id: string
@@ -41,7 +42,6 @@ import { Breaking_DA01 } from './Breaking_DA01'
 import { Steps_DA01 } from './Steps_DA01'
 import { Steps_DA02 } from './Steps_DA02'
 import { LabeledFlow_DA01 } from './LabeledFlow_DA01'
-import { Compare_DA01 } from './Compare_DA01'
 import { CTA_DA01 } from './Cta_DA01'
 import { Badges_DA01 } from './Badges_DA01'
 import { Statement_DA01 } from './Statement_DA01'
@@ -56,38 +56,44 @@ import { Callout_DA01 } from './Callout_DA01'
 import { Badge_DA01 } from './Badge_DA01'
 import { Icon_DA01 } from './Icon_DA01'
 import { Table_DA01 } from './Table_DA01'
+// Compare_DA01 已移除，由 :::compare（Layout_DA08）替代
 import { CodeBlock_DA01 } from './CodeBlock_DA01'
 import { HintContainer_DA01 } from './HintContainer_DA01'
 import { Align_DA01 } from './Align_DA01'
-
+// 单行/行内组件（<tag> 语法）
 export const components: ComponentDef[] = [
   Title_DA01,
   Title_DA02,
-  ReadingPath_DA01,
   PTitle,
-  Breaking_DA01,
-  Steps_DA01,
-  Steps_DA02,
-  LabeledFlow_DA01,
-  Compare_DA01,
   CTA_DA01,
   Badges_DA01,
   Statement_DA01,
   Lead_DA01,
   Engage_DA01,
   Engage_DA02,
-  Timeline_DA01,
-  Slider_DA01,
   Img_DA01,
-  GovHeader_DA01,
-  Callout_DA01,
   Badge_DA01,
   Icon_DA01,
+]
+
+// 多行组件（:::name 语法）—— 由 buildUnifiedRenderer 生成 ::: 容器 renderer
+export const unifiedComponents: UnifiedComponentDef[] = [
+  ReadingPath_DA01,
+  Breaking_DA01,
+  Steps_DA01,
+  Steps_DA02,
+  LabeledFlow_DA01,
+  Timeline_DA01,
+  Slider_DA01,
+  GovHeader_DA01,
+  Callout_DA01,
   Table_DA01,
   CodeBlock_DA01,
   HintContainer_DA01,
   Align_DA01,
 ]
+
+export type { UnifiedComponentDef } from './unifiedRender'
 
 /** 按 id 索引 */
 export const componentMap = Object.fromEntries(components.map((c) => [c.id, c]))

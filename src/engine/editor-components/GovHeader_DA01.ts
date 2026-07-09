@@ -1,9 +1,5 @@
-import type { ComponentDef } from './index'
-import type { ThemeColors } from '@engine/composables/useTheme'
-import { esc } from '@engine/utils/helpers'
-
 /**
- * 公文头部组件（红头文件）
+ * GovHeader_DA01 - 公文头部组件（红头文件）
  *
  * 符合 GB/T 9704-2012《党政机关公文格式》标准：
  * - 发文机关名称：红色宋体加粗居中
@@ -12,21 +8,31 @@ import { esc } from '@engine/utils/helpers'
  * - 紧急程度：左上角红色加粗（密级下方）
  * - 签发人：右上角（上行文需要）
  * - 红色分隔线：发文字号下方
+ *
+ * 统一语法（::: 容器）：
+ *   :::gov-header issuer="XX市人民政府办公厅" doc-no="市政发〔2026〕第1号" classification="绝密" urgency="特急" signer="张三"
+ *   :::
  */
-export const GovHeader_DA01: ComponentDef = {
-  id: 'GovHeader_DA01',
-  name: '公文头部',
-  tag: 'gov-header',
-  description: '党政机关公文红头文件头部，包含发文机关、发文字号、密级、签发人等',
-  example: `<gov-header issuer="XX市人民政府办公厅" doc-no="市政发〔2026〕第1号" classification="绝密" urgency="特急" signer="张三"></gov-header>`,
-  attrs: [
-    { key: 'issuer', label: '发文机关名称', required: true },
-    { key: 'doc-no', label: '发文字号' },
-    { key: 'classification', label: '密级', options: ['绝密', '机密', '秘密'] },
-    { key: 'urgency', label: '紧急程度', options: ['特急', '加急'] },
-    { key: 'signer', label: '签发人（上行文）' },
-  ],
-  render: (attrs: Record<string, string>, _body: string, _t: ThemeColors): string => {
+import { esc } from '@engine/utils/helpers'
+import { buildUnifiedRenderer, parseBody, type UnifiedComponentDef } from './unifiedRender'
+
+export const GovHeader_DA01: UnifiedComponentDef = {
+  spec: {
+    name: 'gov-header',
+    label: '公文头部',
+    bodyFormat: 'fields',
+    example: `:::gov-header issuer="XX市人民政府办公厅" doc-no="市政发〔2026〕第1号" classification="绝密" urgency="特急" signer="张三"
+:::`,
+    fields: [
+      { name: 'issuer', required: true, description: '发文机关名称' },
+      { name: 'doc-no', required: false, description: '发文字号' },
+      { name: 'classification', required: false, description: '密级' },
+      { name: 'urgency', required: false, description: '紧急程度' },
+      { name: 'signer', required: false, description: '签发人（上行文）' },
+    ],
+  },
+
+  render(attrs, _rawBody, _body, _t) {
     const issuer = esc(attrs.issuer || '')
     const docNo = esc(attrs['doc-no'] || attrs.docNo || '')
     const classification = esc(attrs.classification || '')
@@ -79,4 +85,10 @@ export const GovHeader_DA01: ComponentDef = {
 
     return parts.join('')
   },
+
+  renderLegacy(attrs, body, t) {
+    return this.render(attrs, body, parseBody(body, this.spec.bodyFormat), t)
+  },
 }
+
+export const govHeaderRenderer = buildUnifiedRenderer(GovHeader_DA01)

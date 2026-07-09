@@ -85,6 +85,7 @@ export default function App() {
   const colors = useStore((s) => s.colors);
   const accent = useStore((s) => s.accent);
   const setTheme = useStore((s) => s.setTheme);
+  const setThemeProfile = useStore((s) => s.setThemeProfile);
   const mode = useStore((s) => s.mode);
   const setMode = useStore((s) => s.setMode);
   const platform = useStore((s) => s.platform);
@@ -205,6 +206,7 @@ export default function App() {
         setMode={setMode}
         accent={accent}
         setTheme={setTheme}
+        setThemeProfile={setThemeProfile}
         onOpenMobileMenu={() => setIsMobileMenuOpen(true)}
         onWidthChange={handleWidthChange}
       />

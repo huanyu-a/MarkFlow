@@ -5,13 +5,13 @@ import type { ThemeColors } from '@engine/composables/useTheme'
  * Title_DA02 - 标题卡片（默认A型02号样式）
  *
  * 编辑器语法：
- *   <title badge="GUIDE" subtitle="副标题" chips="关键词1|关键词2">文章标题</title>
+ *   <title label="GUIDE" subtitle="副标题" chips="关键词1|关键词2">文章标题</title>
  *
  * 与 DA01 的区别：
- *   阅读统计（预计阅读x分钟 共xx字）展示在 badge 后面，而非右侧独立区域
+ *   阅读统计（预计阅读x分钟 共xx字）展示在 label 后面，而非右侧独立区域
  *
  * 属性：
- *   badge    - 分类标签（如：GUIDE、更新、教程）
+ *   label    - 分类标签（如：GUIDE、更新、教程）
  *   subtitle - 副标题
  *   chips    - 关键词标签，| 分隔
  */
@@ -67,21 +67,21 @@ export const Title_DA02 = {
   tag: 'title',
   attrs: [
     { key: 'type', label: '样式类型', required: false, default: 'DA02', options: ['DA01', 'DA02'] },
-    { key: 'badge', label: '标签', required: false, default: '' },
+    { key: 'label', label: '标签', required: false, default: '' },
     { key: 'subtitle', label: '副标题', required: false, default: '' },
     { key: 'chips', label: '关键词（|分隔）', required: false, default: '' },
     { key: 'color', label: '自定义颜色', required: false, default: '' },
   ],
-  example: `<title type="DA02" badge="UPDATE" subtitle="新增了段落标题、步骤流程、时间线等组件，优化了深色模式适配。" chips="新组件|深色模式|性能优化" color="#2563eb">v2.0 版本更新说明</title>`,
+  example: `<title type="DA02" label="UPDATE" subtitle="v2.0 新增段落标题、步骤流程、时间线、对比卡片、提示框等 12 个高级排版组件，主题系统扩展至 48 套专业配色方案。" chips="新组件|48套主题|性能优化|公众号适配">MarkFlow v2.0 版本更新说明</title>`,
 
   render(attrs: Record<string, string>, body: string, t: ThemeColors, ...rest: unknown[]): string {
     const raw = (rest[0] as string) || ''
     const { chars, minutes } = countChars(raw)
     const color = attrs.color || t.accent
 
-    // badge 行：badge + 阅读统计
-    const badgeHtml = attrs.badge
-      ? `<span style="${S.badge(color)}">${leaf(attrs.badge)}</span>`
+    // label 行：label + 阅读统计
+    const badgeHtml = attrs.label
+      ? `<span style="${S.badge(color)}">${leaf(attrs.label)}</span>`
       : ''
     const statHtml = `<span style="${S.stat}">${leaf('预计阅读 ')}<span style="${S.statNum(color)}">${leaf(minutes)}</span>${leaf(` 分钟 · 共 ${chars} 字`)}</span>`
 

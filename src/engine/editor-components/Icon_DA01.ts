@@ -5,8 +5,8 @@
  * 图标自带颜色，不支持换色。
  *
  * 编辑器语法：
- *   <Icon name="material-symbols:home" />
- *   <Icon name="skill-icons:vscode-dark" size="2em" />
+ *   <icon name="material-symbols:home" />
+ *   <icon name="skill-icons:vscode-dark" size="2em" />
  *
  * 属性：
  *   name - 图标名称（Iconify 图标集命名，如 material-symbols:home）
@@ -18,7 +18,7 @@ import { esc } from '@engine/utils/helpers'
 export const Icon_DA01 = {
   id: 'Icon_DA01',
   name: '行内图标',
-  tag: 'Icon',
+  tag: 'icon',
   description: '通过 Iconify API 加载的矢量图标，支持 Material Symbols、Fluent、Skill Icons 等数千个图标集',
   attrs: [
     {
@@ -60,7 +60,7 @@ export const Icon_DA01 = {
     },
     { key: 'size', label: '图标尺寸', required: false, default: '1em' },
   ],
-  example: '<Icon name="material-symbols:star" size="2em" />',
+  example: '<icon name="material-symbols:star" size="2em" />',
 
   render(attrs: Record<string, string>, _body: string, _t: ThemeColors): string {
     const name = attrs.name || 'material-symbols:help'

@@ -16,10 +16,10 @@ import {
  * Title_DA01 - 标题卡片（默认A型01号样式）
  *
  * 编辑器语法：
- *   <title badge="GUIDE" subtitle="副标题" chips="关键词1|关键词2">文章标题</title>
+ *   <title label="GUIDE" subtitle="副标题" chips="关键词1|关键词2">文章标题</title>
  *
  * 属性：
- *   badge    - 分类标签（如：GUIDE、更新、教程）
+ *   label    - 分类标签（如：GUIDE、更新、教程）
  *   subtitle - 副标题
  *   chips    - 关键词标签，| 分隔
  */
@@ -88,12 +88,12 @@ export const Title_DA01 = {
   tag: 'title',
   attrs: [
     { key: 'type', label: '样式类型', required: false, default: 'DA01', options: ['DA01', 'DA02'] },
-    { key: 'badge', label: '标签', required: false, default: '' },
+    { key: 'label', label: '标签', required: false, default: '' },
     { key: 'subtitle', label: '副标题', required: false, default: '' },
     { key: 'chips', label: '关键词（|分隔）', required: false, default: '' },
     { key: 'color', label: '自定义颜色', required: false, default: '' },
   ],
-  example: `<title type="DA01" badge="GUIDE" subtitle="这是一份包含所有可用 Markdown 指令及扩展标签的完整演示稿。" chips="图片并排|窗口滚动|渐变文字" color="#6c5ce7">功能全集：排版组件指南</title>`,
+  example: `<title type="DA01" label="GUIDE" subtitle="涵盖标题卡片、步骤流程、时间线、对比卡片、代码块、提示框等全部 63 个排版组件，每个组件均提供可复制的语法模板与属性说明。" chips="公众号排版|长图文|组件化|知识分享">MarkFlow 排版组件完全指南</title>`,
 
   render(attrs: Record<string, string>, body: string, t: ThemeColors, ...rest: unknown[]): string {
     const raw = (rest[0] as string) || ''
@@ -108,7 +108,7 @@ export const Title_DA01 = {
               <colgroup><col><col style="width:90px;"></colgroup>
               <tbody><tr>
                 <td valign="top" align="left" style="${S.tdLeft}">
-                  ${attrs.badge ? `<p style="${S.badge(accent)}">${leaf(attrs.badge)}</p>` : ''}
+                  ${attrs.label ? `<p style="${S.badge(accent)}">${leaf(attrs.label)}</p>` : ''}
                   ${body ? `<p style="${S.title}">${leaf(body)}</p>` : ''}
                   ${attrs.subtitle ? `<p style="${S.subtitle}">${leaf(attrs.subtitle)}</p>` : ''}
                   ${attrs.chips ? `<section style="${S.chips}">${renderChips(attrs.chips)}</section>` : ''}

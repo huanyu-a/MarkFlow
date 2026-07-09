@@ -11,10 +11,10 @@
  */
 export const Engage_DA02 = {
   id: 'Engage_DA02',
-  tag: 'engage',
+  tag: 'engage-card',
   name: '底部引导卡片',
   icon: '💬',
-  example: `<engage type="DA02" title="感谢你的阅读与支持！" subtitle="喜欢就互动一下吧～ 💚" color="red|green|yellow"></engage>`,
+  example: `<engage-card title="感谢你阅读到这里！" subtitle="如果觉得有用，点个赞告诉我们——你的反馈是我们持续更新的动力 💚"></engage-card>`,
   attrs: [
     { key: 'title', label: '主标题文字', required: false, default: '感谢你的阅读与支持！' },
     { key: 'subtitle', label: '副标题文字', required: false, default: '喜欢就互动一下吧～ 💚' },

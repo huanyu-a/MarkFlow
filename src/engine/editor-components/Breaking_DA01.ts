@@ -1,14 +1,10 @@
-import { leaf } from '@engine/utils/helpers'
-import type { ThemeColors } from '@engine/composables/useTheme'
-import { color, fontSize, fontWeight, letterSpacing, lineHeight, neutral, radius, spacing } from '@engine/tokens'
-
 /**
  * Breaking_DA01 - 突发/重大更新卡片（默认A型01号样式）
  *
- * 编辑器语法：
- *   <breaking badge="NEW" title="标题" subtitle="副标题" chips="标签1|标签2" color="#e74c3c">
- *   正文内容
- *   </breaking>
+ * 统一语法（::: 容器）：
+ *   :::breaking badge="NEW" title="标题" subtitle="副标题" chips="标签1|标签2"
+ *   正文内容，支持 **markdown** 行内格式。
+ *   :::
  *
  * 属性：
  *   badge    - 标签文字（如：NEW、HOT、更新）
@@ -17,23 +13,30 @@ import { color, fontSize, fontWeight, letterSpacing, lineHeight, neutral, radius
  *   chips    - 关键词标签，| 分隔
  *   color    - 自定义颜色（默认使用主题色）
  */
+import { leaf } from '@engine/utils/helpers'
+import { inlineFormat } from '@engine/utils/inlineFormat'
+import { color, fontSize, fontWeight, letterSpacing, lineHeight, neutral, radius, spacing } from '@engine/tokens'
+import type { ThemeColors } from '@engine/composables/useTheme'
+import { buildUnifiedRenderer, parseBody, type UnifiedComponentDef, type ParsedBody } from './unifiedRender'
 
-export const Breaking_DA01 = {
-  id: 'Breaking_DA01',
-  name: '突发卡片',
-  tag: 'breaking',
-  attrs: [
-    { key: 'badge', label: '标签', required: false, default: '' },
-    { key: 'title', label: '标题', required: false, default: '' },
-    { key: 'subtitle', label: '副标题', required: false, default: '' },
-    { key: 'chips', label: '关键词（|分隔）', required: false, default: '' },
-    { key: 'color', label: '自定义颜色', required: false, default: '' },
-  ],
-  example: `<breaking badge="NEW" title="功能全集文档上线" subtitle="支持一键复制，即装即用" chips="高效|美观" color="#e74c3c">
-这个组件适合用于文章开头，展示最重要的核心结论或更新摘要。
-</breaking>`,
+export const Breaking_DA01: UnifiedComponentDef = {
+  spec: {
+    name: 'breaking',
+    label: '突发卡片',
+    bodyFormat: 'markdown',
+    example: `:::breaking badge="重磅发布" title="MarkFlow v2.0 功能全集上线" subtitle="48 套专业主题 + 63 个排版组件，支持公众号、A4 文档、小红书卡片、自由画布四种输出模式" chips="模块化排版|48套主题|多场景导出|免费使用"
+这个组件适合放在文章开头，用一句话告诉读者：这篇文章能给你什么。
+:::`,
+    fields: [
+      { name: 'badge', required: false, description: '标签' },
+      { name: 'title', required: false, description: '标题' },
+      { name: 'subtitle', required: false, description: '副标题' },
+      { name: 'chips', required: false, description: '关键词（|分隔）' },
+      { name: 'color', required: false, description: '自定义颜色' },
+    ],
+  },
 
-  render(attrs: Record<string, string>, body: string, t: ThemeColors): string {
+  render(attrs: Record<string, string>, _rawBody: string, body: ParsedBody, t: ThemeColors) {
     const accent = attrs.color || t.accent
 
     function withAlpha(c: string, alpha: number): string {
@@ -74,9 +77,15 @@ export const Breaking_DA01 = {
       })
       html += `</section>`
     }
-    if (body.trim())
-      html += `<section style="font-size:${fontSize.md};color:${neutral.gray700};line-height:${lineHeight.loosest};margin-top:${spacing[3]}">${leaf(body.trim())}</section>`
+    if (body.markdown.trim())
+      html += `<section style="font-size:${fontSize.md};color:${neutral.gray700};line-height:${lineHeight.loosest};margin-top:${spacing[3]}">${inlineFormat(body.markdown, t)}</section>`
     html += `</section>`
     return html
   },
+
+  renderLegacy(attrs, body, t) {
+    return this.render(attrs, body, parseBody(body, this.spec.bodyFormat), t)
+  },
 }
+
+export const breakingRenderer = buildUnifiedRenderer(Breaking_DA01)

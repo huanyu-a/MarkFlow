@@ -46,6 +46,7 @@ export function DocumentMode({
   updateSettings,
   onToast,
 }: DocumentModeProps) {
+  const themeTokens = useStore((s) => s.themeTokens)
   const guideTrigger = useStore((s) => s.guideTrigger.document)
   const allowIntranetResources = useStore((s) => s.allowIntranetResources)
   const sendCredentials = useStore((s) => s.imageHostConfig.sendCredentials ?? false)
@@ -89,7 +90,7 @@ export function DocumentMode({
     externalVersion,
   } = useEditorDocSync(markdown, setMarkdown)
 
-  const rendered = useMemo(() => renderMarkdown(debouncedMarkdown, colors), [debouncedMarkdown, colors])
+  const rendered = useMemo(() => renderMarkdown(debouncedMarkdown, colors, undefined, undefined, themeTokens), [debouncedMarkdown, colors, themeTokens])
   const contentMarkdown = rendered.meta.contentMarkdown || debouncedMarkdown
 
   const blocks = useMemo(() => splitMarkdownBlocks(contentMarkdown), [contentMarkdown])

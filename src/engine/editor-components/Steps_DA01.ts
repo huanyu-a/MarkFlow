@@ -1,54 +1,49 @@
-import { leaf, withAlpha } from '@engine/utils/helpers'
-import type { ThemeColors } from '@engine/composables/useTheme'
-import { color, fontSize, fontWeight, letterSpacing, neutral, radius, spacing } from '@engine/tokens'
-
 /**
- * Steps_DA01 - 步骤流（默认A型01号样式）
+ * Steps_DA01 - 横向步骤流（默认A型01号样式）
  *
- * 编辑器语法：
- *   <steps label="HOW IT WORKS" title="标题" hint="提示文字" active="2" color="#e74c3c">
+ * 统一语法（::: 容器）：
+ *   :::steps label="HOW IT WORKS" title="标题" hint="提示文字" active="2"
  *   - 步骤名称 | 步骤描述
  *   - 步骤名称 | 步骤描述
- *   </steps>
+ *   :::
  *
  * 属性：
  *   label   - 顶部标签（如：HOW IT WORKS）
  *   title   - 标题
  *   hint    - 提示文字
- *   active  - 强调控制：
- *               数字（如 "1"/"2"/"3"）= 仅该步骤强调（默认 "1"）
- *               "all"  = 全部步骤强调
- *               "none" = 全部步骤不强调
+ *   active  - 强调控制：数字（如 "1"/"2"）= 仅该步骤强调（默认 "1"）；"all" = 全部；"none" = 无
  *   color   - 自定义颜色（默认使用主题色）
- *   （竖向布局请使用 type="DA02"；超过3步建议直接使用 DA02）
  */
+import { leaf, withAlpha } from '@engine/utils/helpers'
+import { color, fontSize, fontWeight, letterSpacing, neutral, radius, spacing } from '@engine/tokens'
+import { buildUnifiedRenderer, parseBody, type UnifiedComponentDef } from './unifiedRender'
 
-export const Steps_DA01 = {
-  id: 'Steps_DA01',
-  name: '步骤流',
-  tag: 'steps',
-  attrs: [
-    { key: 'label', label: '顶部标签', required: false, default: '' },
-    { key: 'title', label: '标题', required: false, default: '' },
-    { key: 'hint', label: '提示文字', required: false, default: '' },
-    { key: 'active', label: '强调控制（数字/all/none）', required: false, default: '1' },
-    { key: 'color', label: '自定义颜色', required: false, default: '' },
-  ],
-  example: `<steps label="HOW IT WORKS" title="安装好之后怎么跑起来" hint="左右滑动查看" active="2" color="#7c3aed">
-- 输入 | 往知识库里喂东西
-- 管理 | 让知识库有序运转
-- 输出 | 从知识库取素材做东西
-</steps>`,
+export const Steps_DA01: UnifiedComponentDef = {
+  spec: {
+    name: 'steps-horizontal',
+    label: '横向步骤',
+    bodyFormat: 'rows',
+    example: `:::steps label="HOW IT WORKS" title="从零到发布只需 5 步" hint="按顺序完成即可" active="2" color="#2563eb"
+- 写作 | 在编辑器中用 Markdown 完成正文和标题层级
+- 增强 | 从组件库挑选合适的排版模块，替换字段内容
+- 预览 | 右侧实时查看渲染效果，同步调整移动端显示
+- 导出 | 一键复制富文本到公众号，或导出长图/PDF
+- 发布 | 粘贴到公众号后台，封面和合集设置后即可发布
+:::`,
+    fields: [
+      { name: 'label', required: false, description: '顶部标签' },
+      { name: 'title', required: false, description: '标题' },
+      { name: 'hint', required: false, description: '提示文字' },
+      { name: 'active', required: false, description: '强调控制（数字/all/none），默认 1' },
+      { name: 'color', required: false, description: '自定义颜色' },
+    ],
+  },
 
-  render(attrs: Record<string, string>, body: string, t: ThemeColors): string {
+  render(attrs, _rawBody, body, t) {
     const activeRaw = (attrs.active || '1').toLowerCase().trim()
     const activeNum = parseInt(activeRaw, 10)
     const accent = attrs.color || t.accent
-    const steps: { name: string; desc: string }[] = []
-    body.split('\n').forEach((line) => {
-      const m = line.trim().match(/^-\s*(.+)\s*\|\s*(.+)/)
-      if (m) steps.push({ name: m[1].trim(), desc: m[2].trim() })
-    })
+    const steps = body.rows.map((r) => ({ name: r[0] || '', desc: r[1] || '' }))
     const isStepActive = (idx: number): boolean => {
       if (activeRaw === 'all') return true
       if (activeRaw === 'none') return false
@@ -77,8 +72,13 @@ export const Steps_DA01 = {
       html += `</td>`
     })
     html += `</tr></table></section>`
-
     html += `</section>`
     return html
   },
+
+  renderLegacy(attrs, body, t) {
+    return this.render(attrs, body, parseBody(body, this.spec.bodyFormat), t)
+  },
 }
+
+export const stepsHorizontalRenderer = buildUnifiedRenderer(Steps_DA01)

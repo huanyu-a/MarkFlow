@@ -9,7 +9,7 @@ import { esc } from '@engine/utils/helpers'
 import { inlineFormat } from '@engine/utils/inlineFormat'
 import { renderCodeBlock } from '@engine/utils/codeBlock'
 import { fontSize, fontWeight, letterSpacing, lineHeight, neutral, radius, spacing } from '@engine/tokens'
-import type { ComponentDef } from '@engine/editor-components/index'
+import { buildUnifiedRenderer, parseBody, type UnifiedComponentDef } from './unifiedRender'
 
 // ── 解析 ::: 容器 body ──
 function parseContainer(body: string): { title: string; content: string } {
@@ -47,16 +47,12 @@ const labels: Record<string, string> = { tip: '提示', note: '注意', info: '�
 const bgs: Record<string, string> = { tip: '#f0fdf4', note: '#eff6ff', info: '#f0f9ff', warning: '#fffbea', caution: '#fef2f2', important: '#f5f3ff' }
 const accents: Record<string, string> = { tip: '#16a34a', note: '#2563eb', info: '#0ea5e9', warning: '#ea580c', caution: '#dc2626', important: '#7c3aed' }
 
-export const HintContainer_DA01: ComponentDef = {
-  id: 'HintContainer_DA01',
-  name: '提示容器',
-  tag: 'hint',
-  description: '使用 `::: TYPE` 容器语法创建彩色提示框，支持 info / tip / note / warning / caution / important',
-  attrs: [
-    { key: 'type', label: '类型', required: false, default: 'info', options: ['info', 'tip', 'note', 'warning', 'caution', 'important'] },
-    { key: 'title', label: '标题', required: false, default: '' },
-  ],
-  example: `::: info 参考信息
+export const HintContainer_DA01: UnifiedComponentDef = {
+  spec: {
+    name: 'hint',
+    label: '提示容器',
+    bodyFormat: 'markdown',
+    example: `:::hint type="info" title="参考信息"
 提供相关的背景资料和补充说明，支持 \`inline code\` 行内代码。
 \`\`\`js
 const a = 1
@@ -65,10 +61,15 @@ const c = a + b
 \`\`\`
 内容末尾同样支持 **粗体** 和 *斜体*。
 :::`,
+    fields: [
+      { name: 'type', required: false, description: '类型（info/tip/note/warning/caution/important）' },
+      { name: 'title', required: false, description: '标题' },
+    ],
+  },
 
-  render(attrs: Record<string, string>, body: string, t: ThemeColors): string {
+  render(attrs, _rawBody, body, t) {
     const type = attrs.type || 'info'
-    const { title: bodyTitle, content } = parseContainer(body)
+    const { title: bodyTitle, content } = parseContainer(body.markdown)
     const title = attrs.title || bodyTitle || labels[type] || type
     const icon = icons[type] || ''
     const bg = bgs[type] || '#f0f4fa'
@@ -82,4 +83,10 @@ const c = a + b
     html += `</section>`
     return html
   },
+
+  renderLegacy(attrs, body, t) {
+    return this.render(attrs, body, parseBody(body, this.spec.bodyFormat), t)
+  },
 }
+
+export const hintRenderer = buildUnifiedRenderer(HintContainer_DA01)

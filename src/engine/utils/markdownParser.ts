@@ -6,7 +6,7 @@ import { renderMath } from './mathRenderer'
 import { renderMermaidDiagram } from './mermaidRenderer'
 import { renderFrontMatter } from './components'
 import { createDefaultBlockRenderers, type BlockRenderContext } from './blockRenderRegistry'
-import { color, fontSize, fontWeight, lineHeight, spacing } from '../tokens'
+import { color, fontSize, fontWeight, lineHeight, spacing, resolveTokens, type ResolvedTokens } from '../tokens'
 
 /**
  * 收集 md 中所有公式（去重），按 inline/block 分类返回，用于预渲染。
@@ -120,13 +120,14 @@ export async function parseMarkdownAsync(
   t: ThemeColors,
   containerWidth = 578,
   onWarning?: (warning: string) => void,
+  tokens?: ResolvedTokens,
 ): Promise<string> {
   const formulas = collectFormulas(md)
   const formulaMap = formulas.length > 0 ? await preRenderFormulas(formulas) : undefined
   const diagrams = collectMermaidDiagrams(md)
   const mermaidMap =
     diagrams.length > 0 ? await preRenderMermaid(diagrams, containerWidth) : undefined
-  return parseMarkdown(md, t, formulaMap, mermaidMap, onWarning)
+  return parseMarkdown(md, t, formulaMap, mermaidMap, onWarning, tokens)
 }
 
 export function parseMarkdown(
@@ -135,7 +136,11 @@ export function parseMarkdown(
   formulaMap?: Map<string, string>,
   mermaidMap?: Map<string, { svg: string; error?: string }>,
   onWarning?: (warning: string) => void,
+  tokens?: ResolvedTokens,
 ): string {
+  // 解析后的主题令牌；未传则使用基础静态令牌兜底
+  const resolvedTokens = tokens ?? resolveTokens()
+  const tokensRaw = resolvedTokens
   // 1. 先保护代码区域，避免公式/脚注替换侵入代码块/行内代码
   const { text: mdWithoutCode, store: codeStore } = protectCode(md)
 
@@ -234,7 +239,7 @@ export function parseMarkdown(
   }
 
   const renderers = createDefaultBlockRenderers()
-  const ctx: BlockRenderContext = { t, md, formulaMap, mermaidMap, pTitleLevel1List, parseMarkdownFn: parseMarkdown }
+  const ctx: BlockRenderContext = { t, tokens: resolvedTokens, tokensRaw, md, formulaMap, mermaidMap, pTitleLevel1List, parseMarkdownFn: (md_, t_, fm, mm) => parseMarkdown(md_, t_, fm, mm, onWarning, resolvedTokens) }
 
   while (i < lines.length) {
     const line = lines[i]

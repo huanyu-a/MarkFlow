@@ -1,29 +1,28 @@
 /**
  * LabeledFlow_DA01 - 标签条目（默认A型01号样式）
  *
- * 编辑器语法：
- *   - [标签] 描述内容
- *
- * 渲染效果：
- *   ┌─────────────────────────────────────────┐
- *   │ [标签]  描述内容                        │
- *   └─────────────────────────────────────────┘
+ * 统一语法（::: 容器）：
+ *   :::case-flow color="#e74c3c"
+ *   - [案例 01] 从零搭建个人知识库，三周后效率翻倍
+ *   - [案例 02] 用 AI 辅助写周报，每周省出两小时
+ *   - [步骤三] 坚持早起 100 天，人生发生了什么变化
+ *   :::
  *
  * 属性：
  *   color?: string  - 标签背景色（默认使用主题色）
  */
-import type { ThemeColors } from '@engine/composables/useTheme'
 import { resolveColor, colorToAlpha } from '@engine/utils/colorUtils'
 import { esc } from '@engine/utils/helpers'
+import { buildUnifiedRenderer, parseBody, type UnifiedComponentDef } from './unifiedRender'
 
 interface CaseItem {
   label: string
   text: string
 }
 
-function parseCaseItems(body: string): CaseItem[] {
+function parseCaseItems(rawBody: string): CaseItem[] {
   const items: CaseItem[] = []
-  const lines = body.split('\n').filter((l) => l.trim())
+  const lines = rawBody.split('\n').filter((l) => l.trim())
   for (const line of lines) {
     // 匹配 - [任意标签] 内容
     const m = line.match(/^-\s*\[([^\]]+)\]\s*(.+)$/)
@@ -34,20 +33,26 @@ function parseCaseItems(body: string): CaseItem[] {
   return items
 }
 
-export const LabeledFlow_DA01 = {
-  id: 'LabeledFlow_DA01',
-  name: '标签条目',
-  tag: 'case-flow',
-  attrs: [{ key: 'color', label: '自定义颜色', required: false, default: '' }],
-  example: `<case-flow color="#e74c3c">
+export const LabeledFlow_DA01: UnifiedComponentDef = {
+  spec: {
+    name: 'case-flow',
+    label: '标签条目',
+    bodyFormat: 'markdown',
+    example: `:::case-flow
 - [案例 01] 从零搭建个人知识库，三周后效率翻倍
 - [案例 02] 用 AI 辅助写周报，每周省出两小时
 - [步骤三] 坚持早起 100 天，人生发生了什么变化
-</case-flow>`,
+:::`,
+    fields: [
+      { name: 'color', required: false, description: '标签背景色（默认使用主题色）' },
+    ],
+  },
 
-  render(attrs: Record<string, string>, body: string, t: ThemeColors): string {
+  render(attrs, rawBody, body, t) {
+    // body.markdown 保留原始文本，用原 parseCaseItems 逐行解析（格式特殊，非 pipe 分隔）
+    const source = body.markdown || rawBody
     const hex = resolveColor(attrs.color || t.accent)
-    const items = parseCaseItems(body)
+    const items = parseCaseItems(source)
 
     if (items.length === 0) return ''
 
@@ -70,4 +75,10 @@ export const LabeledFlow_DA01 = {
       </section>
     `
   },
+
+  renderLegacy(attrs, body, t) {
+    return this.render(attrs, body, parseBody(body, this.spec.bodyFormat), t)
+  },
 }
+
+export const caseFlowRenderer = buildUnifiedRenderer(LabeledFlow_DA01)

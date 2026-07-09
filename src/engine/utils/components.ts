@@ -2,7 +2,6 @@ import type { ThemeColors } from '../composables/useTheme'
 import { esc, leaf, parseAttrs } from './helpers'
 import { inlineFormat } from './inlineFormat'
 import { color, fontSize, fontWeight, letterSpacing, lineHeight, neutral, radius, shadowRaw, spacing } from '../tokens'
-import { Compare_DA01 } from '@engine/editor-components/Compare_DA01'
 import { CTA_DA01 } from '@engine/editor-components/Cta_DA01'
 import { Badges_DA01 } from '@engine/editor-components/Badges_DA01'
 
@@ -205,58 +204,7 @@ export function parseCtaInline(
   return { html, next: start + 1 }
 }
 
-export function parseCompare(
-  lines: string[],
-  start: number,
-  t: ThemeColors,
-): { html: string; next: number } | null {
-  let i = start
-  const attrs = parseAttrs(lines[i])
-  i++
-  let leftContent = '',
-    rightContent = '',
-    side = ''
-  while (i < lines.length && !/^<\/compare>/.test(lines[i])) {
-    if (/^<left>/.test(lines[i])) {
-      side = 'left'
-      i++
-      continue
-    }
-    if (/^<\/left>/.test(lines[i])) {
-      side = ''
-      i++
-      continue
-    }
-    if (/^<right>/.test(lines[i])) {
-      side = 'right'
-      i++
-      continue
-    }
-    if (/^<\/right>/.test(lines[i])) {
-      side = ''
-      i++
-      continue
-    }
-    if (side === 'left') leftContent += lines[i] + '\n'
-    if (side === 'right') rightContent += lines[i] + '\n'
-    i++
-  }
-  // 未闭合 <compare>：不吞掉后续内容，回退为普通段落
-  if (i >= lines.length) return null
-  i++
-
-  // 构造 body 供 Compare_DA01 解析
-  const body = `<left>\n${leftContent}</left>\n<right>\n${rightContent}</right>`
-
-  // 使用 inlineFormat 渲染内部 markdown
-  const inlineRenderer = (md: string) => inlineFormat(md, t)
-
-  // 兼容旧版 type="DA02" → direction="vertical"
-  if (attrs.type === 'DA02') {
-    attrs.direction = 'vertical'
-  }
-  return { html: Compare_DA01.render(attrs, body, t, inlineRenderer), next: i }
-}
+// parseCompare 已移除，对比功能由 :::compare（Layout_DA08）提供
 
 export function parseCallout(
   lines: string[],

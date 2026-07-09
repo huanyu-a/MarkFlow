@@ -16,6 +16,7 @@ describe('GovHeader_DA01', () => {
     const html = GovHeader_DA01.render(
       { issuer: 'XX市人民政府办公厅', docNo: '市政发〔2026〕第1号' },
       '',
+      { fields: {}, rows: [], json: null, markdown: '' },
       mockTheme,
     )
     expect(html).toContain('XX市人民政府办公厅')
@@ -27,6 +28,7 @@ describe('GovHeader_DA01', () => {
     const html = GovHeader_DA01.render(
       { issuer: '测试机关', docNo: '测试〔2026〕1号' },
       '',
+      { fields: {}, rows: [], json: null, markdown: '' },
       mockTheme,
     )
     expect(html).toContain('测试〔2026〕1号')
@@ -36,6 +38,7 @@ describe('GovHeader_DA01', () => {
     const html = GovHeader_DA01.render(
       { issuer: '测试机关', classification: '绝密' },
       '',
+      { fields: {}, rows: [], json: null, markdown: '' },
       mockTheme,
     )
     expect(html).toContain('绝密')
@@ -46,6 +49,7 @@ describe('GovHeader_DA01', () => {
     const html = GovHeader_DA01.render(
       { issuer: '测试机关', signer: '张三' },
       '',
+      { fields: {}, rows: [], json: null, markdown: '' },
       mockTheme,
     )
     expect(html).toContain('签发人')
@@ -56,6 +60,7 @@ describe('GovHeader_DA01', () => {
     const html = GovHeader_DA01.render(
       { issuer: '测试机关', urgency: '特急' },
       '',
+      { fields: {}, rows: [], json: null, markdown: '' },
       mockTheme,
     )
     expect(html).toContain('特急')
@@ -65,13 +70,14 @@ describe('GovHeader_DA01', () => {
     const html = GovHeader_DA01.render(
       { issuer: '测试机关', docNo: '测试〔2026〕1号' },
       '',
+      { fields: {}, rows: [], json: null, markdown: '' },
       mockTheme,
     )
     expect(html).toMatch(/background:#c0202c|background-color:#c0202c/)
   })
 
   it('缺少可选属性时不应崩溃', () => {
-    const html = GovHeader_DA01.render({ issuer: '测试机关' }, '', mockTheme)
+    const html = GovHeader_DA01.render({ issuer: '测试机关' }, '', { fields: {}, rows: [], json: null, markdown: '' }, mockTheme)
     expect(html).toContain('测试机关')
     expect(html).not.toContain('undefined')
     expect(html).not.toContain('null')

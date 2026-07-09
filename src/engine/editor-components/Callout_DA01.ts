@@ -1,16 +1,18 @@
 /**
- * Callout 系列 - 块级提示/警告组件
+ * Callout_DA01 - 块级提示/警告组件
  *
- * 支持两种 Markdown 引用块语法：
- *   > [TIP] 标题          （旧语法）
- *   > [!TIP] 标题         （GitHub Flavored Markdown 语法）
+ * 统一语法（::: 容器）：
+ *   :::callout type="info"
+ *   提供相关的背景资料或参考信息，支持 **粗体** 和 *斜体*。
+ *   :::
  *
- * 支持类型：NOTE / INFO / TIP / WARNING / CAUTION / IMPORTANT
+ * 支持类型：info / tip / warning / success / danger
+ * 兼容旧语法：> [!INFO] / > [!TIP] / > [!WARNING] 等 GFM alert 语法
  */
 import { esc } from '@engine/utils/helpers'
 import type { ThemeColors } from '@engine/composables/useTheme'
 import { fontSize, fontWeight, letterSpacing, lineHeight, neutral, radius, spacing } from '@engine/tokens'
-import type { ComponentDef } from '@engine/editor-components/index'
+import { buildUnifiedRenderer, parseBody, type UnifiedComponentDef } from './unifiedRender'
 
 // ── 类型配置 ──
 const CALLOUT_CONFIG: Record<string, { icon: string; bg: string; border: string; label: string }> = {
@@ -24,11 +26,11 @@ const CALLOUT_CONFIG: Record<string, { icon: string; bg: string; border: string;
 
 // ── 通用 render ──
 function calloutRender(attrs: Record<string, string>, body: string, _t: ThemeColors): string {
-  let type = (attrs.type || 'TIP').toUpperCase()
+  let type = (attrs.type || 'info').toUpperCase()
   let title = attrs.title || ''
   let content = body
 
-  // 支持 > [TYPE] 和 > [!TYPE] 两种语法
+  // 兼容旧语法：> [TYPE] 和 > [!TYPE]（body 中若仍包含 GFM alert 头部则解析）
   const m = body.match(/^>\s*\[!?(TIP|NOTE|WARNING|CAUTION|IMPORTANT|INFO)\]\s*(.*)/im)
   if (m) {
     type = m[1].toUpperCase()
@@ -46,7 +48,7 @@ function calloutRender(attrs: Record<string, string>, body: string, _t: ThemeCol
     content = contentLines.join('\n').trim()
   }
 
-  const cfg = CALLOUT_CONFIG[type] || CALLOUT_CONFIG.TIP
+  const cfg = CALLOUT_CONFIG[type] || CALLOUT_CONFIG.INFO
   const bg = cfg.bg
   const border = cfg.border
 
@@ -62,20 +64,29 @@ function calloutRender(attrs: Record<string, string>, body: string, _t: ThemeCol
 }
 
 // ── 统一组件（info 默认，type 切换类型） ──
-export const Callout_DA01: ComponentDef = {
-  id: 'Callout_DA01',
-  name: '引用提示框',
-  tag: 'callout',
-  description: '使用 Markdown 引用块语法 `> [!TYPE]` 创建彩色提示框，支持 INFO / NOTE / TIP / WARNING / CAUTION / IMPORTANT',
-  attrs: [
-    { key: 'type', label: '类型', required: false, default: 'INFO', options: ['INFO', 'NOTE', 'TIP', 'WARNING', 'CAUTION', 'IMPORTANT'] },
-    { key: 'title', label: '标题', required: false, default: '' },
-  ],
-  example: `> [!info] 信息
-> 提供相关的背景资料或参考信息，支持 **粗体** 和 *斜体*。
-> 分享使用技巧和最佳实践，帮助读者提高效率。`,
+export const Callout_DA01: UnifiedComponentDef = {
+  spec: {
+    name: 'callout',
+    label: '提示框',
+    bodyFormat: 'markdown',
+    example: `:::callout type="tip" title="排版小技巧"
+如果你不确定某个段落应该使用哪个模块，可以遵循一个简单原则：**信息型内容用正文模块**（提示框、代码块、表格），**结构型内容用导航模块**（阅读路线、章节分隔、步骤流程）。
 
-  render(attrs: Record<string, string>, body: string, t: ThemeColors): string {
-    return calloutRender(attrs, body, t)
+这个原则在 80% 的场景下都能帮你快速做出选择。
+:::`,
+    fields: [
+      { name: 'type', required: false, description: '提示类型：info / tip / warning / success / danger' },
+      { name: 'title', required: false, description: '标题' },
+    ],
+  },
+
+  render(attrs, _rawBody, body, t) {
+    return calloutRender(attrs, body.markdown, t)
+  },
+
+  renderLegacy(attrs, body, t) {
+    return this.render(attrs, body, parseBody(body, this.spec.bodyFormat), t)
   },
 }
+
+export const calloutRenderer = buildUnifiedRenderer(Callout_DA01)

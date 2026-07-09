@@ -5,12 +5,12 @@
  *   DA01 = 横向步骤流（flex row，卡片并排）
  *   DA02 = 竖向步骤流（flex column，卡片堆叠）
  *
- * 编辑器语法：
- *   <steps type="DA02" label="VERTICAL STEPS" title="竖向步骤流" active="2">
+ * 统一语法（::: 容器）：
+ *   :::steps-vertical label="VERTICAL STEPS" title="竖向步骤流" active="2"
  *   - 注册账号 | 填写基本信息完成注册
  *   - 实名认证 | 上传证件完成身份验证
  *   - 开始使用 | 选择功能模块开始体验
- *   </steps>
+ *   :::
  *
  * 属性：
  *   label   - 顶部标签
@@ -25,34 +25,33 @@
  */
 import { leaf, withAlpha } from '@engine/utils/helpers'
 import type { ThemeColors } from '@engine/composables/useTheme'
+import { buildUnifiedRenderer, parseBody, type UnifiedComponentDef, type ParsedBody } from './unifiedRender'
 
-export const Steps_DA02 = {
-  id: 'Steps_DA02',
-  name: '步骤流',
-  tag: 'steps',
-  attrs: [
-    { key: 'label', label: '顶部标签', required: false, default: '' },
-    { key: 'title', label: '标题', required: false, default: '' },
-    { key: 'hint', label: '提示文字', required: false, default: '' },
-    { key: 'active', label: '强调控制（数字/all/none）', required: false, default: '1' },
-    { key: 'color', label: '自定义颜色', required: false, default: '' },
-  ],
-  example: `<steps type="DA02" label="VERTICAL STEPS" title="竖向步骤流" hint="上下滑动查看" active="2" color="#16a34a">
+export const Steps_DA02: UnifiedComponentDef = {
+  spec: {
+    name: 'steps-vertical',
+    label: '竖向步骤',
+    bodyFormat: 'rows',
+    example: `:::steps-vertical label="VERTICAL STEPS" title="竖向步骤流" hint="上下滑动查看" active="2"
 - 注册账号 | 填写基本信息完成注册
 - 实名认证 | 上传证件完成身份验证
 - 开始使用 | 选择功能模块开始体验
-</steps>`,
+:::`,
+    fields: [
+      { name: 'label', required: false, description: '顶部标签' },
+      { name: 'title', required: false, description: '标题' },
+      { name: 'hint', required: false, description: '提示文字' },
+      { name: 'active', required: false, description: '强调控制（数字/all/none），默认 1' },
+      { name: 'color', required: false, description: '自定义颜色' },
+    ],
+  },
 
-  render(attrs: Record<string, string>, body: string, t: ThemeColors): string {
+  render(attrs: Record<string, string>, _rawBody: string, body: ParsedBody, t: ThemeColors) {
     const activeRaw = (attrs.active || '1').toLowerCase().trim()
     const activeNum = parseInt(activeRaw, 10)
     const color = attrs.color || t.accent
 
-    const steps: { name: string; desc: string }[] = []
-    body.split('\n').forEach((line) => {
-      const m = line.trim().match(/^-\s*(.+)\s*\|\s*(.+)/)
-      if (m) steps.push({ name: m[1].trim(), desc: m[2].trim() })
-    })
+    const steps = body.rows.map((r) => ({ name: r[0] || '', desc: r[1] || '' }))
     // 计算某步骤是否强调
     const isStepActive = (idx: number): boolean => {
       if (activeRaw === 'all') return true
@@ -87,4 +86,10 @@ export const Steps_DA02 = {
     html += `</section>`
     return html
   },
+
+  renderLegacy(attrs, body, t) {
+    return this.render(attrs, body, parseBody(body, this.spec.bodyFormat), t)
+  },
 }
+
+export const stepsVerticalRenderer = buildUnifiedRenderer(Steps_DA02)

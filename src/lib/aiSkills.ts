@@ -3,7 +3,8 @@
  * AI 携带这些技能描述读取编辑器内容，为内容匹配合适的组件进行排版增强。
  */
 
-import { components, type ComponentDef } from '@engine'
+import { components, unifiedComponents, type ComponentDef } from '@engine'
+import type { UnifiedComponentDef } from '@engine/editor-components/unifiedRender'
 import type { RenderMode } from '@/lib/store'
 
 /** 一个 AI 排版技能的描述 */
@@ -83,9 +84,28 @@ function componentToSkill(c: ComponentDef): AiSkill {
   }
 }
 
-/** 获取所有块级组件技能 */
+/** 将统一 ::: 组件转为 AI 技能描述 */
+function unifiedToSkill(c: UnifiedComponentDef): AiSkill {
+  const spec = c.spec
+  const parts: string[] = []
+  parts.push(`容器：:::${spec.name}`)
+  if (spec.example) parts.push(`示例：\n${spec.example}`)
+  if (spec.fields?.length) {
+    parts.push(`属性：\n${spec.fields.map((f) => `  ${f.name}${f.required ? '（必填）' : ''} — ${f.description}`).join('\n')}`)
+  }
+
+  return {
+    id: spec.name,
+    name: spec.label,
+    tag: `:::${spec.name}`,
+    category: 'block',
+    description: parts.join('\n'),
+  }
+}
+
+/** 获取所有块级组件技能（含统一 ::: 语法组件 + Layout 模块） */
 export function getBlockSkills(): AiSkill[] {
-  return components.map(componentToSkill)
+  return [...components.map(componentToSkill), ...unifiedComponents.map(unifiedToSkill)]
 }
 
 /** 获取所有行内标识技能 */

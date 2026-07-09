@@ -18,12 +18,12 @@ import { fontSize, fontWeight, letterSpacing, lineHeight, neutral, radius, spaci
 export const Engage_DA01 = {
   id: 'Engage_DA01',
   name: '底部引导卡片',
-  tag: 'engage',
+  tag: 'engage-label',
   attrs: [
     { key: 'title', label: '标题文字', required: false, default: '' },
     { key: 'label', label: '底部小字', required: false, default: 'THANKS FOR READING' },
   ],
-  example: `<engage title="如果这份文档对你有帮助，欢迎点赞、转发、推荐！" label="THANKS FOR READING"></engage>`,
+  example: `<engage-label title="如果这篇文章帮你节省了排版时间，欢迎点赞、转发给需要的朋友，或在评论区留下你的使用心得！" label="THANKS FOR READING"></engage-label>`,
 
   render(attrs: Record<string, string>, _body: string, t: ThemeColors): string {
     let html = `<section style="margin:${spacing[11]} 0px ${spacing[11]};width:100%;max-width:677px;box-sizing:border-box;overflow:hidden;text-align:center;padding:${spacing[9]};border-radius:${radius['3xl']};background:rgba(${t.rgb},0.05);border:1px dashed ${neutral.gray250}">`

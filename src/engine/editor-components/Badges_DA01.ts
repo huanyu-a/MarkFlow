@@ -6,11 +6,11 @@ import { fontSize, fontWeight, lineHeight, radius, spacing } from '@engine/token
  * Badges_DA01 - 彩色标签徽章（默认A型01号样式）
  *
  * 编辑器语法：
- *   <badges tone="accent">Vue|TypeScript|Vite|Tailwind</badges>
+ *   <badges type="accent">Vue|TypeScript|Vite|Tailwind</badges>
  *   <badges color="#fff" bg="#333">自定义颜色标签</badges>
  *
  * 属性：
- *   tone - 风格色调：accent（主题色）、green（绿色）、yellow（黄色）、dark（深色）
+ *   type - 风格色调：accent（主题色）、green（绿色）、yellow（黄色）、dark（深色）
  *   color - 自定义文字颜色（优先于 tone）
  *   bg - 自定义背景颜色（优先于 tone）
  *
@@ -23,7 +23,7 @@ export const Badges_DA01 = {
   tag: 'badges',
   attrs: [
     {
-      key: 'tone',
+      key: 'type',
       label: '风格色调',
       required: false,
       default: 'accent',
@@ -32,7 +32,7 @@ export const Badges_DA01 = {
     { key: 'color', label: '文字颜色', required: false, default: '' },
     { key: 'bg', label: '背景颜色', required: false, default: '' },
   ],
-  example: `<badges tone="accent" color="#2e7d32" bg="#e8f5e9">Vue|TypeScript|Vite|Tailwind</badges>`,
+  example: `<badges type="accent">模块化排版|48套主题|长图文|公众号|知识分享|AI排版</badges>`,
 
   render(attrs: Record<string, string>, body: string, t: ThemeColors): string {
     const items = body
@@ -40,7 +40,7 @@ export const Badges_DA01 = {
       .map((s) => s.trim())
       .filter(Boolean)
 
-    const tone = attrs.tone || 'accent'
+    const tone = attrs.type || 'accent'
     const tones: Record<string, { bg: string; color: string; border: string }> = {
       green: { bg: '#e8f5e9', color: '#2e7d32', border: '#a5d6a7' },
       yellow: { bg: '#fff9c4', color: '#f57f17', border: '#fff176' },

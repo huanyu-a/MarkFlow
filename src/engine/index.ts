@@ -12,7 +12,7 @@ export { renderMermaidDiagram, ensureMermaid } from './utils/mermaidRenderer'
 export { inlineFormat } from './utils/inlineFormat'
 export { extractMath, restoreMath } from './utils/math'
 export { renderCodeBlock } from './utils/codeBlock'
-export { components, componentMap, tagMap, type ComponentDef } from './editor-components'
+export { components, componentMap, tagMap, type ComponentDef, unifiedComponents } from './editor-components'
 export {
   THEMES,
   makeColors,

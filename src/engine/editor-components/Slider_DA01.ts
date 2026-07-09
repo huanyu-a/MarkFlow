@@ -1,10 +1,9 @@
-import type { ThemeColors } from '@engine/composables/useTheme'
-
 /**
  * Slider_DA01 - 图片幻灯片轮播组件
  *
- * 编辑器语法：
- *   <slider images="url1,url2,url3" interval="3" width="600" height="200" type="1">
+ * 统一语法（::: 容器）：
+ *   :::slider images="url1,url2,url3" interval="3" width="600" height="200" type="1"
+ *   :::
  *
  * 属性：
  *   images   - 图片URL列表，用逗号分隔（必填）
@@ -13,6 +12,8 @@ import type { ThemeColors } from '@engine/composables/useTheme'
  *   height   - SVG视图高度，默认200（可选）
  *   type     - 轮播类型：1循环播放 2来回滚动 3跳回第一张 4淡入淡出，默认1（可选）
  */
+
+import { buildUnifiedRenderer, parseBody, type UnifiedComponentDef } from './unifiedRender'
 
 /* ------------------------------------------------------------------ */
 /*  工具函数                                                          */
@@ -213,26 +214,23 @@ function renderFade(imgs: string[], n: number, iv: number, w: number, h: number)
 /*  组件定义                                                          */
 /* ------------------------------------------------------------------ */
 
-export const Slider_DA01 = {
-  id: 'Slider_DA01',
-  name: '轮播图',
-  tag: 'slider',
-  attrs: [
-    { key: 'images', label: '图片URL列表（逗号分隔）', required: true, default: '' },
-    { key: 'interval', label: '每张显示时长（秒），最小2秒', required: false, default: '3' },
-    { key: 'width', label: '视图宽度，可根据使用图片调整', required: false, default: '600' },
-    { key: 'height', label: '视图高度，可根据使用图片调整', required: false, default: '200' },
-    {
-      key: 'type',
-      label: '轮播类型',
-      required: false,
-      default: '1',
-      options: ['1(循环)', '2(来回)', '3(滚回)', '4(淡入淡出)'],
-    },
-  ],
-  example: `<slider images="https://picsum.photos/600/200?random=7,https://picsum.photos/600/200?random=8,https://picsum.photos/600/200?random=9" interval="3" width="600" height="200" type="1"></slider>`,
+export const Slider_DA01: UnifiedComponentDef = {
+  spec: {
+    name: 'slider',
+    label: '轮播图',
+    bodyFormat: 'fields',
+    example: `:::slider images="https://robocopmao.github.io/r-markdown/banner4.webp,https://robocopmao.github.io/r-markdown/banner4.webp" interval="3" width="600" height="200" type="1"
+:::`,
+    fields: [
+      { name: 'images', required: true, description: '图片URL列表（逗号分隔）' },
+      { name: 'interval', required: false, description: '每张显示时长（秒），最小2秒，默认3' },
+      { name: 'width', required: false, description: '视图宽度，默认600' },
+      { name: 'height', required: false, description: '视图高度，默认200' },
+      { name: 'type', required: false, description: '轮播类型：1循环 2来回 3滚回 4淡入淡出，默认1' },
+    ],
+  },
 
-  render(attrs: Record<string, string>, _body: string, _t: ThemeColors): string {
+  render(attrs, _rawBody, _body, _t) {
     const imagesStr = attrs.images || ''
     const interval = Math.max(2, parseInt(attrs.interval || '3', 10) || 0)
     const width = parseInt(attrs.width || '600', 10) || 0
@@ -269,4 +267,10 @@ export const Slider_DA01 = {
         return renderLoop(images, count, interval, width, height)
     }
   },
+
+  renderLegacy(attrs, body, t) {
+    return this.render(attrs, body, parseBody(body, this.spec.bodyFormat), t)
+  },
 }
+
+export const sliderRenderer = buildUnifiedRenderer(Slider_DA01)

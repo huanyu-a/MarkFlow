@@ -6,9 +6,9 @@ import { color, fontSize, fontWeight, letterSpacing, neutral, spacing } from '@e
  * PTitle - 段落标题（默认A型01号样式）
  *
  * 编辑器语法（两种写法均可）：
- *   <p-title num="01" title="标题内容" subtitle="副标题" level="1"></p-title>
- *   <p-title num="01" title="标题内容" level="2"></p-title>
- *   <p-title num="01">标题内容</p-title>  ← body 作为 fallback
+ *   <p-title number="01" title="标题内容" subtitle="副标题" level="1"></p-title>
+ *   <p-title number="01" title="标题内容" level="2"></p-title>
+ *   <p-title number="01">标题内容</p-title>  ← body 作为 fallback
  *
  * Markdown 语法（自动转换）：
  *   # 一级标题文字       → level=1
@@ -17,7 +17,7 @@ import { color, fontSize, fontWeight, letterSpacing, neutral, spacing } from '@e
  *   #### 四级标题文字    → level=4
  *
  * 属性：
- *   num             - 序号，如 01、02（可选）
+ *   number          - 序号，如 01、02（可选）
  *   title           - 标题文字（可选，优先于 body 内容）
  *   subtitle        - 副标题文字（可选）
  *   color           - 标题文字颜色（可选，默认 rgb(17,24,39)）
@@ -37,7 +37,7 @@ export const PTitle = {
   tag: 'p-title',
   attrs: [
     {
-      key: 'num',
+      key: 'number',
       label: '序号',
       required: false,
       default: '',
@@ -111,10 +111,10 @@ export const PTitle = {
       description: '隐藏指定元素：num（隐藏序号）/ line（隐藏章节线及横线），留空则全部显示',
     },
   ],
-  example: `<p-title num="01" title="段落标题组件" subtitle="PARAGRAPH TITLE · 分段标题" level="1" color="#6c5ce7" num-color="#a78bfa" subtitle-color="#94a3b8" size="normal" prefix="🚀" suffix="✅" hide="num"></p-title>`,
+  example: `<p-title number="01" title="它解决什么问题" subtitle="ONE SOURCE · MULTI OUTPUT" level="1" size="normal"></p-title>`,
 
   render(attrs: Record<string, string>, body: string, t: ThemeColors): string {
-    const num = attrs.num || ''
+    const num = attrs.number || ''
     const title = attrs.title || body // title 属性优先，fallback 到 body
     const subtitle = attrs.subtitle
     const level = parseInt(attrs.level || '1', 10)
