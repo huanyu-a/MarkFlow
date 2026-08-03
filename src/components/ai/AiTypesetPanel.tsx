@@ -4,6 +4,7 @@ import { callAiStream, isAiConfigReady, type AiCallConfig } from '@/lib/aiServic
 import { getAllSkills, buildSkillsPrompt, buildModeContextPrompt } from '@/lib/aiSkills'
 import { renderMarkdown } from '@/lib/render/markdown'
 import { UI_LABELS } from '@/lib/uiLabels'
+import { sanitizeHtml } from '@/lib/htmlSanitizer'
 import { AiStar, Send, Check, X, RotateCcw, Undo2, Redo2, Columns2, FileText, Maximize2, Minimize2 } from '@/components/ui/Icon'
 import { usePanelFullscreen } from '@/components/ui/ResizablePanel'
 
@@ -27,7 +28,7 @@ const ALL_SKILLS = getAllSkills()
 const ALL_SKILLS_PROMPT = buildSkillsPrompt(ALL_SKILLS)
 
 /** 从 contentStore 获取当前模式的编辑器内容 */
-function useCurrentContent(mode: RenderMode): string {
+function getCurrentContent(mode: RenderMode): string {
   const articleMarkdown = useContentStore((s) => s.articleMarkdown)
   const documentMarkdown = useContentStore((s) => s.documentMarkdown)
   const cardMarkdown = useContentStore((s) => s.cardMarkdown)
@@ -41,7 +42,7 @@ function useCurrentContent(mode: RenderMode): string {
 }
 
 /** 从 contentStore 获取当前模式的内容设置函数 */
-function useSetCurrentContent(mode: RenderMode): (v: string) => void {
+function getSetCurrentContent(mode: RenderMode): (v: string) => void {
   const setArticleMarkdown = useContentStore((s) => s.setArticleMarkdown)
   const setDocumentMarkdown = useContentStore((s) => s.setDocumentMarkdown)
   const setCardMarkdown = useContentStore((s) => s.setCardMarkdown)
@@ -68,10 +69,11 @@ export function AiTypesetPanel({ mode, onToast, onClose, autoRun }: AiTypesetPan
   const abortRef = useRef<AbortController | null>(null)
 
   // 当前内容
-  const currentContent = useCurrentContent(mode)
-  const setCurrentContent = useSetCurrentContent(mode)
+  const currentContent = getCurrentContent(mode)
+  const setCurrentContent = getSetCurrentContent(mode)
 
   // ---- 撤销/重做 历史栈 ----
+  const MAX_HISTORY = 50
   const [historyStack, setHistoryStack] = useState<string[]>([])
   const [historyIndex, setHistoryIndex] = useState(-1)
 
@@ -79,17 +81,17 @@ export function AiTypesetPanel({ mode, onToast, onClose, autoRun }: AiTypesetPan
   const [previewMode, setPreviewMode] = useState<'rendered' | 'raw'>('rendered') // rendered: 渲染对比, raw: 纯文本
 
   // AI 排版前的原始内容（用于对比）
-  const beforeContentRef = useRef('')
+  const [beforeContent, setBeforeContent] = useState('')
 
   // 渲染原始内容和 AI 结果的 HTML
   const originalRendered = useMemo(() => {
-    if (!beforeContentRef.current) return null
+    if (!beforeContent) return null
     try {
-      return renderMarkdown(beforeContentRef.current, colors, undefined, undefined, themeTokens)
+      return renderMarkdown(beforeContent, colors, undefined, undefined, themeTokens)
     } catch {
       return null
     }
-  }, [beforeContentRef.current, colors, themeTokens])
+  }, [beforeContent, colors, themeTokens])
 
   const resultRendered = useMemo(() => {
     if (!streamingResult.trim()) return null
@@ -131,7 +133,7 @@ export function AiTypesetPanel({ mode, onToast, onClose, autoRun }: AiTypesetPan
       model: aiConfig.model,
     }
     if (!isAiConfigReady(fullConfig)) {
-      setError('请先在「设置 → AI 配置」中配置 API 地址和 Key')
+      setError('请先在「设置 → AI 配置」中配置 API 地址（本地 API 可留空 Key）')
       return
     }
     if (!currentContent.trim()) {
@@ -140,7 +142,7 @@ export function AiTypesetPanel({ mode, onToast, onClose, autoRun }: AiTypesetPan
     }
 
     // 记录 AI 排版前的内容，用于对比
-    beforeContentRef.current = currentContent
+    setBeforeContent(currentContent)
 
     setIsRunning(true)
     setStreamingResult('')
@@ -195,6 +197,9 @@ export function AiTypesetPanel({ mode, onToast, onClose, autoRun }: AiTypesetPan
     // 保存当前内容到历史栈（用于撤销）
     const newStack = historyStack.slice(0, historyIndex + 1)
     newStack.push(currentContent)
+    if (newStack.length > MAX_HISTORY) {
+      newStack.shift()
+    }
     setHistoryStack(newStack)
     setHistoryIndex(newStack.length - 1)
 
@@ -305,7 +310,7 @@ export function AiTypesetPanel({ mode, onToast, onClose, autoRun }: AiTypesetPan
                       </div>
                       <div
                         className="p-3 text-[12px] leading-relaxed text-slate-600"
-                        dangerouslySetInnerHTML={{ __html: originalRendered?.html ?? '<p class="text-slate-300">无内容</p>' }}
+                        dangerouslySetInnerHTML={{ __html: sanitizeHtml(originalRendered?.html ?? '<p class="text-slate-300">无内容</p>') }}
                       />
                     </div>
                     {/* 右：AI 结果 */}
@@ -315,7 +320,7 @@ export function AiTypesetPanel({ mode, onToast, onClose, autoRun }: AiTypesetPan
                       </div>
                       <div
                         className="p-3 text-[12px] leading-relaxed text-slate-600"
-                        dangerouslySetInnerHTML={{ __html: resultRendered?.html ?? '<p class="text-slate-300">渲染中…</p>' }}
+                        dangerouslySetInnerHTML={{ __html: sanitizeHtml(resultRendered?.html ?? '<p class="text-slate-300">渲染中…</p>') }}
                       />
                     </div>
                   </div>
@@ -359,7 +364,7 @@ export function AiTypesetPanel({ mode, onToast, onClose, autoRun }: AiTypesetPan
                 <div className="w-full rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-[12px] text-amber-700 flex items-start gap-2">
                   <AiStar size={14} className="shrink-0 mt-0.5 text-amber-500" />
                   <span>
-                    请先在<strong>「设置 → AI 配置」</strong>中配置 API 地址和 Key 后使用。
+                    请先在<strong>「设置 → AI 配置」</strong>中配置 API 地址后使用（本地 API 可留空 Key）。
                   </span>
                 </div>
               )}

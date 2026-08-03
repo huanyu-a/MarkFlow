@@ -1,5 +1,6 @@
 node_modules
 dist
+dist-tmp
 dist-ssr
 *.local
 .DS_Store
@@ -20,9 +21,17 @@ pnpm-debug.log*
 
 # TypeScript 构建产物
 *.tsbuildinfo
+vite.config.ts.timestamp-*.mjs
 
 # 调试输出
 scripts/_pptx-debug-out/
+
+# Python 字节码缓存
+__pycache__/
+*.pyc
+
+# 环境变量（含敏感密钥，不得提交）
+.env
 
 # Excluded folders
 .agent/skills/

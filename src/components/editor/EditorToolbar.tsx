@@ -5,6 +5,7 @@ import { toolbarGroups } from '@/lib/editor/toolbarConfig'
 import { Select } from '@/components/ui/Select'
 import { Tooltip } from '@/components/ui/Tooltip'
 import { uploadImageFile } from '@/lib/editor/imageStorage'
+import { sanitizeHtmlStrict } from '@/lib/htmlSanitizer'
 import type { ToolbarItem } from '@/lib/editor/toolbarConfig'
 
 // ── 悬停下拉按钮：点击执行主操作，悬停显示子菜单 ──
@@ -55,7 +56,7 @@ function HoverDropdown({ items, view, grid }: { items: ToolbarItem[]; view: Edit
                   title={item.label}
                 >
                   {item.preview ? (
-                    <span dangerouslySetInnerHTML={{ __html: item.preview }} />
+                    <span dangerouslySetInnerHTML={{ __html: sanitizeHtmlStrict(item.preview) }} />
                   ) : (
                     <span className="text-xs text-slate-500">{item.label}</span>
                   )}
@@ -76,7 +77,7 @@ function HoverDropdown({ items, view, grid }: { items: ToolbarItem[]; view: Edit
                 className="w-full text-left px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors cursor-pointer whitespace-nowrap"
               >
                 {item.preview ? (
-                  <span dangerouslySetInnerHTML={{ __html: item.preview }} />
+                  <span dangerouslySetInnerHTML={{ __html: sanitizeHtmlStrict(item.preview) }} />
                 ) : (
                   item.label
                 )}

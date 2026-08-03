@@ -39,6 +39,8 @@ const ICON_GRID = [
   'material-symbols:lock',
 ]
 
+const ICON_NAME_RE = /^[\w-]+:[\w-]+$/
+
 interface ComponentAttrEditorProps {
   tag: string
   from: number
@@ -241,7 +243,8 @@ export function ComponentAttrEditor({ tag, from, to, view, onClose }: ComponentA
   if (!comp) return null
 
   const isIcon = tag === 'Icon'
-  const iconPreviewName = isIcon ? (attrs.name || 'material-symbols:star') : ''
+  // 白名单校验：仅接受合法图标名，防止将任意 URL/脚本注入 img src
+  const iconPreviewName = isIcon && ICON_NAME_RE.test(attrs.name || '') ? attrs.name : ''
 
   return (
     <div
@@ -272,6 +275,8 @@ export function ComponentAttrEditor({ tag, from, to, view, onClose }: ComponentA
             src={`https://api.iconify.design/${encodeURIComponent(iconPreviewName)}.svg`}
             alt="预览"
             style={{ width: 48, height: 48 }}
+            crossOrigin="anonymous"
+            referrerPolicy="no-referrer"
           />
         </div>
       )}
@@ -307,6 +312,8 @@ export function ComponentAttrEditor({ tag, from, to, view, onClose }: ComponentA
                         src={`https://api.iconify.design/${encodeURIComponent(name)}.svg`}
                         alt={name}
                         style={{ width: 24, height: 24 }}
+                        crossOrigin="anonymous"
+                        referrerPolicy="no-referrer"
                       />
                     </button>
                   ))}

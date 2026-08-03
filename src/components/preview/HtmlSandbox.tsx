@@ -4,7 +4,7 @@
  * Modified by huanyu-a/MarkFlow contributors.
  */
 
-import { forwardRef, useMemo } from 'react'
+import { forwardRef, useMemo, useState } from 'react'
 import { previewHtml } from '@/lib/extractHtml'
 
 interface HtmlSandboxProps {
@@ -14,7 +14,8 @@ interface HtmlSandboxProps {
   refreshKey?: number
   // iframe 加载完成回调
   onLoad?: () => void
-  // 是否允许 iframe 内脚本执行；默认关闭，用户需要交互演示时再打开。
+  // 是否允许 iframe 内脚本执行；默认关闭。
+  // 注意：即便开启脚本，也不会放开同源权限，防止沙箱逃逸。
   allowScripts?: boolean
 }
 
@@ -25,6 +26,7 @@ export const HtmlSandbox = forwardRef<HTMLIFrameElement, HtmlSandboxProps>(funct
   ref,
 ) {
   const display = useMemo(() => previewHtml(html), [html])
+  const [loadError, setLoadError] = useState(false)
 
   if (!display) {
     return (
@@ -34,16 +36,25 @@ export const HtmlSandbox = forwardRef<HTMLIFrameElement, HtmlSandboxProps>(funct
     )
   }
 
+  if (loadError) {
+    return (
+      <div className="flex h-full items-center justify-center bg-white text-sm text-slate-500">
+        <span className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">预览加载失败，请检查 HTML 语法</span>
+      </div>
+    )
+  }
+
   return (
     <iframe
       key={refreshKey}
       ref={ref}
       title="html-preview"
+      aria-label="HTML 预览沙箱"
       srcDoc={display}
-      sandbox={`allow-same-origin${allowScripts ? ' allow-scripts' : ''}`}
+      sandbox={allowScripts ? 'allow-scripts' : ''}
       className="h-full w-full border-0"
-      style={{ background: '#fff' }}
       onLoad={onLoad}
+      onError={() => setLoadError(true)}
     />
   )
 })
