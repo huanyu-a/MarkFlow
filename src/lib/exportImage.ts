@@ -4,8 +4,6 @@
  * Modified by huanyu-a/MarkFlow contributors.
  */
 
-import { domToBlob, waitUntilLoad } from 'modern-screenshot'
-
 // 把 iframe（srcdoc 构建）内容渲染为 PNG Blob。
 // 移植自 html-anything/next/src/lib/export/image.ts：
 //   1. 截图前等待字体/图片/样式表就绪；
@@ -141,6 +139,7 @@ async function waitForDocumentReady(doc: Document, win: Window): Promise<void> {
   await Promise.all([sheetsPromise, fontsPromise, imgsPromise])
 
   try {
+    const { waitUntilLoad } = await import('modern-screenshot')
     await waitUntilLoad(doc.documentElement, { timeout: 3000 })
   } catch {
     /* noop */
@@ -179,6 +178,7 @@ export async function elementToBlob(element: HTMLElement, opts: ImageOpts = {}):
   const height = Math.ceil(rect.height || element.offsetHeight)
   if (!width || !height) throw new Error('导出节点暂无尺寸')
 
+  const { domToBlob } = await import('modern-screenshot')
   const blob = await domToBlob(element, {
     scale: opts.scale ?? 2,
     type: opts.type ?? 'image/png',
@@ -261,6 +261,7 @@ export async function captureElementInIframeToBlob(
 
   // 1. 确保 iframe 加载完成
   await waitForDocumentReady(doc, win)
+  const { domToBlob } = await import('modern-screenshot')
 
   // 保存原始 iframe 属性以便后面还原
   const prevIframeWidth = iframe.style.width

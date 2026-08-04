@@ -1,13 +1,14 @@
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
+import { persist, createJSONStorage } from 'zustand/middleware'
 import { THEMES, makeColors, type ThemeColors } from '@engine/composables/useTheme'
 import { resolveTokens, type ResolvedTokens } from '@engine/tokens'
 import { THEME_PROFILES, getDefaultThemeProfile, getThemeProfile, resolveThemeProfile } from '@engine/themes'
 import { DEFAULT_DOCUMENT_SETTINGS, type DocumentSettings } from '@/modes/document/documentModel'
 import type { FontFamilyOption } from '@/lib/fonts'
+import { createIdbStorage } from '@/lib/idbStorage'
 import type { OutputType, VisualTone } from '@/data/designPrompts'
 
-export type ImageHostType = 'local' | 'smms' | 'oss' | 'cos'
+export type ImageHostType = 'local' | 'smms' | 'oss' | 'cos' | 'catbox'
 
 export interface ImageHostConfig {
   activeType: ImageHostType
@@ -144,6 +145,17 @@ export interface AiConfig {
   model: string      // 模型名称
 }
 
+/** 公众号草稿发布配置（AppSecret 不落盘，仅保留在内存会话） */
+export interface WeChatDraftConfig {
+  appId?: string
+  appSecret?: string
+  thumbMediaId?: string
+  /** 可选封面图 URL；为空时自动使用正文第一张可访问图片 */
+  coverImageUrl?: string
+  /** 本地发布服务端点；默认使用 Vite dev server 内置代理 */
+  publishEndpoint?: string
+}
+
 export interface AppState {
   mode: RenderMode
   inputType: InputType
@@ -166,6 +178,9 @@ export interface AppState {
   // AI 排版配置
   aiConfig: AiConfig
   setAiConfig: (patch: Partial<AiConfig>) => void
+  // 公众号草稿箱发布配置（密钥仅会话内存，不持久化）
+  wechatDraftConfig: WeChatDraftConfig
+  setWeChatDraftConfig: (patch: Partial<WeChatDraftConfig>) => void
   // 安全设置：是否允许加载内网资源（默认关闭，企业内网部署场景可开启）（H2/H3）
   allowIntranetResources: boolean
   setAllowIntranetResources: (allow: boolean) => void
@@ -193,8 +208,7 @@ export interface AppState {
 }
 
 export const useAppStore = create<AppState>()(
-  persist(
-    (set, get) => ({
+  persist<AppState, [], [], Partial<AppState>>((set, get) => ({
       mode: 'document',
       inputType: 'markdown',
       platform: 'longform',
@@ -211,6 +225,9 @@ export const useAppStore = create<AppState>()(
       aiConfig: DEFAULT_AI_CONFIG,
       setAiConfig: (patch) =>
         set((state) => ({ aiConfig: { ...state.aiConfig, ...patch } })),
+      wechatDraftConfig: {},
+      setWeChatDraftConfig: (patch) =>
+        set((state) => ({ wechatDraftConfig: { ...state.wechatDraftConfig, ...patch } })),
       setImageHostConfig: (config) =>
         set((state) => ({ imageHostConfig: { ...state.imageHostConfig, ...config } })),
       allowIntranetResources: false,
@@ -306,7 +323,8 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: 'm2v-app-store',
-      partialize: (state) => ({
+      storage: createJSONStorage(() => createIdbStorage({ dbName: 'markflow-app-settings', storeName: 'settings', throttleMs: 500 })),
+      partialize: (state): Partial<AppState> => ({
         mode: state.mode,
         inputType: state.inputType,
         platform: state.platform,
@@ -316,10 +334,11 @@ export const useAppStore = create<AppState>()(
         accent: state.accent,
         accentDark: state.accentDark,
         themeProfileId: state.themeProfileId,
-        imageHostConfig: stripImageHostSecrets(state.imageHostConfig),
-        aiConfig: { apiUrl: state.aiConfig.apiUrl, apiKey: state.aiConfig.apiKey, model: state.aiConfig.model },
+        imageHostConfig: state.imageHostConfig,
+        aiConfig: state.aiConfig,
         allowIntranetResources: state.allowIntranetResources,
         customInstructions: state.customInstructions,
+        wechatDraftConfig: state.wechatDraftConfig,
       }),
       onRehydrateStorage: () => (state) => {
         if (!state) return

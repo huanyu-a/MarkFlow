@@ -330,6 +330,58 @@ export async function preloadImagesFromMarkdown(md: string): Promise<void> {
 }
 
 /**
+ * Catbox 免费图床上传
+ * 优先浏览器直连；遇到 CORS 或服务错误时回退到本地 dev 代理。
+ */
+async function uploadToCatboxDirect(file: File): Promise<string> {
+  const formData = new FormData()
+  formData.append('reqtype', 'fileupload')
+  formData.append('fileToUpload', file)
+  const response = await fetch('https://catbox.moe/user/api.php', {
+    method: 'POST',
+    body: formData,
+  })
+  const text = await response.text()
+  const url = text.trim()
+  if (!response.ok || !/^https?:\/\//i.test(url)) {
+    throw new Error(url || `Catbox upload failed（HTTP ${response.status}）`)
+  }
+  return url
+}
+
+async function uploadToCatboxViaProxy(file: File): Promise<string> {
+  const buffer = await file.arrayBuffer()
+  const bytes = new Uint8Array(buffer)
+  let binary = ''
+  const CHUNK = 0x8000
+  for (let i = 0; i < bytes.length; i += CHUNK) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + CHUNK))
+  }
+  const response = await fetch('/__markflow_image_host/catbox', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      filename: file.name,
+      mime: file.type || 'image/jpeg',
+      data: btoa(binary),
+    }),
+  })
+  const text = await response.text()
+  if (!response.ok) {
+    throw new Error(text || `Catbox proxy upload failed（HTTP ${response.status}）`)
+  }
+  return text.trim()
+}
+
+async function uploadToCatbox(file: File): Promise<string> {
+  try {
+    return await uploadToCatboxDirect(file)
+  } catch {
+    return uploadToCatboxViaProxy(file)
+  }
+}
+
+/**
  * 免费图床 Sm.ms 上传
  */
 export async function uploadToSmMs(file: File, token: string): Promise<string> {
@@ -496,6 +548,9 @@ export async function uploadImageFile(
   const compressed = await compressImage(file, 1600, 0.7, detectedMime)
   const uploadFile = createImageUploadFile(file, compressed)
 
+  if (config.activeType === 'catbox') {
+    return uploadToCatbox(uploadFile)
+  }
   if (config.activeType === 'smms') {
     if (!config.smms?.token) throw new Error(missingSecretMessage('Sm.ms Token'))
     return uploadToSmMs(uploadFile, config.smms.token)

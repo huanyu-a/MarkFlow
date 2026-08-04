@@ -69,7 +69,7 @@ export const UI_LABELS = {
     apiUrl: 'API 地址',
     apiUrlPlaceholder: 'https://api.deepseek.com',
     apiKey: 'API Key',
-    apiKeyPlaceholder: 'sk-...',
+    apiKeyPlaceholder: 'sk-...（本地 API 可留空）',
     model: '模型名称',
     modelPlaceholder: 'deepseek-chat（可留空）',
     skillSelect: '排版技能',

@@ -9,6 +9,8 @@ export interface AiCallConfig {
   model: string
 }
 
+import { isPrivateHost } from './fetchSafe'
+
 interface ChatMessage {
   role: 'system' | 'user' | 'assistant'
   content: string
@@ -18,26 +20,72 @@ interface ChatMessage {
  * 流式调用 OpenAI 兼容 API，逐块返回内容。
  * 返回的字符串为完整的 assistant 回复文本。
  */
+function buildCompletionsUrl(baseUrl: string): string {
+  const clean = baseUrl.trim().replace(/\/+$/, '')
+  if (/\/chat\/completions$/i.test(clean)) return clean
+  if (/\/v1$/i.test(clean)) return `${clean}/chat/completions`
+  return `${clean}/v1/chat/completions`
+}
+
+function assertAiUpstreamUrl(url: string): void {
+  const trimmed = url.trim()
+  if (!trimmed) {
+    throw new Error('AI 接口地址为空')
+  }
+
+  if (!/^https?:\/\//i.test(trimmed)) {
+    throw new Error('AI 接口地址仅支持 http(s) 协议')
+  }
+
+  try {
+    const parsed = new URL(trimmed)
+    const hostname = parsed.hostname.toLowerCase().replace(/^\[|\]$/g, '')
+
+    if (/^(localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\]|::1)$/i.test(hostname)) {
+      return
+    }
+
+    if (/^http:\/\//i.test(trimmed)) {
+      throw new Error('非本地 AI 接口请使用 https 地址')
+    }
+
+    if (isPrivateHost(hostname)) {
+      throw new Error('AI 接口地址不能指向内网地址')
+    }
+  } catch (err) {
+    if (err instanceof Error) throw err
+    throw new Error('AI 接口地址格式不正确')
+  }
+}
+
 export async function callAiStream(
   config: AiCallConfig,
   messages: ChatMessage[],
   onChunk: (chunk: string) => void,
   signal?: AbortSignal,
 ): Promise<string> {
-  const url = `${config.apiUrl.replace(/\/+$/, '')}/v1/chat/completions`
+  const upstreamUrl = buildCompletionsUrl(config.apiUrl)
+  assertAiUpstreamUrl(upstreamUrl)
+  const body = JSON.stringify({
+    model: config.model || undefined,
+    messages,
+    stream: true,
+    temperature: 0.7,
+  })
 
-  const res = await fetch(url, {
+  // 浏览器直连 OpenAI 兼容 API 通常会被 CORS 拦截，因此优先走本地 dev 代理。
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    'X-Markflow-Ai-Url': upstreamUrl,
+  }
+  if (config.apiKey.trim()) {
+    headers.Authorization = `Bearer ${config.apiKey.trim()}`
+  }
+
+  const res = await fetch('/__markflow_ai_proxy', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${config.apiKey}`,
-    },
-    body: JSON.stringify({
-      model: config.model || undefined,
-      messages,
-      stream: true,
-      temperature: 0.7,
-    }),
+    headers,
+    body,
     signal,
   })
 
@@ -83,7 +131,24 @@ export async function callAiStream(
   return fullContent
 }
 
-/** 校验 AI 配置是否完整（URL + Key 均已填写） */
+export function validateAiUpstreamUrlForTests(url: string): void {
+  assertAiUpstreamUrl(url)
+}
+
+function isLocalApiUrl(url: string): boolean {
+  const clean = url.trim().toLowerCase()
+  return (
+    clean.startsWith('http://localhost') ||
+    clean.startsWith('http://127.0.0.1') ||
+    clean.startsWith('http://[::1]') ||
+    clean.startsWith('http://0.0.0.0')
+  )
+}
+
+/** 校验 AI 配置是否完整；本地 API 允许不填 Key */
 export function isAiConfigReady(config: { apiUrl: string; apiKey: string }): boolean {
-  return Boolean(config.apiUrl.trim() && config.apiKey.trim())
+  const url = config.apiUrl.trim()
+  if (!url) return false
+  if (isLocalApiUrl(url)) return true
+  return Boolean(url && config.apiKey.trim())
 }

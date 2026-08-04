@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { callAiStream, isAiConfigReady } from './aiService'
+import { callAiStream, isAiConfigReady } from '@/lib/aiService'
 
 /* ------------------------------------------------------------------ */
 /*  helpers: 构造 mock fetch 响应                                       */
@@ -79,7 +79,7 @@ describe('callAiStream', () => {
     expect(result).toBe('Hello World!')
   })
 
-  it('URL 末尾有多余斜杠时应正确拼接端点', async () => {
+  it('URL 末尾有多余斜杠时应通过代理并携带上游端点', async () => {
     const chunks = encodeSseLines([
       'data: {"choices":[{"delta":{"content":"ok"}}]}\n\n',
       'data: [DONE]\n\n',
@@ -89,8 +89,15 @@ describe('callAiStream', () => {
     await callAiStream(config, messages, vi.fn())
 
     expect(fetch).toHaveBeenCalledWith(
-      'https://api.example.com/v1/chat/completions',
-      expect.objectContaining({ method: 'POST' }),
+      '/__markflow_ai_proxy',
+      expect.objectContaining({
+        method: 'POST',
+        headers: expect.objectContaining({
+          'X-Markflow-Ai-Url': 'https://api.example.com/v1/chat/completions',
+        }),
+        body: expect.stringContaining('"model":"gpt-4"'),
+        signal: undefined,
+      }),
     )
   })
 
@@ -181,5 +188,10 @@ describe('isAiConfigReady', () => {
 
   it('URL 前后有空格但有实质内容时应返回 true', () => {
     expect(isAiConfigReady({ apiUrl: ' https://x.com ', apiKey: 'sk-1 ' })).toBe(true)
+  })
+
+  it('本地 API 地址可留空 Key', () => {
+    expect(isAiConfigReady({ apiUrl: 'http://127.0.0.1:20128/v1', apiKey: '' })).toBe(true)
+    expect(isAiConfigReady({ apiUrl: 'http://localhost:8080/v1', apiKey: '' })).toBe(true)
   })
 })

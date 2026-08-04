@@ -19,14 +19,28 @@ const CALLOUT_CONFIG: Record<string, { icon: string; bg: string; border: string;
   NOTE:      { icon: '📝', bg: '#eff6ff', border: '#2563eb', label: '笔记' },
   INFO:      { icon: 'ℹ️',  bg: '#f0f9ff', border: '#0ea5e9', label: '信息' },
   TIP:       { icon: '💡', bg: '#f0fdf4', border: '#16a34a', label: '提示' },
+  SUCCESS:   { icon: '✅', bg: '#f0fdf4', border: '#16a34a', label: '成功' },
   WARNING:   { icon: '⚠️', bg: '#fffbea', border: '#ea580c', label: '警告' },
+  DANGER:    { icon: '❌', bg: '#fef2f2', border: '#dc2626', label: '危险' },
   CAUTION:   { icon: '🚨', bg: '#fef2f2', border: '#dc2626', label: '严重' },
   IMPORTANT: { icon: '❗', bg: '#f5f3ff', border: '#7c3aed', label: '重要' },
 }
 
 // ── 通用 render ──
 function calloutRender(attrs: Record<string, string>, body: string, _t: ThemeColors): string {
-  let type = (attrs.type || 'info').toUpperCase()
+  // 支持位置参数：:::callout tip 或 :::callout tip title="..."
+  // 当 parseAttrs 把无值单词解析为 { tip: 'true' } 时，识别为 type
+  const POSITIONAL_TYPES = ['info', 'tip', 'warning', 'success', 'danger', 'note', 'caution', 'important'] as const
+  let type = (attrs.type || '').toUpperCase()
+  if (!type) {
+    for (const pt of POSITIONAL_TYPES) {
+      if (attrs[pt] === 'true') {
+        type = pt.toUpperCase()
+        break
+      }
+    }
+  }
+  if (!type) type = 'INFO'
   let title = attrs.title || ''
   let content = body
 

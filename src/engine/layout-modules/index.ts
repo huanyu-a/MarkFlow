@@ -20,7 +20,7 @@ import { metricsModule } from './infographic/metrics'
 import { infographicModule } from './infographic/infographic'
 import { compareModule } from './infographic/compare'
 import { stepsModule } from './infographic/steps'
-import { timelineModule } from './infographic/timeline'
+// timeline 由 editor-components/Timeline_DA01 统一注册（unified timeline），此处移除重复入口
 
 // ── judgment ──
 import { verdictModule } from './judgment/verdict'
@@ -50,7 +50,6 @@ import { peopleModule } from './brand/people'
 import { seriesModule } from './brand/series'
 
 // ── sprint4 ──
-import { calloutModule } from './sprint4/callout'
 import { definitionModule } from './sprint4/definition'
 import { quoteCardModule } from './sprint4/quote-card'
 import { tweetModule } from './sprint4/tweet'
@@ -59,6 +58,7 @@ import { questionModule } from './sprint4/question'
 import { resourceListModule } from './sprint4/resource-list'
 import { comparisonTableModule } from './sprint4/comparison-table'
 import { changelogModule } from './sprint4/changelog'
+// callout 由 editor-components/Callout_DA01 统一注册（unified callout），此处移除重复入口
 
 // ── 注册列表 ──
 
@@ -72,7 +72,6 @@ const ALL_MODULES: LayoutModule[] = [
   infographicModule,
   compareModule,
   stepsModule,
-  timelineModule,
   verdictModule,
   audienceFitModule,
   mythFactModule,
@@ -92,7 +91,6 @@ const ALL_MODULES: LayoutModule[] = [
   subscribeModule,
   peopleModule,
   seriesModule,
-  calloutModule,
   definitionModule,
   quoteCardModule,
   tweetModule,

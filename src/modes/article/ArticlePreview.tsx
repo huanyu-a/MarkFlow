@@ -7,12 +7,119 @@ import { PreviewToolbar, type ToolbarItem } from '@/components/layout/PreviewToo
 import { useStore } from '@/lib/store'
 import { UI_LABELS } from '@/lib/uiLabels'
 import { getFontFamilyCss } from '@/lib/fonts'
-import { Download, Clipboard, ImageIcon, Rocket } from '@/components/ui/Icon'
+import { Download, Clipboard, ImageIcon, Rocket, FileText, Send } from '@/components/ui/Icon'
 import { MermaidImageHostDialog } from '@/components/ui/MermaidImageHostDialog'
 import { collectMermaidDiagrams } from '@engine'
 
 /** 长图文模式固定使用黑体系统字体栈，确保复制到微信公众号时字体一致 */
 const ARTICLE_FONT = getFontFamilyCss('heiti')
+
+/**
+ * 将 DOM 克隆并清理为公众号兼容的 HTML
+ * - 降级 Mermaid 图表为代码块（移除 <div class="m2v-mermaid-figure">）
+ * - 移除所有 class 属性（公众号禁止 class）
+ * - 将 <div> 替换为 <section>（公众号禁止 div）
+ * - 清理公众号禁止的 CSS 属性（display:grid, float, position:fixed/absolute/sticky 等）
+ */
+function cloneAndSanitizeForWeChat(
+  contentEl: HTMLElement,
+  markdown: string,
+): HTMLElement {
+  const clone = contentEl.cloneNode(true) as HTMLElement
+
+  // 1. 降级 Mermaid 图表为代码块
+  const diagrams = collectMermaidDiagrams(markdown)
+  const figures = clone.querySelectorAll<HTMLElement>('.m2v-mermaid-figure')
+  figures.forEach((fig, index) => {
+    if (index >= diagrams.length) return
+    const pre = document.createElement('pre')
+    const codeEl = document.createElement('code')
+    codeEl.textContent = diagrams[index].source
+    pre.appendChild(codeEl)
+    fig.parentNode?.replaceChild(pre, fig)
+  })
+
+  // 2. 移除所有 class 属性
+  const elementsWithClass = clone.querySelectorAll<HTMLElement>('[class]')
+  elementsWithClass.forEach((el) => {
+    el.removeAttribute('class')
+  })
+
+  // 3. 清理公众号禁止的 CSS 属性
+  const FORBIDDEN_CSS_PROPS = [
+    'display:grid',
+    'display: grid',
+    'float:',
+    'position:fixed',
+    'position:absolute',
+    'position:sticky',
+    '@media',
+    '@keyframes',
+    '@import',
+    'var(',
+  ]
+
+  function sanitizeStyleAttribute(el: HTMLElement) {
+    const style = el.getAttribute('style')
+    if (!style) return
+    let sanitized = style
+    for (const forbidden of FORBIDDEN_CSS_PROPS) {
+      // 简单的字符串替换，保留其他样式
+      const regex = new RegExp(`${forbidden.replace(/([.*+?^${}()|[\]\\])/g, '\\$1')}[^;]*;?`, 'gi')
+      sanitized = sanitized.replace(regex, '')
+    }
+    if (sanitized.trim() === style.trim()) return
+    if (sanitized.trim()) {
+      el.setAttribute('style', sanitized.trim())
+    } else {
+      el.removeAttribute('style')
+    }
+  }
+
+  // 清理所有元素的 style 属性
+  const elementsWithStyle = clone.querySelectorAll<HTMLElement>('[style]')
+  elementsWithStyle.forEach(sanitizeStyleAttribute)
+
+  // 4. 将 <div> 替换为 <section>
+  const divs = clone.querySelectorAll<HTMLDivElement>('div')
+  divs.forEach((div) => {
+    const section = document.createElement('section')
+    // 复制所有属性和内容
+    Array.from(div.attributes).forEach((attr) => {
+      section.setAttribute(attr.name, attr.value)
+    })
+    section.innerHTML = div.innerHTML
+    div.parentNode?.replaceChild(section, div)
+  })
+
+  return clone
+}
+
+/**
+ * 导出公众号 HTML 片段（复用渲染器产出的全内联样式 HTML，不加 <style>/<head>/<body> 包装）
+ * 渲染器（src/engine/）已对所有标签做了内联 style + <span leaf=""> 包裹，
+ * 此函数会清理 DOM 以通过 validate_gzh_html.py 校验。
+ */
+const exportWeChatHtml = (
+  contentRef: React.RefObject<HTMLDivElement>,
+  markdown: string,
+  title: string,
+  onToast: (msg: string) => void,
+) => {
+  if (!contentRef.current) return
+  const sanitized = cloneAndSanitizeForWeChat(contentRef.current, markdown)
+  const html = sanitized.innerHTML
+  const blob = new Blob([html], { type: 'text/html;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `${title.replace(/[\\/:*?"<>|]/g, '_').slice(0, 40)}.wechat.html`
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  URL.revokeObjectURL(url)
+  onToast('已导出公众号 HTML（已降级 Mermaid、移除 class 属性）')
+}
 
 interface ArticlePreviewProps {
   rendered: MarkdownRenderResult
@@ -31,6 +138,8 @@ export function ArticlePreview({ rendered, markdown, scrollRef, onToast }: Artic
 
   const [showMermaidDialog, setShowMermaidDialog] = useState(false)
   const [pendingCopyType, setPendingCopyType] = useState<'richText' | 'htmlSource' | null>(null)
+  const [publishingWeChat, setPublishingWeChat] = useState(false)
+  const wechatDraftConfig = useStore((s) => s.wechatDraftConfig)
 
   const hasMermaid = html.includes('m2v-mermaid-figure')
 
@@ -117,6 +226,40 @@ export function ArticlePreview({ rendered, markdown, scrollRef, onToast }: Artic
     }
   }
 
+  const handlePublishWeChatDraft = async () => {
+    if (!contentRef.current || publishingWeChat) return
+    const { appId, appSecret, thumbMediaId, coverImageUrl, publishEndpoint } = wechatDraftConfig
+    if (!appId || !appSecret) {
+      onToast('请先在设置中配置公众号 AppID / AppSecret')
+      window.dispatchEvent(new CustomEvent('m2v-open-settings'))
+      return
+    }
+    setPublishingWeChat(true)
+    try {
+      const sanitized = cloneAndSanitizeForWeChat(contentRef.current, markdown)
+      const res = await fetch(publishEndpoint || '/__markflow_wechat_publish', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          appId,
+          appSecret,
+          thumbMediaId: thumbMediaId ?? '',
+          coverImageUrl: coverImageUrl ?? '',
+          title: meta.title || '未命名文章',
+          content: sanitized.innerHTML,
+        }),
+      })
+      const data = (await res.json()) as { ok?: boolean; media_id?: string; error?: string }
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || `发布失败（HTTP ${res.status}）`)
+      }
+      onToast(`已创建公众号草稿 media_id=${data.media_id}`)
+    } catch (e) {
+      onToast(`发布失败：${e instanceof Error ? e.message : '未知错误'}`)
+    } finally {
+      setPublishingWeChat(false)
+    }
+  }
   const toolbarActions: ToolbarItem[] = [
     'separator',
     {
@@ -127,6 +270,16 @@ export function ArticlePreview({ rendered, markdown, scrollRef, onToast }: Artic
       onClick: () => {
         const title = (meta.title || 'article').replace(/[\\/:*?"<>|]/g, '_').slice(0, 40)
         exportMarkdownSource(markdown, `${title}.md`)
+      },
+    },
+    {
+      id: 'exportWeChatHtml',
+      icon: <FileText size={14} />,
+      label: '导出公众号 HTML',
+      tooltip: '导出全内联 HTML 片段（可通过 validate_gzh_html.py 校验）',
+      onClick: () => {
+        const title = meta.title || 'article'
+        exportWeChatHtml(contentRef, markdown, title, onToast)
       },
     },
     {
@@ -151,6 +304,14 @@ export function ArticlePreview({ rendered, markdown, scrollRef, onToast }: Artic
       onClick: handleCopyRichText,
       variant: 'primary',
       className: 'shadow-sm',
+    },
+    {
+      id: 'publishWeChatDraft',
+      icon: <Send size={14} />,
+      label: publishingWeChat ? '推送中…' : '发布到草稿箱',
+      tooltip: '直接创建微信公众号草稿',
+      onClick: handlePublishWeChatDraft,
+      variant: publishingWeChat ? undefined : 'primary',
     },
   ]
 
@@ -232,6 +393,8 @@ export function ArticlePreview({ rendered, markdown, scrollRef, onToast }: Artic
         onDowngrade={handleDowngradeMermaid}
         onConfigure={handleConfigureImageHost}
       />
+
     </section>
   )
 }
+

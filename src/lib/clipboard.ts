@@ -1,6 +1,5 @@
 import { getLocalImage, blobToBase64, getUrlToIdMap, uploadImageFile } from '@/lib/editor/imageStorage'
 import type { ImageHostConfig } from '@/lib/store'
-import { domToBlob } from 'modern-screenshot'
 
 function createHiddenTextarea(text: string): HTMLTextAreaElement {
   const ta = document.createElement('textarea')
@@ -78,6 +77,7 @@ async function convertSvgsToPng(el: HTMLElement, imageHostConfig?: ImageHostConf
     // 已配置图床：截图 → 上传 → 替换为 <img src="公网URL">
     if (imageHostConfig && imageHostConfig.activeType !== 'local') {
       try {
+        const { domToBlob } = await import('modern-screenshot')
         const blob = await domToBlob(fig, {
           scale: 2,
           type: 'image/png',

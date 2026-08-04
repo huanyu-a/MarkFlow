@@ -4,7 +4,7 @@ import { Textarea } from './Textarea'
 
 describe('Textarea', () => {
   it('renders with value and onChange', () => {
-    const onChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {}
+    const onChange = () => {}
     render(<Textarea value="abc" onChange={onChange} />)
     expect(screen.getByRole('textbox')).toHaveValue('abc')
   })

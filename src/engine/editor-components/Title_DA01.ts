@@ -93,7 +93,7 @@ export const Title_DA01 = {
     { key: 'chips', label: '关键词（|分隔）', required: false, default: '' },
     { key: 'color', label: '自定义颜色', required: false, default: '' },
   ],
-  example: `<title type="DA01" label="GUIDE" subtitle="涵盖标题卡片、步骤流程、时间线、对比卡片、代码块、提示框等全部 63 个排版组件，每个组件均提供可复制的语法模板与属性说明。" chips="公众号排版|长图文|组件化|知识分享">MarkFlow 排版组件完全指南</title>`,
+    example: `<title type="DA01" label="GUIDE" subtitle="涵盖标题卡片、步骤流程、时间线、对比卡片、代码块、提示框等全部 61 个排版组件，每个组件均提供可复制的语法模板与属性说明。" chips="公众号排版|长图文|组件化|知识分享">MarkFlow 排版组件完全指南</title>`,
 
   render(attrs: Record<string, string>, body: string, t: ThemeColors, ...rest: unknown[]): string {
     const raw = (rest[0] as string) || ''

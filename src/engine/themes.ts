@@ -1,5 +1,5 @@
 /**
- * MarkFlow 主题画廊 — 48 套专业主题风格
+ * MarkFlow 主题画廊 — 52 套专业主题风格
  *
  * 设计哲学：主题 = 一组可覆盖基础 token 的增量值。
  * Renderer 在生成内联 style 时优先读 ctx.tokens（已 resolve 的主题值），
@@ -79,7 +79,7 @@ export const THEME_CATEGORIES: ThemeCategory[] = [
   { id: 'dark', name: '暗色', description: '深色基底，视觉冲击与沉浸感' },
 ]
 
-// ─── 48 套主题 ────────────────────────────────────────
+// ─── 52 套主题 ────────────────────────────────────────
 
 export const THEME_PROFILES: ThemeProfile[] = [
   // ── 极简 (8) ──
@@ -141,6 +141,18 @@ export const THEME_PROFILES: ThemeProfile[] = [
   { id: 'discord', name: 'Discord', category: 'dark', accent: '#5865f2', dark: '#4752c4', headingScale: 1, headingWeight: 700, headingColor: 'accent', bodySize: '15', spacingScale: 1, radiusLevel: 'default', quoteStyle: 'bg' },
   { id: 'amber-dark', name: '琥珀暗', category: 'dark', accent: '#f59e0b', dark: '#d97706', headingScale: 1.15, headingWeight: 800, headingColor: 'accent', bodySize: '15', spacingScale: 1, radiusLevel: 'default', quoteStyle: 'border' },
   { id: 'red-dark', name: '暗夜红', category: 'dark', accent: '#ef4444', dark: '#dc2626', headingScale: 1.15, headingWeight: 800, headingColor: 'accent', bodySize: '15', spacingScale: 1, radiusLevel: 'default', quoteStyle: 'border' },
+  // ── gzh-design-skill 7 套主题（去重 2 + 跳过 1，新增 4 套）──
+  // 摸鱼绿 #059669 (对应 theme-moyu-green)
+  { id: 'moyu-green', name: '摸鱼绿', category: 'tech', accent: '#059669', dark: '#047857', headingScale: 1, headingWeight: 700, headingColor: 'accent', bodySize: '15', spacingScale: 1, radiusLevel: 'default', quoteStyle: 'border' },
+  // 红白 #DC2626 - 与 cocacola (accent: #dc2626) 完全一致，去重不新增
+  // 石墨极简 #52525B (对应 theme-graphite-minimal)
+  { id: 'graphite-minimal', name: '石墨极简', category: 'minimal', accent: '#52525B', dark: '#3f3f46', headingScale: 1, headingWeight: 600, headingColor: 'textPrimary', bodySize: '15', spacingScale: 1, radiusLevel: 'sharp', quoteStyle: 'border' },
+  // 留白禅意 #4A5D52 (对应 theme-zen-whitespace)
+  { id: 'zen-whitespace', name: '留白禅意', category: 'minimal', accent: '#4A5D52', dark: '#3b4a42', headingScale: 1, headingWeight: 600, headingColor: 'textPrimary', bodySize: '15', spacingScale: 1, radiusLevel: 'default', quoteStyle: 'border' },
+  // 摸鱼票据 #059669 - 与摸鱼绿同色，去重不新增
+  // 橄榄手记 #1e1f23 (对应 theme-olive-journal)
+  { id: 'olive-journal', name: '橄榄手记', category: 'editorial', accent: '#1e1f23', dark: '#17181b', headingScale: 1.15, headingWeight: 700, headingColor: 'accent', bodySize: '16', spacingScale: 1.2, radiusLevel: 'default', quoteStyle: 'border' },
+  // 锤子风格 #B3593B - 跳过：源仓库中为第 7 套主题（theme-hammer），与现有 cocacola(#dc2626) 风格定位重叠且暖砖红配色可用 cocacola 替代
 ]
 
 // ─── 索引与工具 ────────────────────────────────────────

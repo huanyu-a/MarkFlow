@@ -44,7 +44,7 @@ export function PrivacyModal({ isOpen, onClose }: PrivacyModalProps) {
                 (b) 本地持久化，安全又便捷
               </h3>
               <p className="text-slate-500 pl-3.5">
-                您的个性化配置、历史编辑状态和图床设置，均安全地存储于浏览器的 <code>localStorage</code> 本地缓存中。<strong>只要您不手动清除浏览器缓存</strong>，在同一设备和浏览器上便可一直保持，避免数据丢失的同时实现了即开即用。
+                您的个性化配置、历史编辑状态和图床设置，均安全地存储于浏览器的 <code>IndexedDB</code> 本地数据库中。<strong>只要您不手动清除浏览器缓存</strong>，在同一设备和浏览器上便可一直保持，避免数据丢失的同时实现了即开即用。
               </p>
             </div>
 

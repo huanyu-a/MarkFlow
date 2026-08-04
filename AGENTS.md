@@ -88,6 +88,7 @@
 * 公众号渲染引擎从 `public/vendor/r-markdown` 原样移植（其引擎为框架无关的纯 TS）。
 * 导出能力（iframe→PNG 等）从 `public/vendor/html-anything/next/src/lib/export/` 移植。
 * 前端项目依赖统一记录在 `package.json`；不涉及 Python，故不创建 `requirements.txt`。
+  * **例外**：`tools/wechat/` 包含微信公众号草稿箱创建的 Python 脚本（来自 `Amer-CN/gzh-design-skill`），因需要调用微信服务端 API 而引入。这些脚本为**可选工具**，不影响前端构建与运行。
 
 ## 3. 执行经验与开发规范
 

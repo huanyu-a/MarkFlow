@@ -4,6 +4,7 @@ import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 import { fileURLToPath, URL } from 'node:url'
 import type { Plugin } from 'vite'
+import { assertSafeHttpUrl, fetchWithTimeout } from './src/lib/fetchSafe'
 
 /**
  * MathJax tex-svg 字体数据拆分插件
@@ -97,6 +98,303 @@ function mathJaxFontSplitter(): Plugin {
   }
 }
 
+/**
+ * 本地微信公众号草稿发布代理
+ *
+ * 纯前端无法直接调用微信 API（CORS + AppSecret 不能暴露到页面），
+ * 因此 dev server 增加本地代理：前端只把内容 POST 到 /__markflow_wechat_publish，
+ * 由 Node 侧获取 access_token 并调用 draft/add。
+ */
+function wechatPublishDevServer(): Plugin {
+  async function readJsonBody(req: { on: (event: 'data' | 'end' | 'error', cb: (chunk?: unknown) => void) => void }): Promise<Record<string, unknown>> {
+    return new Promise((resolve, reject) => {
+      let raw = ''
+      req.on('data', (chunk) => {
+        raw += String(chunk)
+      })
+      req.on('end', () => {
+        try {
+          resolve(JSON.parse(raw || '{}'))
+        } catch (e) {
+          reject(e instanceof Error ? e : new Error('invalid json'))
+        }
+      })
+      req.on('error', (err) => reject(err instanceof Error ? err : new Error('request error')))
+    })
+  }
+
+  async function getAccessToken(appId: string, appSecret: string): Promise<string> {
+    const url = new URL('https://api.weixin.qq.com/cgi-bin/token')
+    url.searchParams.set('grant_type', 'client_credential')
+    url.searchParams.set('appid', appId)
+    url.searchParams.set('secret', appSecret)
+    const safeUrl = assertSafeHttpUrl(url.toString())
+    const res = await fetchWithTimeout(safeUrl.toString(), { timeoutMs: 15000 })
+    const data = (await res.json()) as { access_token?: string; errcode?: number; errmsg?: string }
+    if (!data.access_token) {
+      throw new Error(`获取 access_token 失败：${data.errcode ?? res.status} ${data.errmsg ?? ''}`)
+    }
+    return data.access_token
+  }
+
+  async function createWeChatDraft(
+    token: string,
+    body: { title: string; content: string; thumbMediaId: string },
+  ): Promise<{ mediaId?: string; errcode?: number; errmsg?: string }> {
+    const url = new URL('https://api.weixin.qq.com/cgi-bin/draft/add')
+    url.searchParams.set('access_token', token)
+    const safeUrl = assertSafeHttpUrl(url.toString())
+    const res = await fetchWithTimeout(safeUrl.toString(), {
+      timeoutMs: 20000,
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        articles: [
+          {
+            title: body.title,
+            author: '',
+            digest: '',
+            content: body.content,
+            content_source_url: '',
+            thumb_media_id: body.thumbMediaId,
+            need_open_comment: 0,
+            only_fans_can_comment: 0,
+          },
+        ],
+      }),
+    })
+    const data = (await res.json()) as { media_id?: string; errcode?: number; errmsg?: string }
+    if (!data.media_id) {
+      return { errcode: data.errcode ?? res.status, errmsg: data.errmsg ?? `HTTP ${res.status}` }
+    }
+    return { mediaId: data.media_id }
+  }
+
+  async function uploadCoverImage(token: string, imageUrl: string): Promise<string> {
+    if (!/^https?:\/\//i.test(imageUrl)) {
+      throw new Error(`封面图必须是可访问的 http(s) URL：${imageUrl}`)
+    }
+    const imgRes = await fetchWithTimeout(imageUrl, { timeoutMs: 20000 })
+    if (!imgRes.ok) {
+      throw new Error(`下载封面图失败：HTTP ${imgRes.status}`)
+    }
+    const buffer = await imgRes.arrayBuffer()
+    const ext = imageUrl.split(/[?#]/)[0].toLowerCase().match(/\.(png|jpe?g|webp|gif)$/)?.[1] ?? 'jpg'
+    const mime = ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : ext === 'gif' ? 'image/gif' : 'image/jpeg'
+    const form = new FormData()
+    form.append('media', new Blob([buffer], { type: mime }), `cover.${ext}`)
+    const url = new URL('https://api.weixin.qq.com/cgi-bin/material/add_material')
+    url.searchParams.set('access_token', token)
+    url.searchParams.set('type', 'image')
+    const safeUploadUrl = assertSafeHttpUrl(url.toString())
+    const upRes = await fetchWithTimeout(safeUploadUrl.toString(), { method: 'POST', body: form, timeoutMs: 60000 })
+    const data = (await upRes.json()) as { media_id?: string; errcode?: number; errmsg?: string }
+    if (!data.media_id) {
+      throw new Error(`上传封面图失败：${data.errcode ?? upRes.status} ${data.errmsg ?? ''}`)
+    }
+    return data.media_id
+  }
+
+  function extractFirstImageUrl(content: string): string {
+    const match = content.match(/<img[^>]+src=["']([^"']+)["']/i)
+    return match?.[1] ?? ''
+  }
+
+  return {
+    name: 'markflow-wechat-publish',
+    apply: 'serve',
+    configureServer(server) {
+      server.middlewares.use('/__markflow_wechat_publish', async (req, res) => {
+        const sendError = (status: number, error: string) => {
+          res.statusCode = status
+          res.setHeader('Content-Type', 'application/json; charset=utf-8')
+          res.end(JSON.stringify({ ok: false, error }))
+        }
+        try {
+          const body = await readJsonBody(req)
+          const appId = String(body.appId ?? '')
+          const appSecret = String(body.appSecret ?? '')
+          const configuredMediaId = String(body.thumbMediaId ?? '')
+          const coverImageUrl = String(body.coverImageUrl ?? '').trim()
+          const title = String(body.title ?? '未命名文章')
+          const content = String(body.content ?? '')
+          if (!appId || !appSecret) {
+            sendError(400, '缺少 AppID / AppSecret')
+            return
+          }
+          const token = await getAccessToken(appId, appSecret)
+          const firstImageUrl = extractFirstImageUrl(content)
+          const autoCoverUrl = coverImageUrl || firstImageUrl
+
+          let thumbMediaId = configuredMediaId
+          if (thumbMediaId) {
+            const first = await createWeChatDraft(token, { title, content, thumbMediaId })
+            if (first.mediaId) {
+              res.statusCode = 200
+              res.setHeader('Content-Type', 'application/json; charset=utf-8')
+              res.end(JSON.stringify({ ok: true, media_id: first.mediaId }))
+              return
+            }
+            if (!String(first.errcode ?? '').includes('40007') && !/invalid media id/i.test(first.errmsg ?? '')) {
+              sendError(502, `创建草稿失败：${first.errcode} ${first.errmsg}`)
+              return
+            }
+            if (!autoCoverUrl) {
+              sendError(502, `封面素材 thumb_media_id 无效（40007），且未找到可自动上传的封面 URL。请在设置中填写封面图 URL，或确认素材属于当前公众号`)
+              return
+            }
+            thumbMediaId = await uploadCoverImage(token, autoCoverUrl)
+          } else {
+            if (!autoCoverUrl) {
+              sendError(400, '未配置 thumb_media_id，且正文没有可访问的图片 URL。请在设置中填写封面图 URL')
+              return
+            }
+            thumbMediaId = await uploadCoverImage(token, autoCoverUrl)
+          }
+
+          const result = await createWeChatDraft(token, { title, content, thumbMediaId })
+          if (!result.mediaId) {
+            sendError(502, `创建草稿失败：${result.errcode} ${result.errmsg}`)
+            return
+          }
+          res.statusCode = 200
+          res.setHeader('Content-Type', 'application/json; charset=utf-8')
+          res.end(JSON.stringify({ ok: true, media_id: result.mediaId, thumb_media_id: thumbMediaId }))
+        } catch (e) {
+          sendError(502, e instanceof Error ? e.message : '未知错误')
+        }
+      })
+    },
+  }
+}
+/**
+ * 本地 Catbox 免费图床代理
+ * Catbox 直连可能受 CORS 限制，前端在上传失败时回退到该代理。
+ */
+function freeImageHostDevServer(): Plugin {
+  async function readJsonBody(req: { on: (event: 'data' | 'end' | 'error', cb: (chunk?: unknown) => void) => void }): Promise<Record<string, unknown>> {
+    return new Promise((resolve, reject) => {
+      let raw = ''
+      req.on('data', (chunk) => {
+        raw += String(chunk)
+      })
+      req.on('end', () => {
+        try {
+          resolve(JSON.parse(raw || '{}'))
+        } catch (e) {
+          reject(e instanceof Error ? e : new Error('invalid json'))
+        }
+      })
+      req.on('error', (err) => reject(err instanceof Error ? err : new Error('request error')))
+    })
+  }
+
+  async function uploadToCatbox(body: Record<string, unknown>): Promise<string> {
+    const filename = String(body.filename ?? 'image.jpg')
+    const mime = String(body.mime ?? 'image/jpeg')
+    const base64 = String(body.data ?? '')
+    const buffer = Buffer.from(base64, 'base64')
+    const form = new FormData()
+    form.append('reqtype', 'fileupload')
+    form.append('fileToUpload', new Blob([buffer], { type: mime }), filename)
+    const res = await fetchWithTimeout('https://catbox.moe/user/api.php', {
+      method: 'POST',
+      body: form,
+    })
+    const text = await res.text()
+    const url = text.trim()
+    if (!res.ok || !/^https?:\/\//i.test(url)) {
+      throw new Error(url || `Catbox upload failed（HTTP ${res.status}）`)
+    }
+    return url
+  }
+
+  return {
+    name: 'markflow-free-image-host',
+    apply: 'serve',
+    configureServer(server) {
+      server.middlewares.use('/__markflow_image_host/catbox', async (req, res) => {
+        try {
+          const body = await readJsonBody(req)
+          const url = await uploadToCatbox(body)
+          res.statusCode = 200
+          res.setHeader('Content-Type', 'text/plain; charset=utf-8')
+          res.end(url)
+        } catch (e) {
+          res.statusCode = 502
+          res.setHeader('Content-Type', 'text/plain; charset=utf-8')
+          res.end(e instanceof Error ? e.message : '未知错误')
+        }
+      })
+    },
+  }
+}
+
+/**
+ * AI 排版本地代理
+ * OpenAI 兼容 API 通常不允许浏览器直连，这里把流式请求转发到用户配置的上游地址。
+ */
+function aiProxyDevServer(): Plugin {
+  async function readRawBody(req: { on: (event: 'data' | 'end' | 'error', cb: (chunk?: unknown) => void) => void }): Promise<string> {
+    return new Promise((resolve, reject) => {
+      let raw = ''
+      req.on('data', (chunk) => {
+        raw += String(chunk)
+      })
+      req.on('end', () => resolve(raw))
+      req.on('error', (err) => reject(err instanceof Error ? err : new Error('request error')))
+    })
+  }
+
+  return {
+    name: 'markflow-ai-proxy',
+    apply: 'serve',
+    configureServer(server) {
+      server.middlewares.use('/__markflow_ai_proxy', async (req, res) => {
+        try {
+          const target = String(req.headers['x-markflow-ai-url'] || '')
+          if (!target) {
+            res.statusCode = 400
+            res.setHeader('Content-Type', 'text/plain; charset=utf-8')
+            res.end('缺少 X-Markflow-Ai-Url')
+            return
+          }
+          const raw = await readRawBody(req)
+          const upstreamHeaders: Record<string, string> = {
+            'Content-Type': 'application/json',
+          }
+          if (req.headers.authorization) {
+            upstreamHeaders.Authorization = req.headers.authorization
+          }
+          const safeTarget = assertSafeHttpUrl(target)
+          const upstream = await fetchWithTimeout(safeTarget.toString(), {
+            method: 'POST',
+            headers: upstreamHeaders,
+            body: raw,
+          })
+          res.writeHead(upstream.status, {
+            'Content-Type': upstream.headers.get('content-type') || 'text/event-stream; charset=utf-8',
+            'Cache-Control': 'no-cache',
+          })
+          if (upstream.body) {
+            const reader = upstream.body.getReader()
+            while (true) {
+              const { done, value } = await reader.read()
+              if (done) break
+              res.write(Buffer.from(value))
+            }
+          }
+          res.end()
+        } catch (e) {
+          res.statusCode = 502
+          res.setHeader('Content-Type', 'text/plain; charset=utf-8')
+          res.end(e instanceof Error ? `AI 代理转发失败：${e.message}` : 'AI 代理转发失败')
+        }
+      })
+    },
+  }
+}
+
 // 构建基础路径，通过环境变量 MARKFLOW_BASE_URL 配置，默认 /MarkFlow/
 // 独立部署：默认 /MarkFlow/ → https://huanyu-a.github.io/MarkFlow/
 // Wiki 集成：MARKFLOW_BASE_URL=/markflow/ → https://www.bx9y.com.cn/markflow/
@@ -109,6 +407,9 @@ export default defineConfig({
     react(),
     tailwindcss(),
     mathJaxFontSplitter(),
+    wechatPublishDevServer(),
+    freeImageHostDevServer(),
+    aiProxyDevServer(),
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg'],
@@ -162,7 +463,7 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: {
-          'react-vendor': ['react', 'react-dom'],
+          'react-vendor': ['react', 'react-dom', 'react/jsx-runtime', 'react/jsx-dev-runtime'],
           'codemirror-vendor': [
             '@codemirror/language',
             '@codemirror/lang-markdown',
@@ -171,7 +472,6 @@ export default defineConfig({
             'codemirror'
           ],
           'engine-vendor': ['highlight.js', 'katex'],
-          'mermaid-vendor': ['mermaid'],
           // 注意：'mathjax-vendor': ['mathjax'] 已移除。
           // mathjax 包是 CommonJS 预构建包，manualChunks 无法有效拆分，
           // 只会产生一个 360 字节的空 stub。实际的 MathJax 代码通过

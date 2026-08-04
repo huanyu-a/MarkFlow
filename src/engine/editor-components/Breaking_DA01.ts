@@ -24,7 +24,7 @@ export const Breaking_DA01: UnifiedComponentDef = {
     name: 'breaking',
     label: '突发卡片',
     bodyFormat: 'markdown',
-    example: `:::breaking badge="重磅发布" title="MarkFlow v2.0 功能全集上线" subtitle="48 套专业主题 + 63 个排版组件，支持公众号、A4 文档、小红书卡片、自由画布四种输出模式" chips="模块化排版|48套主题|多场景导出|免费使用"
+  example: `:::breaking badge="重磅发布" title="MarkFlow v2.0 功能全集上线" subtitle="52 套专业主题 + 61 个排版组件，支持公众号、A4 文档、小红书卡片、自由画布四种输出模式" chips="模块化排版|52套主题|多场景导出|免费使用"
 这个组件适合放在文章开头，用一句话告诉读者：这篇文章能给你什么。
 :::`,
     fields: [

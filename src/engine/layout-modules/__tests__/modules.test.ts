@@ -151,15 +151,26 @@ describe('排版模块 — json_array 格式', () => {
 })
 
 describe('排版模块 — markdown 格式', () => {
-  it(':::callout tip 渲染提示框', async () => {
+  it(':::callout 渲染提示框', async () => {
     const md = [
-      ':::callout tip',
+      ':::callout type="tip" title="提示"',
       '先用 layout list 发现模块，再用 layout show 确认字段。',
       ':::',
     ].join('\n')
     const html = await render(md)
     expect(html).toContain('💡')
     expect(html).toContain('先用 layout list 发现模块')
+  })
+
+  it(':::callout tip 位置参数语法渲染提示框', async () => {
+    const md = [
+      ':::callout tip title="位置参数测试"',
+      '支持位置参数语法：直接写类型即可',
+      ':::',
+    ].join('\n')
+    const html = await render(md)
+    expect(html).toContain('💡')
+    expect(html).toContain('支持位置参数语法')
   })
 
   it(':::summary 渲染文章要点', async () => {

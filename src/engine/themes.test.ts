@@ -10,8 +10,8 @@ import {
 import { resolveTokens } from './tokens'
 
 describe('THEME_PROFILES', () => {
-  it('应有 48 套主题', () => {
-    expect(THEME_PROFILES.length).toBe(48)
+  it('应有 52 套主题', () => {
+    expect(THEME_PROFILES.length).toBe(52)
   })
 
   it('每个主题 ID 唯一', () => {

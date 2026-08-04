@@ -72,7 +72,7 @@ export const Title_DA02 = {
     { key: 'chips', label: '关键词（|分隔）', required: false, default: '' },
     { key: 'color', label: '自定义颜色', required: false, default: '' },
   ],
-  example: `<title type="DA02" label="UPDATE" subtitle="v2.0 新增段落标题、步骤流程、时间线、对比卡片、提示框等 12 个高级排版组件，主题系统扩展至 48 套专业配色方案。" chips="新组件|48套主题|性能优化|公众号适配">MarkFlow v2.0 版本更新说明</title>`,
+    example: `<title type="DA02" label="UPDATE" subtitle="v2.0 新增段落标题、步骤流程、时间线、对比卡片、提示框等 12 个高级排版组件，主题系统扩展至 52 套专业配色方案。" chips="新组件|52套主题|性能优化|公众号适配">MarkFlow v2.0 版本更新说明</title>`,
 
   render(attrs: Record<string, string>, body: string, t: ThemeColors, ...rest: unknown[]): string {
     const raw = (rest[0] as string) || ''
