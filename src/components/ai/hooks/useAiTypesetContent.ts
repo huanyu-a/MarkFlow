@@ -1,28 +1,24 @@
 import { useContentStore } from '@/lib/store'
 import type { RenderMode } from '@/lib/store'
 
+// 在普通函数（非 React 组件/Hook）中访问 zustand 状态，必须使用 getState()；
+// 直接调用 useContentStore(selector) 会在事件回调/异步流程中触发 Invalid hook call。
 export function getCurrentContent(mode: RenderMode): string {
-  const articleMarkdown = useContentStore((s) => s.articleMarkdown)
-  const documentMarkdown = useContentStore((s) => s.documentMarkdown)
-  const cardMarkdown = useContentStore((s) => s.cardMarkdown)
-  const html = useContentStore((s) => s.html)
+  const s = useContentStore.getState()
   switch (mode) {
-    case 'article': return articleMarkdown
-    case 'document': return documentMarkdown
-    case 'card': return cardMarkdown
-    case 'html': return html
+    case 'article': return s.articleMarkdown
+    case 'document': return s.documentMarkdown
+    case 'card': return s.cardMarkdown
+    case 'html': return s.html
   }
 }
 
 export function getSetCurrentContent(mode: RenderMode): (v: string) => void {
-  const setArticleMarkdown = useContentStore((s) => s.setArticleMarkdown)
-  const setDocumentMarkdown = useContentStore((s) => s.setDocumentMarkdown)
-  const setCardMarkdown = useContentStore((s) => s.setCardMarkdown)
-  const setHtml = useContentStore((s) => s.setHtml)
+  const s = useContentStore.getState()
   switch (mode) {
-    case 'article': return setArticleMarkdown
-    case 'document': return setDocumentMarkdown
-    case 'card': return setCardMarkdown
-    case 'html': return setHtml
+    case 'article': return s.setArticleMarkdown
+    case 'document': return s.setDocumentMarkdown
+    case 'card': return s.setCardMarkdown
+    case 'html': return s.setHtml
   }
 }

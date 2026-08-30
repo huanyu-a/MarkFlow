@@ -1,5 +1,6 @@
 import { parseMarkdown, type ThemeColors } from '@engine'
 import { getFontFamilyCss } from '@/lib/fonts'
+import { sanitizeHtml } from '@/lib/htmlSanitizer'
 import { DOCUMENT_TITLE_LINE_HEIGHT, DOCUMENT_TITLE_MARGIN } from '../documentStyles'
 import type { DocumentBlock, DocumentSettings } from '../documentModel'
 
@@ -74,7 +75,8 @@ export function buildPagedContentHtml(
   const hasCover = firstPagebreak !== -1 && isCoverBlocks(coverBlocks)
 
   const renderBlock = (block: DocumentBlock): string => {
-    let inner = parseMarkdown(block.markdown, colors, undefined, mermaidMap, onWarning)
+    // 分页内容会写入测量用 DOM 与无 sandbox 的 srcdoc iframe，必须先净化
+    let inner = sanitizeHtml(parseMarkdown(block.markdown, colors, undefined, mermaidMap, onWarning))
     if (block.kind === 'table') inner = normalizeTableHtml(inner)
 
     const classes = ['document-block']

@@ -48,6 +48,11 @@ function isEventHandlerAttr(name: string): boolean {
   return name.startsWith('on') && name.length > 2
 }
 
+/** 取属性名的本地名（去命名空间前缀），如 xlink:href → href */
+function attrLocalName(name: string): string {
+  return name.split(':').pop() || name
+}
+
 function stripControlChars(value: string): string {
   return value.replace(CONTROL_CHAR_RE, '')
 }
@@ -126,9 +131,11 @@ function sanitizeSvg(source: Element, ownerDoc: Document, options: SanitizeOptio
   for (let i = 0; i < source.attributes.length; i++) {
     const attr = source.attributes[i]
     if (!attr) continue
-    const name = attr.name.toLowerCase()
+    const name = attr.name
     if (isEventHandlerAttr(name)) continue
-    if (URL_ATTRS.has(name) && !isSafeUrl(attr.value)) continue
+    // 命名空间属性（如 xlink:href）按本地名匹配 URL 白名单，防止 javascript: 注入；
+    // SVG 上下文保留属性原始大小写（viewBox/refX 等驼峰属性大小写敏感）
+    if (URL_ATTRS.has(attrLocalName(name).toLowerCase()) && !isSafeUrl(attr.value)) continue
     try {
       svg.setAttribute(name, attr.value)
     } catch {
@@ -211,7 +218,7 @@ function sanitizeNode(
         if (sanitized) newEl.setAttribute('srcdoc', sanitized)
         continue
       }
-      if (URL_ATTRS.has(name)) {
+      if (URL_ATTRS.has(attrLocalName(name))) {
         if (!isSafeUrl(attr.value)) continue
       }
       try {
@@ -228,9 +235,23 @@ function sanitizeNode(
 
   if (tagName === 'style') {
     const cleanCss = processCss(el.textContent || '')
-    const newStyle = ownerDoc.createElement('style')
+    // SVG 内部的 <style>（mermaid 图表依赖）需保持 SVG 命名空间
+    const newStyle = isSvgContext
+      ? ownerDoc.createElementNS(SVG_NS, 'style')
+      : ownerDoc.createElement('style')
     newStyle.textContent = cleanCss
     return newStyle
+  }
+
+  if (tagName === 'meta') {
+    // meta refresh 可被用于重定向劫持，一律移除；charset 等无害 meta 保留
+    const httpEquiv = (el.getAttribute('http-equiv') || '').trim().toLowerCase()
+    if (httpEquiv === 'refresh') return null
+  }
+
+  if (tagName === 'base') {
+    // <base> 会劫持整个文档的相对 URL 解析，一律移除
+    return null
   }
 
   if (tagName === 'link') {
@@ -254,7 +275,7 @@ function sanitizeNode(
         newEl.setAttribute('rel', safeRels.join(' '))
         continue
       }
-      if (URL_ATTRS.has(name)) {
+      if (URL_ATTRS.has(attrLocalName(name))) {
         if (!isSafeUrl(attr.value)) continue
       }
       try {
@@ -264,28 +285,31 @@ function sanitizeNode(
     return newEl
   }
 
+  // SVG 元素（如 clipPath/linearGradient/marker）的标签名与属性名大小写敏感，
+  // HTML 解析器已把驼峰名调整正确，这里直接沿用原始大小写；HTML 元素仍用小写。
   const newEl = isSvgContext
-    ? ownerDoc.createElementNS(SVG_NS, tagName)
+    ? ownerDoc.createElementNS(SVG_NS, el.tagName)
     : ownerDoc.createElement(tagName)
 
   for (let i = 0; i < el.attributes.length; i++) {
     const attr = el.attributes[i]
     if (!attr) continue
-    const name = attr.name.toLowerCase()
+    const name = attr.name
+    const lowerName = name.toLowerCase()
 
-    if (isEventHandlerAttr(name)) continue
+    if (isEventHandlerAttr(lowerName)) continue
 
     let value = attr.value
 
-    if (URL_ATTRS.has(name)) {
-      if (name === 'srcset') {
+    if (URL_ATTRS.has(attrLocalName(lowerName))) {
+      if (attrLocalName(lowerName) === 'srcset') {
         if (!isSafeSrcset(value)) continue
       } else if (!isSafeUrl(value)) {
         continue
       }
     }
 
-    if (name === 'style') {
+    if (lowerName === 'style') {
       value = processCss(value)
     }
 

@@ -35,13 +35,22 @@ export default tseslint.config(
   {
     ignores: [
       "dist/",
+      "dist-*/",
+      "dist-tmp/",
       "node_modules/",
       "public/",
       "html-anything/",
       "r-markdown/",
       ".agent/",
       ".qoder/",
+      ".opencode/",
+      ".workbuddy/",
       "docs/",
+      "poc/",
+      "tools/",
+      // Vite 临时产物（gitignore 已覆盖，但 ESLint 需显式忽略避免 6w+ 噪音）
+      "vite.config.ts.timestamp-*.mjs",
+      "vitest.config.ts.timestamp-*.mjs",
     ],
   },
   prettierConfig,

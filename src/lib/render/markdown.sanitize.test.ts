@@ -1,0 +1,113 @@
+import { describe, it, expect } from 'vitest'
+import { renderMarkdown } from '@/lib/render/markdown'
+import { sanitizeHtml } from '@/lib/htmlSanitizer'
+import { makeColors } from '@/engine/composables/useTheme'
+
+const t = makeColors('#6c5ce7', '#333')
+
+describe('renderMarkdown 安全净化（XSS 回归）', () => {
+  it('原始 <script> 被移除', () => {
+    const { html } = renderMarkdown('abc <script>alert(1)</script> def', t)
+    expect(html).not.toContain('<script')
+    expect(html).not.toContain('alert(1)')
+    // 正文文本保留
+    expect(html).toContain('abc')
+    expect(html).toContain('def')
+  })
+
+  it('img onerror 事件属性被剥离', () => {
+    const { html } = renderMarkdown('前文 <img src=x onerror=alert(1)> 后文', t)
+    expect(html).not.toContain('onerror')
+  })
+
+  it('svg onload 事件属性被剥离', () => {
+    const { html } = renderMarkdown('<svg onload=alert(1)>', t)
+    expect(html).not.toContain('onload')
+  })
+
+  it('javascript: 链接被拦截', () => {
+    const { html } = renderMarkdown('<a href="javascript:alert(1)">x</a>', t)
+    expect(html).not.toContain('javascript:')
+  })
+
+  it('markdown 图片中的 javascript: 协议降级为 about:blank', () => {
+    const { html } = renderMarkdown('![a](javascript:alert(1))', t)
+    expect(html).not.toContain('javascript:')
+  })
+
+  it('iframe 被保留时必须带 sandbox 隔离', () => {
+    const { html } = renderMarkdown('<iframe src="https://evil.example"></iframe>', t)
+    if (html.includes('<iframe')) {
+      expect(html).toMatch(/sandbox=/)
+    }
+  })
+
+  it('良性富文本 HTML 与内联样式保留（公众号场景）', () => {
+    const md = '<section style="color:#e74c3c;padding:8px"><strong>加粗文字</strong><span style="font-size:14px">普通</span></section>'
+    const { html } = renderMarkdown(md, t)
+    expect(html).toContain('style="color:#e74c3c;padding:8px"')
+    expect(html).toContain('<strong')
+    expect(html).toContain('加粗文字')
+  })
+
+  it('meta refresh 重定向被移除', () => {
+    const out = sanitizeHtml('<meta http-equiv="refresh" content="0;url=https://evil.example">')
+    expect(out).not.toContain('refresh')
+  })
+
+  it('<base> 标签被移除（防止相对 URL 劫持）', () => {
+    const out = sanitizeHtml('<base href="https://evil.example/"><p>内容</p>')
+    expect(out).not.toContain('<base')
+    expect(out).toContain('内容')
+  })
+
+  it('SVG xlink:href 命名空间 URL 同样受白名单约束', () => {
+    const bad = sanitizeHtml('<svg><a xlink:href="javascript:alert(1)"><text>x</text></a></svg>')
+    expect(bad).not.toContain('javascript:')
+    const good = sanitizeHtml('<svg><use xlink:href="#icon-ok"></use></svg>')
+    expect(good).toContain('#icon-ok')
+  })
+})
+
+describe('净化不影响可信渲染产物', () => {
+  it('mermaid 纯 SVG（含内部 style/marker/path）经净化后结构保留', () => {
+    // 模拟 mermaid htmlLabels:false + securityLevel:strict 的输出形态
+    const svg = [
+      '<svg xmlns="http://www.w3.org/2000/svg" id="m-diagram" viewBox="0 0 200 100" width="200" style="max-width:200px;">',
+      '<style>#m-diagram{font-family:trebuchet ms;}#m-diagram .node path{fill:#ececff;}</style>',
+      '<defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="9" orient="auto"><path d="M0,0 L10,5 L0,10" fill="#333"></path></marker></defs>',
+      '<g class="node"><rect x="10" y="10" width="80" height="40" rx="4"></rect><text x="50" y="35">步骤</text></g>',
+      '</svg>',
+    ].join('')
+    const out = sanitizeHtml(svg)
+    expect(out).toContain('viewBox="0 0 200 100"')
+    expect(out).toContain('<marker')
+    expect(out).toContain('refX="9"')
+    expect(out).toContain('.node path')
+    expect(out).toContain('fill:#ececff')
+    expect(out).toContain('<text')
+    expect(out).toContain('步骤')
+  })
+
+  it('KaTeX 输出（span + MathML）经净化后保留', () => {
+    const katex = [
+      '<span class="katex-display"><span class="katex">',
+      '<span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><mi>a</mi><mo>+</mo><mi>b</mi></mrow></semantics></math></span>',
+      '<span class="katex-html" aria-hidden="true"><span class="base"><span class="mord mathnormal">a</span><span class="mbin">+</span><span class="mord mathnormal">b</span></span></span>',
+      '</span></span>',
+    ].join('')
+    const out = sanitizeHtml(katex)
+    expect(out).toContain('katex-display')
+    expect(out).toContain('<math')
+    expect(out).toContain('<semantics')
+    expect(out).toContain('class="mord mathnormal"')
+  })
+
+  it('普通段落渲染结果经净化后保持可见文本不变', () => {
+    const { html } = renderMarkdown('# 标题\n\n正文段落，包含 **加粗** 文本。', t)
+    expect(html).toContain('标题')
+    expect(html).toContain('加粗')
+    // 二次净化幂等
+    expect(sanitizeHtml(html)).toBe(html)
+  })
+})

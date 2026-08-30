@@ -86,7 +86,11 @@ async function convertSvgsToPng(el: HTMLElement, imageHostConfig?: ImageHostConf
         if (!blob) continue
         const file = new File([blob], 'mermaid.png', { type: 'image/png' })
         const url = await uploadImageFile(file, imageHostConfig)
-        section.innerHTML = `<img src="${url}" style="max-width:100%;height:auto;display:block;margin:0 auto;">`
+        // 用 setAttribute 而非字符串拼接，避免 URL 中的引号/尖括号注入 HTML
+        const img = document.createElement('img')
+        img.setAttribute('src', url)
+        img.setAttribute('style', 'max-width:100%;height:auto;display:block;margin:0 auto;')
+        section.replaceChildren(img)
       } catch (e) {
         console.error('[m2v] 上传 mermaid 图表到图床失败:', e)
         // 上传失败则保持 SVG 不动

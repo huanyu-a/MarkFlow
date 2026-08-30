@@ -6,6 +6,7 @@ import { copyText } from "@/lib/clipboard";
 import { downloadBlob, elementToBlob } from "@/lib/exportImage";
 import { downloadAsZip, type ZipEntry } from "@/lib/export/zipDownload";
 import { parseMarkdown, collectMermaidDiagrams, preRenderMermaid, type ThemeColors } from "@engine";
+import { sanitizeHtml } from "@/lib/htmlSanitizer";
 import { useEditorDocSync } from "@/lib/useEditorDocSync";
 import {
   ASPECTS,
@@ -172,7 +173,7 @@ export function CardMode({
         label: `内容图 ${index + 1}`,
         kind: "content" as const,
         html: buildContentCard(
-          parseMarkdown(page.markdown, colors, undefined, mermaidMap, onToast),
+          sanitizeHtml(parseMarkdown(page.markdown, colors, undefined, mermaidMap, onToast)),
           aspect,
           index + 1,
           total,
@@ -429,7 +430,7 @@ export function CardMode({
                     key={`block-${i}`}
                     data-block-id={`block-${i}`}
                     dangerouslySetInnerHTML={{
-                      __html: parseMarkdown(block, colors, undefined, mermaidMap, onToast),
+                      __html: sanitizeHtml(parseMarkdown(block, colors, undefined, mermaidMap, onToast)),
                     }}
                   />
                 ))}

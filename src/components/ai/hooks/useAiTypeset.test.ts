@@ -2,13 +2,8 @@ import { describe, it, expect, vi } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { useAiTypeset } from './useAiTypeset'
 
-vi.mock('@/lib/store', () => ({
-  useStore: (selector: (state: any) => any) => selector({
-    aiConfig: { apiUrl: '', apiKey: '', model: '' },
-    colors: { accent: '#6c5ce7' },
-    themeTokens: null,
-  }),
-  useContentStore: (selector: (state: any) => any) => selector({
+vi.mock('@/lib/store', () => {
+  const contentState = {
     articleMarkdown: '',
     documentMarkdown: '',
     cardMarkdown: '',
@@ -17,8 +12,20 @@ vi.mock('@/lib/store', () => ({
     setDocumentMarkdown: () => {},
     setCardMarkdown: () => {},
     setHtml: () => {},
-  }),
-}))
+  }
+  return {
+    useStore: (selector: (state: any) => any) => selector({
+      aiConfig: { apiUrl: '', apiKey: '', model: '' },
+      colors: { accent: '#6c5ce7' },
+      themeTokens: null,
+    }),
+    // 模拟真实 zustand store：既是 Hook，又带 getState()
+    useContentStore: Object.assign(
+      (selector: (state: any) => any) => selector(contentState),
+      { getState: () => contentState },
+    ),
+  }
+})
 
 describe('useAiTypeset', () => {
   it('returns configReady false when aiConfig is empty', () => {
