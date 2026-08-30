@@ -25,7 +25,7 @@ export const HtmlSandbox = forwardRef<HTMLIFrameElement, HtmlSandboxProps>(funct
   { html, refreshKey = 0, onLoad, allowScripts = false },
   ref,
 ) {
-  const display = useMemo(() => previewHtml(html), [html])
+  const display = useMemo(() => previewHtml(html, { allowScripts }), [html, allowScripts])
   const [loadError, setLoadError] = useState(false)
 
   if (!display) {

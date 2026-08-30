@@ -47,23 +47,67 @@ const CONTROL_CHAR_RE = /[\u0000-\u001F\s]/g
 /**
  * 快速路径特征检测（宁误报不漏报）：
  * - 需特殊处理的标签：script/iframe/object/embed/meta/base/link/style/noscript/template
+ *   与 SMIL 动画元素（animate/set 可用于篡改事件或 URL 属性）
  * - 事件属性：任意非单词字符后的 onXxx=（覆盖空格/换行/斜杠/引号等分隔符）
- * - 危险协议与实体混淆（&# 形式可绕过字符串层协议检测，出现即走完整净化）
+ * - 危险协议、data: 危险变体、target=_blank（需补 rel=noopener）
  * - CSS 危险模式（expression/behavior/-moz-binding/@import）
+ *
+ * 字符引用混淆（&#106; / &colon; / &NewLine; 等）不在此正则内，
+ * 由 decodeCharRefsForScan 解码后二次检测覆盖。
  */
 const UNSAFE_HINT_RE = new RegExp(
   [
-    '<(script|iframe|object|embed|meta|base|link|style|noscript|template)\\b',
+    '<(?:script|iframe|object|embed|meta|base|link|style|noscript|template|animate|set|animatetransform)\\b',
     '[^\\w]on[a-z]{2,}\\s*=',
     '(?:javascript|vbscript|jscript|livescript|mocha|view-source):',
     'data:(?:text/html|application)',
     '(?:expression\\s*\\(|behavior\\s*:|-moz-binding|@import)',
-    '&#',
     // target=_blank 需走完整净化以自动补 rel=noopener（防 reverse tabnabbing）
     'target\\s*=\\s*["\']?_blank',
   ].join('|'),
   'i',
 )
+
+// 可解码为 ASCII 危险字符的常用命名实体（完整 HTML5 实体表过大，
+// 危险模式仅可能由以下字符构成；未知实体浏览器不解码，保持字面即可）
+const NAMED_ASCII_REFS: Record<string, string> = {
+  amp: '&', AMP: '&', lt: '<', LT: '<', gt: '>', GT: '>', quot: '"', QUOT: '"',
+  apos: "'", colon: ':', Colon: ':', semi: ';', Semi: ';', sol: '/', Sol: '/',
+  bsol: '\\', num: '#', percnt: '%', excl: '!', Excl: '!', equals: '=', Equals: '=',
+  quest: '?', period: '.', comma: ',', plus: '+', Plus: '+',
+  lpar: '(', rpar: ')', lbrack: '[', rbrack: ']', lcub: '{', rcub: '}',
+  lowbar: '_', grave: '`', ast: '*', Tab: '\t', NewLine: '\n', newline: '\n',
+}
+
+/**
+ * 为快速路径检测解码字符引用（数字实体 + ASCII 标点命名实体）。
+ * 仅用于检测副本，不用于输出；浏览器不解码的引用保持字面。
+ */
+function decodeCharRefsForScan(s: string): string {
+  if (!s.includes('&')) return s
+  return s.replace(/&(#[xX][0-9a-fA-F]+|#[0-9]+|[a-zA-Z][a-zA-Z0-9]*);/g, (m, body: string) => {
+    if (body[0] === '#') {
+      const code = body[1] === 'x' || body[1] === 'X'
+        ? parseInt(body.slice(2), 16)
+        : parseInt(body.slice(1), 10)
+      return Number.isFinite(code) && code > 0 && code < 128 ? String.fromCharCode(code) : ' '
+    }
+    return NAMED_ASCII_REFS[body] ?? m
+  })
+}
+
+/** 快速路径判定：原始串、剥控制符副本、实体解码副本任一命中即走完整净化 */
+function needsFullSanitize(html: string): boolean {
+  const stripped = html.replace(/[\t\n\r\f\v]/g, '')
+  if (UNSAFE_HINT_RE.test(html) || UNSAFE_HINT_RE.test(stripped)) return true
+  if (html.includes('&')) {
+    const decoded = decodeCharRefsForScan(html)
+    if (decoded !== html && (UNSAFE_HINT_RE.test(decoded) || UNSAFE_HINT_RE.test(decoded.replace(/[\t\n\r\f\v]/g, '')))) {
+      return true
+    }
+  }
+  return false
+}
 
 function isEventHandlerAttr(name: string): boolean {
   return name.startsWith('on') && name.length > 2
@@ -255,13 +299,39 @@ function sanitizeNode(
   }
 
   if (tagName === 'style') {
+    // P0 mXSS 防护：style 内容在序列化时不做实体转义（rawtext），
+    // 若文本含 <img onerror=...>，经 dangerouslySetInnerHTML 再解析时会在
+    // foreign content 中突破为真实 HTML 元素并执行。用 CSS 转义（\3c/\3e）
+    // 语义等价地消除 < >，堵住再解析复活链。
     const cleanCss = processCss(el.textContent || '')
-    // SVG 内部的 <style>（mermaid 图表依赖）需保持 SVG 命名空间
+      .replace(/</g, '\\3c ')
+      .replace(/>/g, '\\3e ')
     const newStyle = isSvgContext
       ? ownerDoc.createElementNS(SVG_NS, 'style')
       : ownerDoc.createElement('style')
     newStyle.textContent = cleanCss
     return newStyle
+  }
+
+  // xmp/noembed/noframes/plaintext 与 style 同为 rawtext 序列化元素，
+  // 在 SVG 上下文中存在同款 mXSS 复活链，且无合法使用场景，直接丢弃
+  if (isSvgContext && (tagName === 'xmp' || tagName === 'noembed' || tagName === 'noframes' || tagName === 'plaintext')) {
+    return null
+  }
+
+  // SMIL 动画元素：attributeName 指向事件属性或 URL 属性时可篡改运行时行为。
+  // 注意 SVG 元素上 getAttribute 大小写敏感，且 HTML 解析器会把 attributeName
+  // 调整回驼峰拼写，需两种拼写都查。
+  if (tagName === 'animate' || tagName === 'set' || tagName === 'animatetransform') {
+    const attributeName = (
+      el.getAttribute('attributeName') ||
+      el.getAttribute('attributename') ||
+      ''
+    ).toLowerCase()
+    const localAttr = attrLocalName(attributeName)
+    if (isEventHandlerAttr(localAttr) || URL_ATTRS.has(localAttr)) {
+      return null
+    }
   }
 
   if (tagName === 'meta') {
@@ -341,7 +411,7 @@ function sanitizeNode(
     }
   }
 
-  const target = newEl.getAttribute('target') || ''
+  const target = (newEl.getAttribute('target') || '').toLowerCase()
   if ((tagName === 'a' || tagName === 'area') && (target === '_blank' || target === '_new')) {
     const existingRel = (newEl.getAttribute('rel') || '').toLowerCase().split(/\s+/).filter(Boolean)
     const desired = ['noopener', 'noreferrer']
@@ -372,9 +442,9 @@ function sanitizeHtmlInternal(html: string, options: SanitizeOptions): string {
   // 引擎常态产出（内联样式段落/表格/mermaid SVG/KaTeX）均无这些特征，
   // 使逐键防抖渲染的净化开销从百毫秒级降为零；检测宁误报不漏报，
   // 任何含特征的输入都会进入下方的完整 DOM 净化。
-  // 双重检测：原始串 + 剥离制表/换行后的副本（URL 解析器会剥离这些字符，
-  // 故 java\tscript: 等混淆形式需在剥离后才可检出）。
-  if (!UNSAFE_HINT_RE.test(html) && !UNSAFE_HINT_RE.test(html.replace(/[\t\n\r\f\v]/g, ''))) {
+  // 双重检测：原始串 + 剥离制表/换行 + 实体解码副本（URL 解析器会剥离控制字符、
+  // HTML 属性值会解码字符引用，混淆形式需在对应副本上才可检出）。
+  if (!needsFullSanitize(html)) {
     return html
   }
 

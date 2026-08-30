@@ -86,6 +86,43 @@ describe('renderMarkdown 安全净化（XSS 回归）', () => {
     const benign = '<section style="margin:0px 0px 24px"><p style="font-size:16px">正文 <strong>加粗</strong></p></section>'
     expect(sanitizeHtml(benign)).toBe(benign)
   })
+
+  it('mXSS：svg 内 style 的实体混淆文本不得复活为真实元素（P0 回归）', () => {
+    const out = sanitizeHtml('<svg><style>&lt;img src=x onerror=alert(1)&gt;</style></svg>')
+    // 关键：style 文本中的 < > 已被 CSS 转义，无法再解析为标记元素
+    expect(out).not.toContain('<img')
+    expect(out).toContain('\\3c ')
+  })
+
+  it('mXSS：svg 内 xmp/plaintext 等 rawtext 废弃元素被丢弃', () => {
+    const out = sanitizeHtml('<svg><xmp>&lt;img src=x onerror=alert(1)&gt;</xmp></svg>')
+    expect(out).not.toContain('<img')
+    expect(out).not.toContain('<xmp')
+  })
+
+  it('命名实体混淆的协议被完整净化拦截', () => {
+    const out = sanitizeHtml('<a href="javascript&colon;alert(1)">点我</a>')
+    expect(out.toLowerCase()).not.toContain('avascript')
+    const out2 = sanitizeHtml('<a href="javas&NewLine;cript&colon;alert(1)">点我</a>')
+    expect(out2.toLowerCase()).not.toContain('avascript')
+  })
+
+  it('SMIL 动画元素篡改事件/URL 属性被丢弃', () => {
+    const out = sanitizeHtml('<svg><circle r="50"><set attributeName="onmouseover" to="alert(1)"/></circle></svg>')
+    expect(out).not.toContain('onmouseover')
+    const out2 = sanitizeHtml('<svg><set attributeName="href" to="javascript:alert(1)"/></svg>')
+    expect(out2).not.toContain('javascript:')
+  })
+
+  it('target=_BLANK 大小写变体同样补全 rel=noopener', () => {
+    const out = sanitizeHtml('<a href="https://example.com" target="_BLANK">x</a>')
+    expect(out).toMatch(/rel="noopener/i)
+  })
+
+  it('实体解码不影响快速路径：引擎自身转义产物（&#39;/&amp;）保持零开销直通', () => {
+    const engineLike = '<p style="margin:0px">it&#39;s a &quot;test&quot; &amp; demo</p>'
+    expect(sanitizeHtml(engineLike)).toBe(engineLike)
+  })
 })
 
 describe('净化不影响可信渲染产物', () => {
