@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { Dialog } from '@/components/ui/Dialog'
 import {
   DESIGN_STYLES,
   OUTPUT_TYPES,
@@ -704,12 +705,14 @@ export function PromptLibrary({ mode, open, onClose, onCopy, onToast }: PromptLi
 
       {/* 指令预览弹窗 */}
       {previewText && (
-        <>
-          <div
-            onClick={() => setPreviewText(null)}
-            className="fixed inset-0 z-[60] bg-slate-900/40 backdrop-blur-sm"
-          />
-          <div className="fixed left-1/2 top-1/2 z-[60] flex w-[90vw] max-w-[680px] max-h-[80vh] -translate-x-1/2 -translate-y-1/2 flex-col rounded-xl bg-white shadow-2xl overflow-hidden">
+        <Dialog
+          isOpen={!!previewText}
+          onClose={() => setPreviewText(null)}
+          ariaLabel="指令预览"
+          zIndex={60}
+          overlayClassName="fixed inset-0 bg-slate-900/40 backdrop-blur-sm"
+          panelClassName="fixed left-1/2 top-1/2 flex w-[90vw] max-w-[680px] max-h-[80vh] -translate-x-1/2 -translate-y-1/2 flex-col rounded-xl bg-white shadow-2xl overflow-hidden"
+        >
             <header className="flex items-center justify-between border-b border-slate-200 px-5 py-3.5">
               <div className="flex items-center gap-2 text-[15px] font-bold text-slate-900">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
@@ -738,8 +741,7 @@ export function PromptLibrary({ mode, open, onClose, onCopy, onToast }: PromptLi
             <pre className="flex-1 overflow-auto p-5 text-[13px] leading-relaxed text-slate-700 whitespace-pre-wrap break-words font-[inherit]">
               {previewText}
             </pre>
-          </div>
-        </>
+        </Dialog>
       )}
     </>
   )

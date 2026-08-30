@@ -1,8 +1,8 @@
-import { createPortal } from 'react-dom'
 import type { DesignStyle } from '@/data/designPrompts'
 import { buildDesignPrompt } from '@/data/designPrompts'
 import { copyText } from '@/lib/clipboard'
 import { UI_LABELS } from '@/lib/uiLabels'
+import { Dialog } from '@/components/ui/Dialog'
 import { useState, useEffect } from 'react'
 import { generateFallbackHtml } from './StyleThumbnail'
 
@@ -30,12 +30,15 @@ export function StylePreviewModal({ style, onClose }: StylePreviewModalProps) {
 
   const subCategory = style.category.includes('/') ? style.category.split('/')[1] : '常规'
 
-  return createPortal(
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={onClose}>
-      <div
-        className="relative mx-4 flex max-h-[85vh] w-full max-w-2xl flex-col rounded-2xl bg-white shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
-      >
+  return (
+    <Dialog
+      isOpen={!!style}
+      onClose={onClose}
+      ariaLabel="风格预览"
+      zIndex={9999}
+      overlayClassName="fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+      panelClassName="relative mx-4 flex max-h-[85vh] w-full max-w-2xl flex-col rounded-2xl bg-white shadow-2xl"
+    >
         {/* 头部 */}
         <header className="flex items-start gap-4 border-b border-slate-200 px-6 py-5">
           <span
@@ -82,8 +85,6 @@ export function StylePreviewModal({ style, onClose }: StylePreviewModalProps) {
             {copied ? '已复制！' : UI_LABELS.promptLibrary.copyPrompt.label}
           </button>
         </footer>
-      </div>
-    </div>,
-    document.body
+    </Dialog>
   )
 }

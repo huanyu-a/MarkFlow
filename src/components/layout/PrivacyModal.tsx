@@ -1,14 +1,21 @@
+import { Dialog } from '@/components/ui/Dialog'
+
 interface PrivacyModalProps {
   isOpen: boolean
   onClose: () => void
 }
 
 export function PrivacyModal({ isOpen, onClose }: PrivacyModalProps) {
-  if (!isOpen) return null
-
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-md">
-      <div className="mx-4 w-full max-w-lg overflow-hidden rounded-2xl bg-white shadow-2xl border border-slate-100 flex flex-col animate-in fade-in zoom-in-95 duration-200">
+    <Dialog
+      isOpen={isOpen}
+      onClose={onClose}
+      ariaLabel="隐私与数据安全说明"
+      closeOnOverlay={false}
+      zIndex={100}
+      overlayClassName="fixed inset-0 flex items-center justify-center bg-black/40 backdrop-blur-md"
+      panelClassName="mx-4 w-full max-w-lg overflow-hidden rounded-2xl bg-white shadow-2xl border border-slate-100 flex flex-col animate-in fade-in zoom-in-95 duration-200"
+    >
         {/* 顶部彩色装饰条 */}
         <div className="h-1.5 w-full bg-gradient-to-r from-emerald-400 via-teal-500 to-cyan-500" />
 
@@ -76,7 +83,6 @@ export function PrivacyModal({ isOpen, onClose }: PrivacyModalProps) {
             我知道了
           </button>
         </div>
-      </div>
-    </div>
+    </Dialog>
   )
 }

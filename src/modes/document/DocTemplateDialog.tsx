@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react'
 import { DOC_TEMPLATES, fillTemplateSkeleton, type DocTemplate, type TemplateField } from './docTemplates'
 import { copyText } from '@/lib/clipboard'
+import { Dialog } from '@/components/ui/Dialog'
 
 interface DocTemplateDialogProps {
   open: boolean
@@ -45,9 +46,13 @@ export function DocTemplateDialog({ open, onClose, onApply, onToast }: DocTempla
   if (!open) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 flex max-h-[90vh] w-[90vw] max-w-[800px] flex-col rounded-xl bg-white shadow-2xl">
+    <Dialog
+      isOpen={open}
+      onClose={onClose}
+      ariaLabel="文档模板"
+      overlayClassName="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm"
+      panelClassName="relative flex max-h-[90vh] w-[90vw] max-w-[800px] flex-col rounded-xl bg-white shadow-2xl"
+    >
         <header className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
           <h2 className="text-lg font-bold text-slate-900">文档模板</h2>
           <button
@@ -128,8 +133,7 @@ export function DocTemplateDialog({ open, onClose, onApply, onToast }: DocTempla
             </button>
           </footer>
         )}
-      </div>
-    </div>
+    </Dialog>
   )
 }
 

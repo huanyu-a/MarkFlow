@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { AlertTriangle, Shield } from '@/components/ui/Icon'
+import { Dialog } from '@/components/ui/Dialog'
 import { detectBrowserCompat, type BrowserCompatResult } from '@/lib/browserCompat'
 import { copyText } from '@/lib/clipboard'
 
@@ -29,15 +30,7 @@ export function BrowserCompatDialog() {
     }
   }, [])
 
-  // Escape 键关闭弹窗
-  useEffect(() => {
-    if (!result) return
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') handleDismiss()
-    }
-    document.addEventListener('keydown', handleKeyDown)
-    return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [result])
+  // Escape 键关闭由 Dialog 外壳统一提供，此处不再重复监听
 
   if (!result) return null
 
@@ -55,8 +48,15 @@ export function BrowserCompatDialog() {
   }
 
   return (
-    <div role="dialog" aria-modal="true" aria-label="浏览器兼容性提示" className="fixed inset-0 z-[55] flex items-center justify-center bg-black/50 backdrop-blur-sm animate-fade-in">
-      <div className="mx-4 w-full max-w-md rounded-2xl bg-white shadow-2xl overflow-hidden">
+    <Dialog
+      isOpen={!!result}
+      onClose={handleDismiss}
+      ariaLabel="浏览器兼容性提示"
+      closeOnOverlay={false}
+      zIndex={55}
+      overlayClassName="fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-fade-in"
+      panelClassName="mx-4 w-full max-w-md rounded-2xl bg-white shadow-2xl overflow-hidden"
+    >
         {/* 顶部警告装饰条 */}
         <div className="h-1 bg-gradient-to-r from-amber-400 via-amber-500 to-orange-400" />
 
@@ -135,8 +135,7 @@ export function BrowserCompatDialog() {
             </button>
           </div>
         </div>
-      </div>
-    </div>
+    </Dialog>
   )
 }
 

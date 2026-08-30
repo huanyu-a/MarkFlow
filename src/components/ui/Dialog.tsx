@@ -1,6 +1,11 @@
 import { type ReactNode, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 
+const DEFAULT_OVERLAY =
+  'fixed inset-0 z-[var(--dialog-z,50)] flex items-center justify-center bg-black/40 backdrop-blur-xs px-4'
+const DEFAULT_PANEL =
+  'w-full max-w-lg rounded-xl border border-slate-100 bg-white p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200'
+
 interface DialogProps {
   isOpen: boolean
   onClose: () => void
@@ -12,6 +17,12 @@ interface DialogProps {
   closeOnOverlay?: boolean
   /** z-index 层级，默认 50 */
   zIndex?: number
+  /** 提供时完全替换默认面板类（需自带背景/圆角/阴影/尺寸），供自定义布局弹层复用外壳能力 */
+  panelClassName?: string
+  /** 提供时完全替换默认遮罩类（需自带 fixed inset-0 flex 布局与背景色） */
+  overlayClassName?: string
+  /** 无 title 时的无障碍名称（自定义头部弹层使用） */
+  ariaLabel?: string
 }
 
 export function Dialog({
@@ -23,6 +34,9 @@ export function Dialog({
   footer,
   closeOnOverlay = true,
   zIndex = 50,
+  panelClassName,
+  overlayClassName,
+  ariaLabel,
 }: DialogProps) {
   const triggerRef = useRef<Element | null>(null)
 
@@ -76,7 +90,7 @@ export function Dialog({
 
   const content = (
     <div
-      className="fixed inset-0 z-[var(--dialog-z,50)] flex items-center justify-center bg-black/40 backdrop-blur-xs px-4"
+      className={overlayClassName ?? DEFAULT_OVERLAY}
       style={{ '--dialog-z': zIndex } as React.CSSProperties}
       onClick={closeOnOverlay ? onClose : undefined}
     >
@@ -84,8 +98,8 @@ export function Dialog({
         data-dialog
         role="dialog"
         aria-modal="true"
-        aria-label={title}
-        className="w-full max-w-lg rounded-xl border border-slate-100 bg-white p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200"
+        aria-label={title ?? ariaLabel}
+        className={panelClassName ?? DEFAULT_PANEL}
         onClick={(e) => e.stopPropagation()}
       >
         {(title || description) && (
@@ -94,7 +108,8 @@ export function Dialog({
             {description && <p className="mt-1 text-sm text-slate-500">{description}</p>}
           </div>
         )}
-        <div className="flex flex-col gap-4">{children}</div>
+        {/* 无 title 时 children 直接渲染，自定义头部弹层可完全接管面板布局 */}
+        {title || description ? <div className="flex flex-col gap-4">{children}</div> : children}
         {footer && <div className="mt-5 flex items-center justify-end gap-2 border-t border-slate-100 pt-3">{footer}</div>}
       </div>
     </div>

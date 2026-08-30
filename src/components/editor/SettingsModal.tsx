@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useStore, type ImageHostConfig } from '@/lib/store'
 import { Button } from '@/components/ui/Button'
+import { Dialog } from '@/components/ui/Dialog'
 import { Send } from '@/components/ui/Icon'
 import {
   hasVault,
@@ -182,8 +183,8 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs px-4">
-      <div className="w-full max-w-lg rounded-xl border border-slate-100 bg-white p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+    <Dialog isOpen={isOpen} onClose={onClose} closeOnOverlay={false}>
+      <div>
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-100 pb-3">
           <h2 className="text-base font-bold text-slate-800 flex items-center gap-2">
@@ -279,6 +280,6 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
           <Button variant="primary" onClick={handleSave}>保存配置</Button>
         </div>
       </div>
-    </div>
+    </Dialog>
   )
 }

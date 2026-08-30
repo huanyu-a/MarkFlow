@@ -8,7 +8,7 @@ import { useStore } from '@/lib/store'
 import { UI_LABELS } from '@/lib/uiLabels'
 import { getFontFamilyCss } from '@/lib/fonts'
 import { Download, Clipboard, ImageIcon, Rocket, FileText, Send } from '@/components/ui/Icon'
-import { MermaidImageHostDialog } from '@/components/ui/MermaidImageHostDialog'
+import { MermaidImageHostDialog } from '@/components/editor/MermaidImageHostDialog'
 import { collectMermaidDiagrams } from '@engine'
 
 /** 长图文模式固定使用黑体系统字体栈，确保复制到微信公众号时字体一致 */
