@@ -130,9 +130,10 @@ export async function callAiStream(
     }
     // flush 解码器：多字节字符跨块截断时补出剩余字节，避免丢尾
     buffer += decoder.decode()
-    if (buffer.trim()) {
+    const tail = buffer.trim()
+    if (tail && tail !== 'data: [DONE]' && tail !== '[DONE]') {
       try {
-        const json = JSON.parse(buffer.trim().replace(/^data: /, ''))
+        const json = JSON.parse(tail.replace(/^data: /, ''))
         const delta: string = json.choices?.[0]?.delta?.content || ''
         if (delta) {
           fullContent += delta

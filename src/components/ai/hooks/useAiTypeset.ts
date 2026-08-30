@@ -117,13 +117,22 @@ export function useAiTypeset(mode: RenderMode, onToast: (msg: string) => void, a
         setError((e as Error).message || 'AI 调用失败')
       }
     } finally {
-      setIsRunning(false)
-      // 仅当仍指向本次 controller 时才清空，避免误清新一次运行的取消句柄
+      // 与 abortRef 清理同口径守卫：重入时旧运行的 finally 不得覆盖
+      // 新运行的 isRunning 状态（否则按钮从「停止」退回「运行」）
       if (abortRef.current === controller) {
+        setIsRunning(false)
         abortRef.current = null
       }
     }
   }, [aiConfig, currentContent, mode])
+
+  // 面板卸载（关闭）时中止进行中的流，避免 API 配额在后台被空耗，
+  // 也防止重开面板 autoRun 时出现双流并行
+  useEffect(() => {
+    return () => {
+      abortRef.current?.abort()
+    }
+  }, [])
 
   const handleStop = useCallback(() => {
     abortRef.current?.abort()
