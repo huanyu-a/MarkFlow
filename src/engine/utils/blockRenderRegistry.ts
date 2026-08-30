@@ -309,7 +309,6 @@ const tableContainerRenderer: BlockRenderer = {
 
     // 解析 ::: header 中的属性
     const attrs: Record<string, string> = {}
-    let caption = ''
     const attrRe = /(\w[\w-.]*)=("[^"]*"|\S+)/g
     let attrMatch: RegExpExecArray | null
     let lastIndex = 0
@@ -320,7 +319,7 @@ const tableContainerRenderer: BlockRenderer = {
       attrs[key] = val
       lastIndex = attrMatch.index + attrMatch[0].length
     }
-    caption = rest.substring(lastIndex).trim()
+    const caption = rest.substring(lastIndex).trim()
 
     // 构建 markdown 表格 body 传给 Table_DA01.render
     const markdownBody = contentLines.join('\n').trim()

@@ -397,7 +397,7 @@ export async function uploadToSmMs(file: File, token: string): Promise<string> {
   })
 
   const resData = await response.json()
-  let url: unknown = null
+  let url: unknown
   if (resData.success) {
     url = resData.data?.url
   } else if (resData.code === 'image_repeated') {

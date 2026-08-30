@@ -319,7 +319,7 @@ export function parseTableMarkdown(markdown: string): TableData | null {
     if (line.includes('|')) {
       if (headerIndex === -1) {
         headerIndex = i
-      } else if (/^[\|\s:-]+$/.test(line)) {
+      } else if (/^[|\s:-]+$/.test(line)) {
         separatorIndex = i
         break
       }

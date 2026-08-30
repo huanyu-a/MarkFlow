@@ -1228,7 +1228,7 @@ export async function exportToDocx(
     ])
     mathJaxReady = true
   } catch {
-    mathJaxReady = false
+    // 超时或加载失败：保持 false，不阻断导出
   }
 
   // 预加载 Mermaid（5s 超时）；失败不阻断导出，图表将降级为文本提示
@@ -1240,7 +1240,7 @@ export async function exportToDocx(
     ])
     mermaidReady = true
   } catch {
-    mermaidReady = false
+    // 超时或加载失败：保持 false，不阻断导出
   }
 
   // 6.10: 单次导出内图片 URL 去重缓存，避免同一图片重复请求

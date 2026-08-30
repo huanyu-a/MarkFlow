@@ -22,7 +22,7 @@ export function styleFingerprint(html: string): string {
   return html
     .replace(/>(.*?)</gs, '><')               // 移除标签之间的文本
     .replace(/style="[^"]*"/g, (m) => {        // 保留 style 属性但移除 color 值（避免主题色差异导致误判）
-      return m.replace(/\$\{[^}]+\}|var\([^)]+\)|\#[0-9a-f]{3,8}\b/gi, '')
+      return m.replace(/\$\{[^}]+\}|var\([^)]+\)|[#][0-9a-f]{3,8}\b/gi, '')
     })
     .replace(/\s+/g, ' ')                       // 压缩空白
     .trim()

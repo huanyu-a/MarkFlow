@@ -16,6 +16,7 @@ export async function copyText(text: string): Promise<boolean> {
     await navigator.clipboard.writeText(text)
     return true
   } catch {
+    // Clipboard API 失败（非安全上下文/无权限），回退 execCommand 方案
   }
   const ta = createHiddenTextarea(text)
   try {
@@ -39,13 +40,10 @@ async function compileElementImages(contentEl: HTMLElement): Promise<HTMLElement
   for (const img of Array.from(imgs)) {
     const src = img.getAttribute('src') || ''
     if (src.startsWith('blob:') || src.startsWith('img://')) {
-      let id = ''
-      if (src.startsWith('img://')) {
-        id = src.replace('img://', '')
-      } else {
-        // 从反向索引中 O(1) 查找 id
-        id = getUrlToIdMap().get(src) || ''
-      }
+      const id = src.startsWith('img://')
+        ? src.replace('img://', '')
+        : // 从反向索引中 O(1) 查找 id
+          getUrlToIdMap().get(src) || ''
 
       if (id) {
         const blob = await getLocalImage(id)
@@ -117,6 +115,7 @@ export async function copyRichText(contentEl: HTMLElement, fontFamily?: string, 
     await navigator.clipboard.write([item])
     return true
   } catch {
+    // Clipboard API 失败，回退 execCommand 方案
   }
   try {
     const tmp = document.createElement('div')
@@ -146,6 +145,7 @@ export async function copyHtmlSource(contentEl: HTMLElement, imageHostConfig?: I
     await navigator.clipboard.writeText(html)
     return true
   } catch {
+    // Clipboard API 失败，回退 execCommand 方案
   }
   try {
     const ta = createHiddenTextarea(html)

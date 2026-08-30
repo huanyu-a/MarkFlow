@@ -48,9 +48,6 @@ const NEXT_FRAME = (win: Window = window) =>
 // 基于 MutationObserver 的 DOM 稳定性探测机制
 async function waitForStability(element: HTMLElement | Document, win: Window = window, maxWaitMs = 1500): Promise<void> {
   await new Promise<void>((resolve) => {
-    let timeout: ReturnType<typeof setTimeout>
-    let stableTimer: ReturnType<typeof setTimeout>
-    
     const target = 'body' in element ? element.body : element
     if (!target) {
       resolve()
@@ -59,8 +56,8 @@ async function waitForStability(element: HTMLElement | Document, win: Window = w
 
     const finish = () => {
       observer.disconnect()
-      clearTimeout(timeout)
       clearTimeout(stableTimer)
+      clearTimeout(timeout)
       resolve()
     }
 
@@ -70,9 +67,9 @@ async function waitForStability(element: HTMLElement | Document, win: Window = w
     })
 
     observer.observe(target, { childList: true, subtree: true, attributes: true, characterData: true })
-    
-    stableTimer = setTimeout(finish, 100)  // 从 150ms 减少到 100ms
-    timeout = setTimeout(finish, maxWaitMs)
+
+    let stableTimer: ReturnType<typeof setTimeout> = setTimeout(finish, 100)  // 从 150ms 减少到 100ms
+    const timeout: ReturnType<typeof setTimeout> = setTimeout(finish, maxWaitMs)
   })
 
   for (let i = 0; i < 2; i++) {  // 从 3 帧减少到 2 帧

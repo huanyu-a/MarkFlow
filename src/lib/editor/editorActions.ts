@@ -131,7 +131,7 @@ export const toggleListFormat = (view: EditorView, listPrefix: string): boolean 
     const lineText = line.text
     const match = lineText.match(listRegex)
 
-    let newLineText = lineText
+    let newLineText: string
     if (match) {
       const matchedPrefix = match[0]
       const cleanPrefix = matchedPrefix.trim()

@@ -58,7 +58,7 @@ function renderTable(attrs: Record<string, string>, body: string, t: ThemeColors
     // 跳过 ::: 结束标记
     if (/^:{3,4}\s*$/.test(ln)) continue
     if (ln.includes('|')) {
-      if (/^[\|\s\-:]+$/.test(ln)) continue
+      if (/^[|\s\-:]+$/.test(ln)) continue
       tableLines.push(ln)
     } else if (ln && tableLines.length >= 2) {
       // 表格之后的内容作为 footer

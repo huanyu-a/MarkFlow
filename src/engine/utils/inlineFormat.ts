@@ -76,7 +76,7 @@ export function inlineFormat(text: string, t: ThemeColors, formulaMap?: Map<stri
   // 否则（KaTeX 模式）由于公式已被 extractMath 提取为占位符，此处正则不会匹配到它。
   if (formulaMap) {
     text = text.replace(
-      /(?<!\$)(?<!\d)\$(?!\d)([^\$]+?)\$(?!\$|[\w])/g,
+      /(?<!\$)(?<!\d)\$(?!\d)([^$]+?)\$(?!\$|[\w])/g,
       (_m, formula: string) => {
         const svg = formulaMap.get(`i:${formula}`)
         if (svg) return svg

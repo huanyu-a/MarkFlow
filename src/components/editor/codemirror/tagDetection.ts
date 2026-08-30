@@ -31,7 +31,7 @@ export function tagDetection(onTagDetected: ((tag: string, from: number, to: num
         const fullDoc = update.state.doc.toString()
         const colons = containerMatch[0].match(/^(:{3,4})/)![1]
         const closeRe = new RegExp(`^${colons}\\s*$`, 'm')
-        let expandFrom = from
+        const expandFrom = from
         let expandTo = to
         // 向前搜索闭合 :::
         const closeMatch = fullDoc.substring(from).match(closeRe)

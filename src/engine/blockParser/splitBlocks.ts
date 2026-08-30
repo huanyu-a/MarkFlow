@@ -93,12 +93,12 @@ function stripCaptionMarkup(text: string): string {
 
 function isTableCaptionBlock(markdown: string): boolean {
   const line = stripCaptionMarkup(markdown)
-  return /^(表|Table)\.?\s*(\d+|[一二三四五六七八九十百]+)([:：.\-\—\s]+)/i.test(line)
+  return /^(表|Table)\.?\s*(\d+|[一二三四五六七八九十百]+)([:：.\-—\s]+)/i.test(line)
 }
 
 function isImageCaptionBlock(markdown: string): boolean {
   const line = stripCaptionMarkup(markdown)
-  return /^(图|Fig|Figure)\.?\s*(\d+|[一二三四五六七八九十百]+)([:：.\-\—\s]+)/i.test(line)
+  return /^(图|Fig|Figure)\.?\s*(\d+|[一二三四五六七八九十百]+)([:：.\-—\s]+)/i.test(line)
 }
 
 /**

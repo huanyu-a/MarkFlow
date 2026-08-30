@@ -1,6 +1,6 @@
 import { type InputHTMLAttributes, forwardRef } from 'react'
 
-export interface CheckboxProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'type'> {}
+export type CheckboxProps = Omit<InputHTMLAttributes<HTMLInputElement>, 'type'>
 
 export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
   ({ className = '', ...props }, ref) => {

@@ -80,7 +80,6 @@ function parseTag(text: string): ParsedTag | null {
 
     // 解析 key=value 属性与标题
     const attrs: Record<string, string> = {}
-    let title = ''
     const attrRe = /(\w[\w-.]*)=("[^"]*"|\S+)/g
     let attrMatch: RegExpExecArray | null
     let lastIndex = 0
@@ -92,7 +91,7 @@ function parseTag(text: string): ParsedTag | null {
       lastIndex = attrMatch.index + attrMatch[0].length
     }
     // 剩余部分作为标题
-    title = rest.substring(lastIndex).trim()
+    const title = rest.substring(lastIndex).trim()
 
     const tag = type === 'table' ? 'table' : 'hint'
     attrs.type = type

@@ -185,7 +185,7 @@ function renderFade(imgs: string[], n: number, iv: number, w: number, h: number)
 
   let tags = ''
   for (let i = 0; i < n; i++) {
-    let anim = ''
+    let anim: string
     if (i === 0) {
       const stay = +((iv - st) / dur).toFixed(4)
       const out = +(iv / dur).toFixed(4)
