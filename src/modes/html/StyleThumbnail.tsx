@@ -60,6 +60,34 @@ export function escapeHtml(str: string): string {
 }
 
 /**
+ * 校验强调色是否为安全的 CSS 颜色字面量。
+ * 自定义风格的 accent 来自用户输入（十六进制文本框），会原样插入
+ * generateFallbackHtml 的 style 属性与 HTML 文本上下文，必须先收敛格式。
+ * 仅允许十六进制 / rgb(a) 数字形式 / CSS 命名颜色，
+ * 杜绝 `"><img onerror=...>`、`red;}<script>` 等注入。
+ */
+export function isSafeColorValue(value: string): boolean {
+  if (typeof value !== 'string') return false
+  const v = value.trim()
+  if (v.length === 0 || v.length > 40) return false
+  // 十六进制：#RGB/#RGBA/#RRGGBB/#RRGGBBAA
+  if (/^#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(v)) return true
+  // rgb()/rgba() 数字形式（0-255 数值或百分比，alpha 为 0-1）
+  if (
+    /^rgba?\(\s*\d{1,3}%?\s*,\s*\d{1,3}%?\s*,\s*\d{1,3}%?\s*(,\s*(?:0|1|0?\.\d+)\s*)?\)$/.test(
+      v,
+    )
+  ) {
+    return true
+  }
+  // CSS 命名颜色关键字（含 transparent/currentcolor）
+  return /^[a-z]{3,25}$/i.test(v)
+}
+
+/** 强调色兜底值：非法输入时回退到主题默认色 */
+const FALLBACK_ACCENT = '#6366f1'
+
+/**
  * 生成风格的微型 HTML 预览片段。
  * 优先使用 style.previewHtml（若有），否则根据元数据自动生成。
  * 每个风格使用独有的 name + accent + description，确保缩略图互不相同。
@@ -79,20 +107,23 @@ export function generateFallbackHtml(s: DesignStyle): string {
   const rawDesc = s.description.length > 20 ? s.description.slice(0, 20) + '…' : s.description
   const desc = escapeHtml(rawDesc)
 
+  // 用户自定义 accent 未经校验不可直接进入 HTML 模板，先收敛为安全颜色字面量
+  const accent = isSafeColorValue(s.accent) ? s.accent : FALLBACK_ACCENT
+
   const cardBorder = `1px solid ${border}`
 
   if (s.outputType === '幻灯片') {
     return `<div style="font-family:${font};background:${bg};color:${text};padding:14px;height:100%;display:flex;flex-direction:column;box-sizing:border-box;">
-      <div style="height:4px;width:28%;background:${s.accent};border-radius:2px;margin-bottom:12px;"></div>
+      <div style="height:4px;width:28%;background:${accent};border-radius:2px;margin-bottom:12px;"></div>
       <div style="font-size:16px;font-weight:700;margin-bottom:6px;line-height:1.2;">${title}</div>
       <div style="font-size:11px;color:${sub};margin-bottom:auto;">${desc}</div>
       <div style="display:flex;gap:5px;align-items:flex-end;margin-top:8px;">
-        <div style="width:20%;height:12px;background:${s.accent};border-radius:1px;opacity:0.6;"></div>
-        <div style="width:14%;height:8px;background:${s.accent};border-radius:1px;opacity:0.3;"></div>
-        <div style="width:18%;height:10px;background:${s.accent};border-radius:1px;opacity:0.4;"></div>
+        <div style="width:20%;height:12px;background:${accent};border-radius:1px;opacity:0.6;"></div>
+        <div style="width:14%;height:8px;background:${accent};border-radius:1px;opacity:0.3;"></div>
+        <div style="width:18%;height:10px;background:${accent};border-radius:1px;opacity:0.4;"></div>
       </div>
       <div style="display:flex;gap:4px;justify-content:flex-end;margin-top:6px;">
-        <div style="width:5px;height:5px;border-radius:50%;background:${s.accent};"></div>
+        <div style="width:5px;height:5px;border-radius:50%;background:${accent};"></div>
         <div style="width:5px;height:5px;border-radius:50%;background:${sub};opacity:0.3;"></div>
         <div style="width:5px;height:5px;border-radius:50%;background:${sub};opacity:0.3;"></div>
       </div>
@@ -101,11 +132,11 @@ export function generateFallbackHtml(s: DesignStyle): string {
 
   if (s.outputType === '卡片') {
     return `<div style="font-family:${font};background:${bg};color:${text};padding:14px;height:100%;display:flex;flex-direction:column;box-sizing:border-box;">
-      <div style="height:4px;width:100%;background:${s.accent};border-radius:2px;margin-bottom:10px;opacity:0.8;"></div>
+      <div style="height:4px;width:100%;background:${accent};border-radius:2px;margin-bottom:10px;opacity:0.8;"></div>
       <div style="font-size:15px;font-weight:700;margin-bottom:4px;">${title}</div>
       <div style="font-size:11px;color:${sub};margin-bottom:8px;line-height:1.4;">${desc}</div>
       <div style="display:flex;gap:6px;margin-top:auto;">
-        <div style="background:${s.accent};color:#fff;font-size:10px;padding:2px 6px;border-radius:3px;font-weight:600;">标签A</div>
+        <div style="background:${accent};color:#fff;font-size:10px;padding:2px 6px;border-radius:3px;font-weight:600;">标签A</div>
         <div style="background:${isDark ? 'rgba(255,255,255,0.08)' : '#f1f1f1'};color:${text};font-size:10px;padding:2px 6px;border-radius:3px;">标签B</div>
       </div>
     </div>`
@@ -117,38 +148,38 @@ export function generateFallbackHtml(s: DesignStyle): string {
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;flex:1;">
         <div style="background:${cardBg};border:${cardBorder};border-radius:${radius};padding:6px;display:flex;flex-direction:column;gap:3px;justify-content:center;">
           <div style="height:3px;width:50%;background:${sub};border-radius:1px;opacity:0.3;"></div>
-          <div style="font-size:15px;font-weight:700;color:${s.accent};">128</div>
+          <div style="font-size:15px;font-weight:700;color:${accent};">128</div>
         </div>
         <div style="background:${cardBg};border:${cardBorder};border-radius:${radius};padding:6px;display:flex;flex-direction:column;gap:3px;justify-content:center;">
           <div style="height:3px;width:50%;background:${sub};border-radius:1px;opacity:0.3;"></div>
-          <div style="font-size:15px;font-weight:700;color:${s.accent};">56%</div>
+          <div style="font-size:15px;font-weight:700;color:${accent};">56%</div>
         </div>
         <div style="background:${cardBg};border:${cardBorder};border-radius:${radius};padding:6px;display:flex;flex-direction:column;gap:3px;justify-content:center;">
           <div style="height:3px;width:50%;background:${sub};border-radius:1px;opacity:0.3;"></div>
-          <div style="font-size:15px;font-weight:700;color:${s.accent};">3.2k</div>
+          <div style="font-size:15px;font-weight:700;color:${accent};">3.2k</div>
         </div>
       </div>
       <div style="display:flex;gap:4px;align-items:flex-end;height:32px;margin-top:4px;">
-        <div style="width:12%;height:30%;background:${s.accent};border-radius:1px;opacity:0.3;"></div>
-        <div style="width:12%;height:55%;background:${s.accent};border-radius:1px;opacity:0.5;"></div>
-        <div style="width:12%;height:40%;background:${s.accent};border-radius:1px;opacity:0.4;"></div>
-        <div style="width:12%;height:80%;background:${s.accent};border-radius:1px;opacity:0.7;"></div>
-        <div style="width:12%;height:65%;background:${s.accent};border-radius:1px;opacity:0.6;"></div>
-        <div style="width:12%;height:95%;background:${s.accent};border-radius:1px;opacity:0.8;"></div>
-        <div style="width:12%;height:50%;background:${s.accent};border-radius:1px;opacity:0.5;"></div>
+        <div style="width:12%;height:30%;background:${accent};border-radius:1px;opacity:0.3;"></div>
+        <div style="width:12%;height:55%;background:${accent};border-radius:1px;opacity:0.5;"></div>
+        <div style="width:12%;height:40%;background:${accent};border-radius:1px;opacity:0.4;"></div>
+        <div style="width:12%;height:80%;background:${accent};border-radius:1px;opacity:0.7;"></div>
+        <div style="width:12%;height:65%;background:${accent};border-radius:1px;opacity:0.6;"></div>
+        <div style="width:12%;height:95%;background:${accent};border-radius:1px;opacity:0.8;"></div>
+        <div style="width:12%;height:50%;background:${accent};border-radius:1px;opacity:0.5;"></div>
       </div>
     </div>`
   }
 
   if (s.outputType === '报告') {
     return `<div style="font-family:${font};background:${bg};color:${text};padding:12px;height:100%;display:flex;flex-direction:column;gap:6px;box-sizing:border-box;">
-      <div style="font-size:9px;font-weight:600;color:${s.accent};text-transform:uppercase;letter-spacing:1px;">${s.category.split('/')[0] || 'REPORT'}</div>
+      <div style="font-size:9px;font-weight:600;color:${accent};text-transform:uppercase;letter-spacing:1px;">${escapeHtml(s.category.split('/')[0] || 'REPORT')}</div>
       <div style="font-size:15px;font-weight:700;line-height:1.2;">${title}</div>
       <div style="height:1px;background:${border};"></div>
       <div style="font-size:11px;color:${sub};line-height:1.4;">${desc}</div>
       <div style="display:flex;gap:6px;margin-top:auto;">
-        <div style="font-size:14px;font-weight:800;color:${s.accent};">42%</div>
-        <div style="font-size:14px;font-weight:800;color:${s.accent};opacity:0.6;">¥3.2M</div>
+        <div style="font-size:14px;font-weight:800;color:${accent};">42%</div>
+        <div style="font-size:14px;font-weight:800;color:${accent};opacity:0.6;">¥3.2M</div>
       </div>
     </div>`
   }
@@ -169,7 +200,7 @@ export function generateFallbackHtml(s: DesignStyle): string {
 
   // 默认：长页
   return `<div style="font-family:${font};background:${bg};color:${text};padding:14px;height:100%;display:flex;flex-direction:column;box-sizing:border-box;">
-    <div style="height:4px;width:100%;background:${s.accent};border-radius:2px;margin-bottom:10px;opacity:0.8;"></div>
+    <div style="height:4px;width:100%;background:${accent};border-radius:2px;margin-bottom:10px;opacity:0.8;"></div>
     <div style="font-size:15px;font-weight:700;margin-bottom:3px;line-height:1.2;">${title}</div>
     <div style="font-size:11px;color:${sub};margin-bottom:10px;line-height:1.4;">${desc}</div>
     <div style="display:flex;flex-direction:column;gap:4px;flex:1;">
@@ -179,7 +210,7 @@ export function generateFallbackHtml(s: DesignStyle): string {
       <div style="height:3px;width:70%;background:${sub};border-radius:1px;opacity:0.1;"></div>
     </div>
     <div style="display:flex;gap:6px;margin-top:10px;">
-      <div style="background:${s.accent};color:#fff;font-size:10px;padding:2px 8px;border-radius:${radius};font-weight:600;">操作</div>
+      <div style="background:${accent};color:#fff;font-size:10px;padding:2px 8px;border-radius:${radius};font-weight:600;">操作</div>
       <div style="border:1px solid ${border};font-size:10px;padding:2px 8px;border-radius:${radius};color:${sub};">详情</div>
     </div>
   </div>`

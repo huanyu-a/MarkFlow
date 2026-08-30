@@ -395,7 +395,7 @@ export const toolbarGroups: ToolbarGroup[] = [
         id: 'icon-more',
         label: '更多图标',
         preview: '<span style="display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:6px;background:#f1f5f9;color:#64748b;font-size:16px;font-weight:bold">+</span>',
-        action: () => { window.open('https://icon-sets.iconify.design/', '_blank') },
+        action: () => { window.open('https://icon-sets.iconify.design/', '_blank', 'noopener,noreferrer') },
       },
     ],
   },
