@@ -101,30 +101,53 @@ export async function callAiStream(
   let buffer = ''
   let fullContent = ''
 
-  while (true) {
-    const { done, value } = await reader.read()
-    if (done) break
+  try {
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
 
-    buffer += decoder.decode(value, { stream: true })
-    const lines = buffer.split('\n')
-    buffer = lines.pop() || ''
+      buffer += decoder.decode(value, { stream: true })
+      const lines = buffer.split('\n')
+      buffer = lines.pop() || ''
 
-    for (const line of lines) {
-      const trimmed = line.trim()
-      if (!trimmed || !trimmed.startsWith('data: ')) continue
-      const data = trimmed.slice(6)
-      if (data === '[DONE]') continue
+      for (const line of lines) {
+        const trimmed = line.trim()
+        if (!trimmed || !trimmed.startsWith('data: ')) continue
+        const data = trimmed.slice(6)
+        if (data === '[DONE]') continue
 
+        try {
+          const json = JSON.parse(data)
+          const delta: string = json.choices?.[0]?.delta?.content || ''
+          if (delta) {
+            fullContent += delta
+            onChunk(delta)
+          }
+        } catch {
+          // 跳过无法解析的行
+        }
+      }
+    }
+    // flush 解码器：多字节字符跨块截断时补出剩余字节，避免丢尾
+    buffer += decoder.decode()
+    if (buffer.trim()) {
       try {
-        const json = JSON.parse(data)
+        const json = JSON.parse(buffer.trim().replace(/^data: /, ''))
         const delta: string = json.choices?.[0]?.delta?.content || ''
         if (delta) {
           fullContent += delta
           onChunk(delta)
         }
       } catch {
-        // 跳过无法解析的行
+        // 末尾残留非完整数据，忽略
       }
+    }
+  } finally {
+    // 异常/取消路径释放流锁，避免连接与缓冲滞留；部分实现/mock 可能无 cancel
+    try {
+      Promise.resolve(reader.cancel?.()).catch(() => {})
+    } catch {
+      // ignore
     }
   }
 

@@ -81,6 +81,9 @@ export function useAiTypeset(mode: RenderMode, onToast: (msg: string) => void, a
     // 记录 AI 排版前的内容，用于对比
     setBeforeContent(currentContent)
 
+    // 重入保护：上一次流未结束时先取消，避免两个流交替写入 streamingResult
+    abortRef.current?.abort()
+
     setIsRunning(true)
     setStreamingResult('')
     setError('')
@@ -107,7 +110,10 @@ export function useAiTypeset(mode: RenderMode, onToast: (msg: string) => void, a
       }
     } finally {
       setIsRunning(false)
-      abortRef.current = null
+      // 仅当仍指向本次 controller 时才清空，避免误清新一次运行的取消句柄
+      if (abortRef.current === controller) {
+        abortRef.current = null
+      }
     }
   }, [aiConfig, currentContent, mode])
 
