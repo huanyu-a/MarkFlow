@@ -58,6 +58,38 @@ function assertAiUpstreamUrl(url: string): void {
   }
 }
 
+/**
+ * 计算请求目标与请求头。
+ *
+ * - dev：经 vite 本地代理（vite.config.ts 的 markflow-ai-proxy 中间件）转发，
+ *   彻底绕开浏览器 CORS 限制；
+ * - 生产：本项目为零后端纯静态部署，/__markflow_ai_proxy 不存在（静态托管
+ *   甚至可能以 SPA fallback 返回 index.html 导致静默失败），必须直连上游。
+ *   直连要求 API 服务支持浏览器跨域（DeepSeek / OpenAI / Moonshot 等均支持）。
+ */
+export interface AiRequestInfo {
+  url: string
+  headers: Record<string, string>
+  /** 是否经 dev 本地代理 */
+  viaProxy: boolean
+}
+
+export function buildAiRequestInfo(
+  upstreamUrl: string,
+  apiKey: string,
+  dev: boolean,
+): AiRequestInfo {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+  if (apiKey.trim()) {
+    headers.Authorization = `Bearer ${apiKey.trim()}`
+  }
+  if (dev) {
+    headers['X-Markflow-Ai-Url'] = upstreamUrl
+    return { url: '/__markflow_ai_proxy', headers, viaProxy: true }
+  }
+  return { url: upstreamUrl, headers, viaProxy: false }
+}
+
 export async function callAiStream(
   config: AiCallConfig,
   messages: ChatMessage[],
@@ -73,21 +105,26 @@ export async function callAiStream(
     temperature: 0.7,
   })
 
-  // 浏览器直连 OpenAI 兼容 API 通常会被 CORS 拦截，因此优先走本地 dev 代理。
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-    'X-Markflow-Ai-Url': upstreamUrl,
-  }
-  if (config.apiKey.trim()) {
-    headers.Authorization = `Bearer ${config.apiKey.trim()}`
-  }
+  const req = buildAiRequestInfo(upstreamUrl, config.apiKey, import.meta.env.DEV)
 
-  const res = await fetch('/__markflow_ai_proxy', {
-    method: 'POST',
-    headers,
-    body,
-    signal,
-  })
+  let res: Response
+  try {
+    res = await fetch(req.url, {
+      method: 'POST',
+      headers: req.headers,
+      body,
+      signal,
+    })
+  } catch (err) {
+    if ((err as Error).name === 'AbortError') throw err
+    if (!req.viaProxy) {
+      throw new Error(
+        '无法直连 AI 接口（可能被浏览器 CORS 拦截或网络不可达）。' +
+        '请换用支持浏览器跨域直连的 API 服务，或用 pnpm dev 启动开发模式经本地代理调用。',
+      )
+    }
+    throw err
+  }
 
   if (!res.ok) {
     const text = await res.text().catch(() => '')

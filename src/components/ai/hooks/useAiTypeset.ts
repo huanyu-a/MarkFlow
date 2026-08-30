@@ -41,9 +41,11 @@ export function useAiTypeset(mode: RenderMode, onToast: (msg: string) => void, a
   })
   const setCurrentContent = getSetCurrentContent(mode)
 
-  // ---- 撤销/重做 历史栈 ----
-  const [historyStack, setHistoryStack] = useState<string[]>([])
-  const [historyIndex, setHistoryIndex] = useState(-1)
+  // ---- 撤销/重做 历史栈（past/future 双栈模型）----
+  // pastStack 存放每次「应用」前的历史内容，futureStack 存放被撤销的内容；
+  // 当前内容始终以 contentStore 为准，避免索引与内容错位
+  const [pastStack, setPastStack] = useState<string[]>([])
+  const [futureStack, setFutureStack] = useState<string[]>([])
 
   // ---- 预览模式 ----
   const [previewMode, setPreviewMode] = useState<'rendered' | 'raw'>('rendered')
@@ -51,25 +53,25 @@ export function useAiTypeset(mode: RenderMode, onToast: (msg: string) => void, a
   // AI 排版前的原始内容（用于对比）
   const [beforeContent, setBeforeContent] = useState('')
 
-  // 撤销
+  // 撤销：把当前内容存入 future，恢复最近一次应用前的内容
   const handleUndo = useCallback(() => {
-    if (historyIndex <= 0) return
-    const prevIndex = historyIndex - 1
-    const prevContent = historyStack[prevIndex]
+    if (pastStack.length === 0) return
+    const prevContent = pastStack[pastStack.length - 1]
+    setPastStack((s) => s.slice(0, -1))
+    setFutureStack((f) => [currentContent, ...f])
     setCurrentContent(prevContent)
-    setHistoryIndex(prevIndex)
     onToast('已撤销')
-  }, [historyIndex, historyStack, setCurrentContent, onToast])
+  }, [pastStack, currentContent, setCurrentContent, onToast])
 
-  // 重做
+  // 重做：恢复最近一次被撤销的内容，当前内容退回 past
   const handleRedo = useCallback(() => {
-    if (historyIndex >= historyStack.length - 1) return
-    const nextIndex = historyIndex + 1
-    const nextContent = historyStack[nextIndex]
+    if (futureStack.length === 0) return
+    const nextContent = futureStack[0]
+    setFutureStack((f) => f.slice(1))
+    setPastStack((s) => [...s, currentContent])
     setCurrentContent(nextContent)
-    setHistoryIndex(nextIndex)
     onToast('已重做')
-  }, [historyIndex, historyStack, setCurrentContent, onToast])
+  }, [futureStack, currentContent, setCurrentContent, onToast])
 
   const handleRun = useCallback(async () => {
     const fullConfig: AiCallConfig = {
@@ -154,19 +156,14 @@ export function useAiTypeset(mode: RenderMode, onToast: (msg: string) => void, a
     const fenceMatch = result.match(/^```(?:markdown|md|html)?\s*\n([\s\S]*?)\n```\s*$/i)
     if (fenceMatch) result = fenceMatch[1].trim()
 
-    // 保存当前内容到历史栈（用于撤销）
-    const newStack = historyStack.slice(0, historyIndex + 1)
-    newStack.push(currentContent)
-    if (newStack.length > MAX_HISTORY) {
-      newStack.shift()
-    }
-    setHistoryStack(newStack)
-    setHistoryIndex(newStack.length - 1)
+    // 记录应用前的内容到 past 栈，清空 future（产生新历史后旧的重做分支作废）
+    setPastStack((s) => [...s.slice(-(MAX_HISTORY - 1)), currentContent])
+    setFutureStack([])
 
     setCurrentContent(result)
     setStreamingResult('')
     onToast('已应用 AI 排版结果')
-  }, [streamingResult, setCurrentContent, onToast, historyStack, historyIndex, currentContent])
+  }, [streamingResult, setCurrentContent, onToast, currentContent])
 
   const handleDiscard = useCallback(() => {
     setStreamingResult('')
@@ -175,15 +172,15 @@ export function useAiTypeset(mode: RenderMode, onToast: (msg: string) => void, a
 
   const hasResult = streamingResult.trim().length > 0
   const configReady = isAiConfigReady(aiConfig)
-  const canUndo = historyIndex > 0
-  const canRedo = historyIndex < historyStack.length - 1
+  const canUndo = pastStack.length > 0
+  const canRedo = futureStack.length > 0
 
   return {
     isRunning,
     streamingResult,
     error,
-    historyStack,
-    historyIndex,
+    pastStack,
+    futureStack,
     previewMode,
     setPreviewMode,
     beforeContent,

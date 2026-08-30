@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { callAiStream, isAiConfigReady } from '@/lib/aiService'
+import { callAiStream, buildAiRequestInfo, isAiConfigReady } from '@/lib/aiService'
 
 /* ------------------------------------------------------------------ */
 /*  helpers: 构造 mock fetch 响应                                       */
@@ -159,6 +159,34 @@ describe('callAiStream', () => {
     expect(onChunk).toHaveBeenCalledWith('A')
     expect(onChunk).toHaveBeenCalledWith('B')
     expect(result).toBe('AB')
+  })
+})
+
+/* ------------------------------------------------------------------ */
+/*  buildAiRequestInfo：dev 走本地代理 / 生产直连上游                   */
+/* ------------------------------------------------------------------ */
+describe('buildAiRequestInfo', () => {
+  const upstream = 'https://api.example.com/v1/chat/completions'
+
+  it('dev 模式：请求本地代理并携带 X-Markflow-Ai-Url', () => {
+    const info = buildAiRequestInfo(upstream, 'sk-test', true)
+    expect(info.url).toBe('/__markflow_ai_proxy')
+    expect(info.viaProxy).toBe(true)
+    expect(info.headers['X-Markflow-Ai-Url']).toBe(upstream)
+    expect(info.headers.Authorization).toBe('Bearer sk-test')
+  })
+
+  it('dev 模式：Key 为空不携带 Authorization', () => {
+    const info = buildAiRequestInfo(upstream, '  ', true)
+    expect(info.headers.Authorization).toBeUndefined()
+  })
+
+  it('生产模式：直连上游，不携带代理头（纯静态部署无本地代理）', () => {
+    const info = buildAiRequestInfo(upstream, 'sk-test', false)
+    expect(info.url).toBe(upstream)
+    expect(info.viaProxy).toBe(false)
+    expect(info.headers['X-Markflow-Ai-Url']).toBeUndefined()
+    expect(info.headers.Authorization).toBe('Bearer sk-test')
   })
 })
 
