@@ -50,6 +50,16 @@ export function Dialog({
   // ESC 关闭 + 焦点陷阱
   useEffect(() => {
     if (!isOpen) return
+    // 打开时把焦点移入弹层：优先第一个可聚焦元素，否则落在面板本身，
+    // 避免焦点仍停留在遮罩下方的触发元素上（键盘/读屏用户不可见）
+    const focusables = document.querySelectorAll(
+      '[data-dialog] a, [data-dialog] button, [data-dialog] input, [data-dialog] textarea, [data-dialog] select',
+    )
+    if (focusables.length > 0) {
+      ;(focusables[0] as HTMLElement).focus()
+    } else {
+      document.querySelector<HTMLElement>('[data-dialog]')?.focus()
+    }
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         onClose()
@@ -99,6 +109,7 @@ export function Dialog({
         role="dialog"
         aria-modal="true"
         aria-label={title ?? ariaLabel}
+        tabIndex={-1}
         className={panelClassName ?? DEFAULT_PANEL}
         onClick={(e) => e.stopPropagation()}
       >

@@ -76,9 +76,6 @@ export function ExtensionPage({ onClose }: ExtensionPageProps) {
     });
     const all = [...tagExamples, ...unifiedExamples, ...layoutExamples]
     const deduplicated = deduplicateByStyle(all)
-    if (deduplicated.length < all.length) {
-      console.log(`[ExtensionPage] 样式去重: ${all.length} → ${deduplicated.length} 个组件`)
-    }
     setExamples(deduplicated);
   }, [colors]);
 
