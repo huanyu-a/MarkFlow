@@ -90,6 +90,31 @@ export function buildAiRequestInfo(
   return { url: upstreamUrl, headers, viaProxy: false }
 }
 
+/**
+ * 提炼错误响应体用于展示。
+ * 错误响应可能是完整 HTML 页面（静态托管 SPA fallback、网关错误页等），
+ * 直接塞进错误提示会出现整页源码的红色报错墙——先去标签再截断。
+ */
+function summarizeErrorBody(text: string, maxLen = 160): string {
+  if (!text) return ''
+  const stripped = text
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&[a-z#0-9]+;/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+  if (!stripped) return ''
+  return stripped.length > maxLen ? stripped.slice(0, maxLen) + '…' : stripped
+}
+
+/** 判断响应是否为 HTML 页面（而非预期的 JSON/SSE 流） */
+function isHtmlResponse(res: Response): boolean {
+  // 部分环境/旧实现的 Response 可能没有标准 headers 对象，缺省视为非 HTML
+  const type = res.headers?.get?.('content-type') || ''
+  return /text\/html|application\/xhtml\+xml/i.test(type)
+}
+
 export async function callAiStream(
   config: AiCallConfig,
   messages: ChatMessage[],
@@ -126,9 +151,19 @@ export async function callAiStream(
     throw err
   }
 
+  // 静态托管的 SPA fallback 会以 200 返回站点 HTML 页面，导致后续 SSE
+  // 解析静默无输出——在这里显式拦截并给出可行动的提示
+  if (res.ok && isHtmlResponse(res)) {
+    throw new Error(
+      req.viaProxy
+        ? 'AI 接口返回了 HTML 页面而非 JSON 流，请检查「设置 → AI 配置」中的 API 地址是否正确'
+        : 'AI 接口地址指向了一个网页而非 API 端点，请检查「设置 → AI 配置」中的 API 地址（通常应以 /v1 结尾或为服务方提供的 API 域名）',
+    )
+  }
+
   if (!res.ok) {
-    const text = await res.text().catch(() => '')
-    throw new Error(`API 请求失败 (${res.status}): ${text || res.statusText}`)
+    const raw = await res.text().catch(() => '')
+    throw new Error(`API 请求失败 (${res.status}): ${summarizeErrorBody(raw) || res.statusText}`)
   }
 
   const reader = res.body?.getReader()

@@ -18,6 +18,7 @@ function makeOkResponse(chunks: Uint8Array[]) {
     ok: true,
     status: 200,
     statusText: 'OK',
+    headers: new Headers({ 'content-type': 'text/event-stream' }),
     body: {
       getReader() {
         return {
@@ -105,6 +106,27 @@ describe('callAiStream', () => {
     vi.mocked(fetch).mockResolvedValue(makeErrorResponse(401, 'Unauthorized'))
 
     await expect(callAiStream(config, messages, vi.fn())).rejects.toThrow('API 请求失败 (401): Unauthorized')
+  })
+
+  it('HTTP 错误响应为完整 HTML 页面时，错误消息应去标签并截断', async () => {
+    const htmlPage = '<!DOCTYPE html><html><head><style>body{color:red}</style></head><body>' +
+      '<nav>首页</nav><script>alert(1)</script><p>页面未找到</p>' + 'x'.repeat(500) + '</body></html>'
+    vi.mocked(fetch).mockResolvedValue(makeErrorResponse(404, htmlPage))
+
+    await expect(callAiStream(config, messages, vi.fn())).rejects.toThrow(/API 请求失败 \(404\): 首页 页面未找到[^<]*…$/)
+  })
+
+  it('200 但返回 HTML 页面（SPA fallback）应显式报错而非静默无输出', async () => {
+    const htmlOk = {
+      ok: true,
+      status: 200,
+      headers: new Headers({ 'content-type': 'text/html; charset=utf-8' }),
+      body: null,
+      text: () => Promise.resolve('<!DOCTYPE html><html><body>index</body></html>'),
+    } as unknown as Response
+    vi.mocked(fetch).mockResolvedValue(htmlOk)
+
+    await expect(callAiStream(config, messages, vi.fn())).rejects.toThrow('HTML 页面而非 JSON 流')
   })
 
   it('HTTP 错误且 text() 失败时应使用 statusText', async () => {
