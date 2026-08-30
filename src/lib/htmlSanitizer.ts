@@ -44,6 +44,27 @@ const SVG_NS = 'http://www.w3.org/2000/svg'
 
 const CONTROL_CHAR_RE = /[\u0000-\u001F\s]/g
 
+/**
+ * 快速路径特征检测（宁误报不漏报）：
+ * - 需特殊处理的标签：script/iframe/object/embed/meta/base/link/style/noscript/template
+ * - 事件属性：任意非单词字符后的 onXxx=（覆盖空格/换行/斜杠/引号等分隔符）
+ * - 危险协议与实体混淆（&# 形式可绕过字符串层协议检测，出现即走完整净化）
+ * - CSS 危险模式（expression/behavior/-moz-binding/@import）
+ */
+const UNSAFE_HINT_RE = new RegExp(
+  [
+    '<(script|iframe|object|embed|meta|base|link|style|noscript|template)\\b',
+    '[^\\w]on[a-z]{2,}\\s*=',
+    '(?:javascript|vbscript|jscript|livescript|mocha|view-source):',
+    'data:(?:text/html|application)',
+    '(?:expression\\s*\\(|behavior\\s*:|-moz-binding|@import)',
+    '&#',
+    // target=_blank 需走完整净化以自动补 rel=noopener（防 reverse tabnabbing）
+    'target\\s*=\\s*["\']?_blank',
+  ].join('|'),
+  'i',
+)
+
 function isEventHandlerAttr(name: string): boolean {
   return name.startsWith('on') && name.length > 2
 }
@@ -345,6 +366,17 @@ function sanitizeHtmlInternal(html: string, options: SanitizeOptions): string {
 
   const trimmed = html.trim()
   const hasFullDocument = /^<!DOCTYPE\s+html/i.test(trimmed) || /^<html[\s>]/i.test(trimmed)
+
+  // 快速路径：字符串级超集检测。不含任何危险特征（危险标签、事件属性、
+  // 危险协议、CSS 表达式、数字实体）时直接返回，跳过 DOMParser 往返。
+  // 引擎常态产出（内联样式段落/表格/mermaid SVG/KaTeX）均无这些特征，
+  // 使逐键防抖渲染的净化开销从百毫秒级降为零；检测宁误报不漏报，
+  // 任何含特征的输入都会进入下方的完整 DOM 净化。
+  // 双重检测：原始串 + 剥离制表/换行后的副本（URL 解析器会剥离这些字符，
+  // 故 java\tscript: 等混淆形式需在剥离后才可检出）。
+  if (!UNSAFE_HINT_RE.test(html) && !UNSAFE_HINT_RE.test(html.replace(/[\t\n\r\f\v]/g, ''))) {
+    return html
+  }
 
   const parser = new DOMParser()
   const doc = parser.parseFromString(html, 'text/html')

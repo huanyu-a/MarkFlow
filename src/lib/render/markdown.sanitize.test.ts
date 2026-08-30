@@ -67,6 +67,25 @@ describe('renderMarkdown 安全净化（XSS 回归）', () => {
     const good = sanitizeHtml('<svg><use xlink:href="#icon-ok"></use></svg>')
     expect(good).toContain('#icon-ok')
   })
+
+  it('快速路径混淆向量：制表符混淆的 javascript: 协议被拦截', () => {
+    // URL 解析器会剥离 href 中的 tab/换行，字符串层检测需在剥离副本上兜底
+    const out = sanitizeHtml('<a href="java\tscript:alert(1)">x</a>')
+    expect(out).not.toMatch(/j\s*a\s*v\s*a\s*\t?\s*s\s*c\s*r\s*i\s*p\s*t\s*:/i)
+    expect(out).not.toContain('\tscript')
+  })
+
+  it('快速路径混淆向量：数字实体混淆的协议/标签被拦截', () => {
+    const out = sanitizeHtml('<a href="&#106;avascript:alert(1)">x</a>')
+    expect(out.toLowerCase()).not.toContain('avascript:')
+    const out2 = sanitizeHtml('&#60;script&#62;alert(1)&#60;/script&#62;')
+    expect(out2).not.toContain('<script')
+  })
+
+  it('无危险特征的常规内容走快速路径原样返回', () => {
+    const benign = '<section style="margin:0px 0px 24px"><p style="font-size:16px">正文 <strong>加粗</strong></p></section>'
+    expect(sanitizeHtml(benign)).toBe(benign)
+  })
 })
 
 describe('净化不影响可信渲染产物', () => {

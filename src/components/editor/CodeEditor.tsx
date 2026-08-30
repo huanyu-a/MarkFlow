@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect, useRef } from 'react'
+import { useMemo, useState, useEffect, useRef, useCallback } from 'react'
 import CodeMirror, { EditorView, keymap, type Extension } from '@uiw/react-codemirror'
 import { markdown, markdownLanguage } from '@codemirror/lang-markdown'
 import { html } from '@codemirror/lang-html'
@@ -129,7 +129,8 @@ export function CodeEditor({
   }, [])
 
   // 处理图片粘贴或拖拽上传
-  const handlePasteOrDrop = async (
+  // useCallback 保持引用稳定：extensions useMemo 依赖它，避免闭包过期或额外重配置
+  const handlePasteOrDrop = useCallback(async (
     event: ClipboardEvent | DragEvent,
     view: EditorView
   ) => {
@@ -176,7 +177,7 @@ export function CodeEditor({
         alert(msg)
       }
     }
-  }
+  }, [imageHostConfig, onToast])
 
   // 快捷键 keymap 绑定
   const customKeymap = useMemo(() => {
@@ -204,7 +205,7 @@ export function CodeEditor({
       exts.push(customKeymap, collapseBase64(), tagDetection(onTagDetected ?? null))
     }
     return exts
-  }, [language, codeLangs, customKeymap, imageHostConfig, onTagDetected])
+  }, [language, codeLangs, customKeymap, handlePasteOrDrop, onTagDetected])
 
   return (
     <div className="flex h-full flex-col">
