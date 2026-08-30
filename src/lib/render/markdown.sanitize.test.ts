@@ -107,6 +107,22 @@ describe('renderMarkdown 安全净化（XSS 回归）', () => {
     expect(out2.toLowerCase()).not.toContain('avascript')
   })
 
+  it('无分号数字实体混淆被拦截（浏览器属性值中无条件解码）', () => {
+    const out = sanitizeHtml('<a href="&#106avascript:alert(1)">x</a>')
+    expect(out.toLowerCase()).not.toContain('avascript')
+    const out2 = sanitizeHtml('<a href="&#x6A avascript:alert(1)">x</a>')
+    expect(out2.toLowerCase()).not.toContain('avascript')
+  })
+
+  it('无分号 legacy 命名实体被拦截，带分号形式不误伤快速路径', () => {
+    const out = sanitizeHtml('<a href="javascript&amp x=1">x</a>')
+    // &amp 无分号 → 解码为 & → 属性值含原始 &，须经慢路径规整
+    expect(out).not.toMatch(/javascript&(?!amp;)/)
+    // 带分号的 &#39;/&amp;（引擎自身产物）保持恒等直通
+    const engineLike = '<p style="margin:0px">a&#39;b &amp; c &quot;d&quot;</p>'
+    expect(sanitizeHtml(engineLike)).toBe(engineLike)
+  })
+
   it('SMIL 动画元素篡改事件/URL 属性被丢弃', () => {
     const out = sanitizeHtml('<svg><circle r="50"><set attributeName="onmouseover" to="alert(1)"/></circle></svg>')
     expect(out).not.toContain('onmouseover')

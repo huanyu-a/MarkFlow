@@ -64,6 +64,11 @@ const UNSAFE_HINT_RE = new RegExp(
     '(?:expression\\s*\\(|behavior\\s*:|-moz-binding|@import)',
     // target=_blank 需走完整净化以自动补 rel=noopener（防 reverse tabnabbing）
     'target\\s*=\\s*["\']?_blank',
+    // 无分号数字实体（浏览器在属性值中无条件解码，如 &#106avascript: → javascript:）；
+    // 带分号形式由 decodeCharRefsForScan 解码副本覆盖，不在此命中以保住快速路径
+    '&#[xX]?[0-9a-fA-F]+(?![;0-9a-fA-F])',
+    // 无分号 legacy 命名实体（amp/lt/gt/quot 无分号仍会被浏览器解码）
+    '&(?:amp|lt|gt|quot|AMP|LT|GT|QUOT)(?![;a-zA-Z0-9])',
   ].join('|'),
   'i',
 )
