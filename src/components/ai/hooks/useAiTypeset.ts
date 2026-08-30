@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { useStore, type RenderMode } from '@/lib/store'
+import { useStore, useContentStore, type RenderMode } from '@/lib/store'
 import { callAiStream, isAiConfigReady, type AiCallConfig } from '@/lib/aiService'
 import { getAllSkills, buildSkillsPrompt, buildModeContextPrompt } from '@/lib/aiSkills'
-import { getCurrentContent, getSetCurrentContent } from './useAiTypesetContent'
+import { getSetCurrentContent } from './useAiTypesetContent'
 
 const MODE_NAMES: Record<RenderMode, string> = {
   article: '长图文',
@@ -29,8 +29,16 @@ export function useAiTypeset(mode: RenderMode, onToast: (msg: string) => void, a
   const [error, setError] = useState('')
   const abortRef = useRef<AbortController | null>(null)
 
-  // 当前内容
-  const currentContent = getCurrentContent(mode)
+  // 当前内容：必须用响应式订阅（而非 getState 快照），
+  // 否则面板打开期间编辑器继续输入时，运行/应用拿到的是过期内容
+  const currentContent = useContentStore((s) => {
+    switch (mode) {
+      case 'article': return s.articleMarkdown
+      case 'document': return s.documentMarkdown
+      case 'card': return s.cardMarkdown
+      case 'html': return s.html
+    }
+  })
   const setCurrentContent = getSetCurrentContent(mode)
 
   // ---- 撤销/重做 历史栈 ----
