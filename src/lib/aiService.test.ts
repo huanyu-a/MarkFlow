@@ -108,12 +108,36 @@ describe('callAiStream', () => {
     await expect(callAiStream(config, messages, vi.fn())).rejects.toThrow('API 请求失败 (401): Unauthorized')
   })
 
-  it('HTTP 错误响应为完整 HTML 页面时，错误消息应去标签并截断', async () => {
+  it('HTTP 错误响应为完整 HTML 页面时，应给出友好提示而非倾泻页面文本', async () => {
     const htmlPage = '<!DOCTYPE html><html><head><style>body{color:red}</style></head><body>' +
       '<nav>首页</nav><script>alert(1)</script><p>页面未找到</p>' + 'x'.repeat(500) + '</body></html>'
     vi.mocked(fetch).mockResolvedValue(makeErrorResponse(404, htmlPage))
 
-    await expect(callAiStream(config, messages, vi.fn())).rejects.toThrow(/API 请求失败 \(404\): 首页 页面未找到[^<]*…$/)
+    // 不应包含页面正文片段（「首页 页面未找到」），也不应包含任何标签或截断省略号
+    await expect(callAiStream(config, messages, vi.fn())).rejects.toThrow(
+      /API 请求失败 \(404\): 接口地址返回了网页而非 API 响应/,
+    )
+    await expect(callAiStream(config, messages, vi.fn())).rejects.not.toThrow(/首页/)
+  })
+
+  it('HTML 错误响应但 content-type 缺失时，同样识别为网页并友好提示', async () => {
+    const htmlPage = '<!DOCTYPE html><html><body>整页错误内容</body></html>'
+    const res = makeErrorResponse(404, htmlPage)
+    // makeErrorResponse 未带 headers，content-type 缺失，靠 body 特征兜底
+    vi.mocked(fetch).mockResolvedValue(res)
+
+    await expect(callAiStream(config, messages, vi.fn())).rejects.toThrow(
+      '接口地址返回了网页而非 API 响应',
+    )
+  })
+
+  it('JSON 错误体应优先提取 error.message', async () => {
+    const jsonBody = JSON.stringify({ error: { message: 'Incorrect API key provided', type: 'auth' } })
+    vi.mocked(fetch).mockResolvedValue(makeErrorResponse(401, jsonBody))
+
+    await expect(callAiStream(config, messages, vi.fn())).rejects.toThrow(
+      'API 请求失败 (401): Incorrect API key provided',
+    )
   })
 
   it('200 但返回 HTML 页面（SPA fallback）应显式报错而非静默无输出', async () => {

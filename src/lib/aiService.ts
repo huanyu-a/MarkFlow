@@ -115,6 +115,29 @@ function isHtmlResponse(res: Response): boolean {
   return /text\/html|application\/xhtml\+xml/i.test(type)
 }
 
+/** 判断响应体是否为 HTML 页面内容（content-type 缺失时兜底，如网关/静态托管） */
+function looksLikeHtmlBody(text: string): boolean {
+  return /^\s*(?:<!doctype\s+html|<html[\s>])/i.test(text)
+}
+
+/**
+ * 从错误响应体中提炼可读信息：
+ * - 标准 OpenAI 兼容错误是 JSON，优先取 error.message / message；
+ * - 其他文本去标签截断；HTML 页面直接放弃提炼（错误页正文对用户毫无价值）。
+ */
+function extractErrorDetail(text: string): string {
+  if (!text) return ''
+  if (looksLikeHtmlBody(text)) return ''
+  try {
+    const json = JSON.parse(text)
+    const msg = json?.error?.message ?? json?.message
+    if (typeof msg === 'string' && msg.trim()) return summarizeErrorBody(msg)
+  } catch {
+    // 非 JSON 错误体，走通用文本提炼
+  }
+  return summarizeErrorBody(text)
+}
+
 export async function callAiStream(
   config: AiCallConfig,
   messages: ChatMessage[],
@@ -163,7 +186,14 @@ export async function callAiStream(
 
   if (!res.ok) {
     const raw = await res.text().catch(() => '')
-    throw new Error(`API 请求失败 (${res.status}): ${summarizeErrorBody(raw) || res.statusText}`)
+    if (isHtmlResponse(res) || looksLikeHtmlBody(raw)) {
+      throw new Error(
+        `API 请求失败 (${res.status}): 接口地址返回了网页而非 API 响应，` +
+        '请检查「设置 → AI 配置」中的 API 地址是否正确（通常应以 /v1 结尾）',
+      )
+    }
+    const detail = extractErrorDetail(raw)
+    throw new Error(`API 请求失败 (${res.status}): ${detail || res.statusText}`)
   }
 
   const reader = res.body?.getReader()
