@@ -16,7 +16,7 @@
 [![PWA](https://img.shields.io/badge/PWA-installable-purple?logo=pwa&logoColor=white)](https://vite-pwa-org.netlify.app/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](./LICENSE)
 
-[🌐 在线体验](https://huanyu-a.github.io/MarkFlow/) · [📖 技术架构](./docs/技术架构设计.md) · [🛣️ 路线图](./docs/技术路线图.md) · [🎨 设计系统](./DESIGN.md)
+[🌐 在线体验](https://www.bx9y.com.cn/markflow/) · [📖 技术架构](./docs/技术架构设计.md) · [🛣️ 路线图](./docs/技术路线图.md) · [🎨 设计系统](./DESIGN.md)
 
 </div>
 
@@ -105,8 +105,8 @@
 | **多图床支持** | 本地 / SM.MS / 阿里云 OSS / 腾讯云 COS，图片粘贴即上传并自动回填 URL |
 | **加密保险箱** | 图床密钥默认不落盘；如需持久化，通过口令加密存储于 SecureVault |
 | **自定义字体** | A4 文档与卡片模式支持宋体 / 仿宋 / 黑体一键切换 |
-| **主题色切换** | 5 款预设主题色（翠绿/海蓝/紫罗兰/砖红/琥珀），全局 CSS 变量驱动，调色板图标一键切换 |
-| **AI 排版增强** | 内置渲染对比预览（排版前/后同步滚动）、撤销/重做历史栈、智能标题与摘要生成、可拖拽调整面板大小、全屏模式 |
+| **主题色切换** | 15 款预设主题色，全局 CSS 变量驱动，调色板图标一键切换（定义见 `src/engine/composables/useTheme.ts` 的 `THEMES`） |
+| **AI 排版增强** | 内置渲染对比预览（排版前/后同步滚动）、撤销/重做历史栈、智能标题与摘要生成、可拖拽调整面板大小、全屏模式；AI 服务异常时给出友好错误提示（自动识别 HTML 错误页等异常响应） |
 | **AI 指令闭环** | 「渲染规则 → AI 指令 → 用户操作 → 外部 AI」完整闭环，修改规则自动同步指令 |
 | **智能示例同步** | `DEMO_VERSION` 增量更新机制，系统升级时仅刷新未被用户编辑的示例 |
 | **PWA 离线可用** | 基于 `vite-plugin-pwa`，支持桌面安装、离线访问与自动更新 |
@@ -121,11 +121,13 @@
 |:---|:---|
 | 框架 | React 18 + TypeScript + Vite 5 |
 | 编辑器 | CodeMirror 6（解决 IME 输入法丢字，`useMemo` 缓存避免万字卡顿） |
-| 状态管理 | Zustand v5 + `persist` 本地持久化 |
+| 状态管理 | Zustand v5 双 Store（应用设置 + 内容），IndexedDB 节流持久化 |
 | 样式 | Tailwind CSS v4 + Vanilla CSS |
 | 排版引擎 | 自研纯 TS 引擎（移植自 r-markdown），含 KaTeX / MathJax / Mermaid / highlight.js |
 | A4 分页 | Paged.js v0.4.3（iframe 沙箱内运行） |
 | 导出 | modern-screenshot（PNG）/ 浏览器原生打印（PDF）/ docx（Word）/ pptxgenjs（PPT）/ fflate（ZIP） |
+| 安全 | 渲染主链路 HTML 净化（XSS 黑名单）+ iframe 沙箱 + 请求 SSRF 防护 + 密钥口令加密存储 |
+| 质量保障 | Vitest（403 用例）+ ESLint 9 + `pnpm audit` 生产依赖治理 |
 | 构建优化 | `manualChunks` 分包 + MathJax 字体数据拆分（tex-svg 从 1822KB 降至 880KB）+ 云存储 SDK 动态导入 + 模式级懒加载 |
 
 > 📐 完整架构设计详见 [`docs/技术架构设计.md`](./docs/技术架构设计.md)；路线图详见 [`docs/技术路线图.md`](./docs/技术路线图.md)。
@@ -187,15 +189,17 @@ src/
 ├── engine/                # 框架无关渲染引擎（Markdown 解析 / 自定义组件 / 公式 / 代码高亮）
 ├── components/
 │   ├── ai/                # AI 排版面板（渲染对比预览 / 撤销重做 / 流式生成）
-│   ├── editor/            # CodeMirror 6 编辑器封装
+│   ├── editor/            # CodeMirror 6 编辑器封装（含图床/AI/公众号等设置页签）
+│   ├── extension/         # 组件扩展面板（组件属性编辑 / 聚焦检索卡片）
 │   ├── layout/            # 全局布局（AppHeader / Sidebar / MobileDrawer）
-│   └── ui/                # Button / Toast / Tooltip / ResizablePanel 等通用 UI
+│   ├── preview/           # 预览辅助（iframe HTML 沙箱容器）
+│   └── ui/                # Button / Toast / Tooltip / Dialog / ResizablePanel 等通用 UI
 ├── modes/
 │   ├── document/          # A4 文档排版（Paged.js 分页 + Word 导出）
 │   ├── article/           # 长图文排版（公众号引擎 + 富文本复制）
 │   ├── card/              # 分页图文卡片（多尺寸 + ZIP 批量导出）
 │   └── html/              # HTML 自由画布（iframe 沙箱 + 指令库）
-├── lib/                   # Zustand store / 导出层 / 图床 / 安全 / AI 服务 / 通用 hooks
+├── lib/                   # Zustand store / 导出层 / 图床 / 安全净化 / AI 服务 / 通用 hooks
 ├── data/                  # 示例数据 + AI Prompt 指令集
 ├── App.tsx                # 模式切换主入口
 └── main.tsx
