@@ -39,7 +39,8 @@ export function WechatTab({ form, onChange }: WechatTabProps) {
         </div>
         <div className="flex flex-col gap-1">
           <label className="text-[12px] font-medium text-slate-600">发布服务端点</label>
-          <Input value={form.publishEndpoint} onChange={(e) => onChange({ publishEndpoint: e.target.value })} className="font-mono text-[12px]" />
+          <Input value={form.publishEndpoint} onChange={(e) => onChange({ publishEndpoint: e.target.value })} className="font-mono text-[12px]" placeholder="留空使用同源 /__markflow_wechat_publish（需服务器已部署发布服务）" />
+          <p className="text-[11px] text-slate-400">发布服务负责调用微信 API（浏览器无法直连）。自建部署见 tools/wechat/publish_server.py。</p>
         </div>
       </div>
     </div>

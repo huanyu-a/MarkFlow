@@ -249,7 +249,19 @@ export function ArticlePreview({ rendered, markdown, scrollRef, onToast }: Artic
           content: sanitized.innerHTML,
         }),
       })
-      const data = (await res.json()) as { ok?: boolean; media_id?: string; error?: string }
+      // 发布端点可能返回 HTML 页（服务未部署、SPA fallback、网关错误页），
+      // 直接 res.json() 会抛 "Unexpected token '<'"，这里显式拦截并给出可操作的提示
+      const raw = await res.text()
+      let data: { ok?: boolean; media_id?: string; error?: string }
+      try {
+        data = JSON.parse(raw)
+      } catch {
+        throw new Error(
+          res.status === 404
+            ? '未找到发布服务：请确认服务器已部署 /__markflow_wechat_publish 端点，或在设置中填写正确的发布接口地址'
+            : '发布服务返回了非 JSON 响应，请检查发布接口地址是否指向有效的发布服务',
+        )
+      }
       if (!res.ok || !data.ok) {
         throw new Error(data.error || `发布失败（HTTP ${res.status}）`)
       }
