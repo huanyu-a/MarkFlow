@@ -178,7 +178,7 @@ export interface AppState {
   // AI 排版配置
   aiConfig: AiConfig
   setAiConfig: (patch: Partial<AiConfig>) => void
-  // 公众号草稿箱发布配置（密钥仅会话内存，不持久化）
+  // 公众号草稿箱发布配置（按用户要求整体持久化到本地 IndexedDB）
   wechatDraftConfig: WeChatDraftConfig
   setWeChatDraftConfig: (patch: Partial<WeChatDraftConfig>) => void
   // 安全设置：是否允许加载内网资源（默认关闭，企业内网部署场景可开启）（H2/H3）
@@ -338,10 +338,8 @@ export const useAppStore = create<AppState>()(
         aiConfig: state.aiConfig,
         allowIntranetResources: state.allowIntranetResources,
         customInstructions: state.customInstructions,
-        // 公众号 AppSecret 属敏感凭据，仅存当前会话内存，不落盘（与设置界面承诺一致）
-        wechatDraftConfig: state.wechatDraftConfig
-          ? { ...state.wechatDraftConfig, appSecret: '' }
-          : state.wechatDraftConfig,
+        // 公众号凭据按用户要求持久化到本地 IndexedDB（明文存于本机浏览器，不出本机）
+        wechatDraftConfig: state.wechatDraftConfig,
       }),
       onRehydrateStorage: () => (state) => {
         if (!state) return

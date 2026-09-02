@@ -27,7 +27,7 @@ export function WechatTab({ form, onChange }: WechatTabProps) {
         </div>
         <div className="flex flex-col gap-1">
           <label className="text-[12px] font-medium text-slate-600">AppSecret</label>
-          <Input type="password" value={form.appSecret} onChange={(e) => onChange({ appSecret: e.target.value })} placeholder="仅存当前会话内存" />
+          <Input type="password" value={form.appSecret} onChange={(e) => onChange({ appSecret: e.target.value })} placeholder="保存在本机浏览器数据库，不会上传" />
         </div>
         <div className="flex flex-col gap-1">
           <label className="text-[12px] font-medium text-slate-600">封面素材 thumb_media_id（可选）</label>
