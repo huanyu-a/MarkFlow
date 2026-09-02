@@ -2,7 +2,7 @@
  * Steps_DA01 - 横向步骤流（默认A型01号样式）
  *
  * 统一语法（::: 容器）：
- *   :::steps label="HOW IT WORKS" title="标题" hint="提示文字" active="2"
+ *   :::steps-horizontal label="HOW IT WORKS" title="标题" hint="提示文字" active="2"
  *   - 步骤名称 | 步骤描述
  *   - 步骤名称 | 步骤描述
  *   :::
@@ -23,7 +23,7 @@ export const Steps_DA01: UnifiedComponentDef = {
     name: 'steps-horizontal',
     label: '横向步骤',
     bodyFormat: 'rows',
-    example: `:::steps label="HOW IT WORKS" title="从零到发布只需 5 步" hint="按顺序完成即可" active="2" color="#2563eb"
+    example: `:::steps-horizontal label="HOW IT WORKS" title="从零到发布只需 5 步" hint="按顺序完成即可" active="2" color="#2563eb"
 - 写作 | 在编辑器中用 Markdown 完成正文和标题层级
 - 增强 | 从组件库挑选合适的排版模块，替换字段内容
 - 预览 | 右侧实时查看渲染效果，同步调整移动端显示

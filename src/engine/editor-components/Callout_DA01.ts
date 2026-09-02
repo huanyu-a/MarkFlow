@@ -10,6 +10,7 @@
  * 兼容旧语法：> [!INFO] / > [!TIP] / > [!WARNING] 等 GFM alert 语法
  */
 import { esc } from '@engine/utils/helpers'
+import { inlineFormat } from '@engine/utils/inlineFormat'
 import type { ThemeColors } from '@engine/composables/useTheme'
 import { fontSize, fontWeight, letterSpacing, lineHeight, neutral, radius, spacing } from '@engine/tokens'
 import { buildUnifiedRenderer, parseBody, type UnifiedComponentDef } from './unifiedRender'
@@ -27,7 +28,7 @@ const CALLOUT_CONFIG: Record<string, { icon: string; bg: string; border: string;
 }
 
 // ── 通用 render ──
-function calloutRender(attrs: Record<string, string>, body: string, _t: ThemeColors): string {
+function calloutRender(attrs: Record<string, string>, body: string, t: ThemeColors): string {
   // 支持位置参数：:::callout tip 或 :::callout tip title="..."
   // 当 parseAttrs 把无值单词解析为 { tip: 'true' } 时，识别为 type
   const POSITIONAL_TYPES = ['info', 'tip', 'warning', 'success', 'danger', 'note', 'caution', 'important'] as const
@@ -71,7 +72,7 @@ function calloutRender(attrs: Record<string, string>, body: string, _t: ThemeCol
     html += `<p style="margin:0px 0px ${spacing[2]};font-size:${fontSize.xl};font-weight:${fontWeight.bold};color:${border}">${esc((cfg.icon || '') + ' ' + title)}</p>`
   }
   if (content.trim()) {
-    html += `<section style="font-size:${fontSize.xl};color:${neutral.gray700};line-height:${lineHeight.looser};letter-spacing:${letterSpacing.wider};text-align:justify">${esc(content.trim())}</section>`
+    html += `<section style="font-size:${fontSize.xl};color:${neutral.gray700};line-height:${lineHeight.looser};letter-spacing:${letterSpacing.wider};text-align:justify">${inlineFormat(content.trim(), t)}</section>`
   }
   html += `</section>`
   return html

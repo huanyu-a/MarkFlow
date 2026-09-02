@@ -64,7 +64,9 @@ export function buildModuleRenderer(
   spec: LayoutModuleSpec,
   renderFn: (body: LayoutBody, ctx: BlockRenderContext, raw: string) => string,
 ): BlockRenderer {
-  const nameRe = new RegExp(`^:::\\s*${spec.name}\\b`)
+  // (?![-\w])：模块名后不得紧跟连字符或其他单词字符。
+  // 否则 `steps` 会因 `\b` 把 `-` 视为词边界，抢先吞掉统一组件 `:::steps-horizontal` / `:::steps-vertical`。
+  const nameRe = new RegExp(`^:::\\s*${spec.name}(?![-\\w])`)
   return {
     name: `layout-${spec.name}`,
     priority: 20, // 在 callout/quote 等之后、heading 之前匹配

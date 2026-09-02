@@ -4,7 +4,8 @@
  *   多行 markdown 要点列表
  */
 import type { BlockRenderContext } from '../../utils/blockRenderRegistry'
-import { buildModuleRenderer, esc } from '../buildRenderer'
+import { buildModuleRenderer } from '../buildRenderer'
+import { inlineFormat } from '../../utils/inlineFormat'
 import type { LayoutBody } from '../buildRenderer'
 import type { LayoutModule } from '../types'
 
@@ -20,7 +21,7 @@ function render(body: LayoutBody, ctx: BlockRenderContext): string {
     const content = trimmed.replace(/^(\d+\.|[-*])\s*/, '')
     html += `<section style="display:flex;gap:10px;margin-bottom:10px;align-items:flex-start">`
     html += `<span style="flex-shrink:0;width:8px;height:8px;border-radius:50%;background:${accent};margin-top:8px"></span>`
-    html += `<p style="margin:0px;font-size:15px;color:#1a1a1a;line-height:1.7;letter-spacing:0.3px">${esc(content)}</p>`
+    html += `<p style="margin:0px;font-size:15px;color:#1a1a1a;line-height:1.7;letter-spacing:0.3px">${inlineFormat(content, ctx.t)}</p>`
     html += `</section>`
   })
   html += `</section>`

@@ -183,6 +183,29 @@ const separatorRenderer: BlockRenderer = {
   },
 }
 
+/**
+ * 兼容 XML 子标签语法：`<step title="..." desc="..."/>` 转换为 `- title | desc` 行。
+ * 外部 AI 倾向按 HTML 直觉输出 <step> 子标签，渲染层做无损归一化，
+ * 避免整行被当作步骤名注入不可见元素。
+ */
+function normalizeStepBody(body: string): string {
+  if (!/<step[\s/>]/.test(body)) return body
+  const out: string[] = []
+  for (const line of body.split('\n')) {
+    const m = line.match(/<step\b([^>]*)>(?:([\s\S]*?)<\/step>)?/)
+    if (!m) {
+      out.push(line)
+      continue
+    }
+    const attrs = parseAttrs(m[1])
+    const inner = (m[2] ?? '').replace(/<[^>]+>/g, '').trim()
+    const title = attrs.title || inner
+    const desc = attrs.desc || ''
+    if (title || desc) out.push(`- ${title} | ${desc}`)
+  }
+  return out.join('\n')
+}
+
 const stepsRenderer: BlockRenderer = {
   name: 'steps',
   match: (line) => /^<steps\b/.test(line),
@@ -191,12 +214,13 @@ const stepsRenderer: BlockRenderer = {
       extractBlock(lines, i, /^<steps\b([^>]*)>(.*)$/, /<\/steps>/) ||
       extractBlock(lines, i, /^<steps\b([^>]*)>/, /<\/steps>/)
     if (!block) return null
-    const stepCount = block.body
+    const body = normalizeStepBody(block.body)
+    const stepCount = body
       .split('\n')
       .filter((l: string) => /^-\s*.+\s*\|\s*.+/.test(l.trim())).length
     const useDA02 = block.attrs.type === 'DA02' || (!block.attrs.type && stepCount > 3)
     const renderer = useDA02 ? Steps_DA02 : Steps_DA01
-    return { html: renderer.renderLegacy(block.attrs, block.body, ctx.t), next: block.next, warning: block.warning }
+    return { html: renderer.renderLegacy(block.attrs, body, ctx.t), next: block.next, warning: block.warning }
   },
 }
 
@@ -544,11 +568,12 @@ const caseFlowTagRenderer: BlockRenderer = {
 
 const caseFlowInlineRenderer: BlockRenderer = {
   name: 'caseFlowInline',
-  match: (line) => /^-\s*\[[^\]]+\]/.test(line),
+  // 排除任务清单语法 - [ ] / - [x] / - [X]，避免抢占 unorderedListRenderer 的复选框渲染
+  match: (line) => /^-\s*\[(?![ xX]\])\[[^\]]+\]/.test(line),
   render: (ctx, _line, lines, i) => {
     const caseLines: string[] = []
     let j = i
-    while (j < lines.length && /^-\s*\[[^\]]+\]/.test(lines[j])) {
+    while (j < lines.length && /^-\s*\[(?![ xX]\])\[[^\]]+\]/.test(lines[j])) {
       caseLines.push(lines[j])
       j++
     }

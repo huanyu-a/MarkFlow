@@ -12,15 +12,16 @@ import { fontSize, fontWeight, letterSpacing, lineHeight, neutral, radius, spaci
 import { buildUnifiedRenderer, parseBody, type UnifiedComponentDef } from './unifiedRender'
 
 // ── 解析 ::: 容器 body ──
+// 统一 ::: 语法下标题已在容器头部的 attrs 中，body 的每一行都是正文；
+// 不得把首行内容当标题吞掉。
 function parseContainer(body: string): { title: string; content: string } {
   const lines = body.trim().split('\n')
-  const title = lines[0]?.replace(/^:{3,4}\s*\w+\s*/, '').trim() || ''
   const contentLines: string[] = []
-  for (let i = 1; i < lines.length; i++) {
-    if (/^:{3,4}\s*$/.test(lines[i].trim())) break
-    contentLines.push(lines[i])
+  for (const line of lines) {
+    if (/^:{3,4}\s*$/.test(line.trim())) break
+    contentLines.push(line)
   }
-  return { title, content: contentLines.join('\n').trim() }
+  return { title: '', content: contentLines.join('\n').trim() }
 }
 
 // ── 渲染 markdown 内容（支持行内格式 + 代码块） ──

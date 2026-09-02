@@ -44,8 +44,10 @@ export interface RowCell {
 export function parseRows(body: string): string[][] {
   const rows: string[][] = []
   for (const rawLine of body.split('\n')) {
-    const line = rawLine.trim()
+    let line = rawLine.trim()
     if (!line) continue
+    // 剥除行首列表标记（"- 名称 | 描述" 语法中的 "- "），避免破折号残留进单元格
+    line = line.replace(/^-\s+/, '')
     // 支持行内标题语法 :::module[标题]，首行若以 [xxx] 结尾可带标题 — 但不在这里处理
     const cells = line.split('|').map((c) => c.trim()).filter((c, i, arr) => !(i === arr.length - 1 && c === ''))
     if (cells.length > 0) rows.push(cells)

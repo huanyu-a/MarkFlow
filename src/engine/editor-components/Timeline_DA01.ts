@@ -17,7 +17,7 @@ import { resolveColor, colorToAlpha } from '@engine/utils/colorUtils'
 import { leaf, parseAttrs } from '@engine/utils/helpers'
 import { Img_DA01 } from '@engine/editor-components/Img_DA01'
 import type { ThemeColors } from '@engine/composables/useTheme'
-import { buildUnifiedRenderer, type UnifiedComponentDef, type ParsedBody } from './unifiedRender'
+import { buildUnifiedRenderer, parseBody, type UnifiedComponentDef, type ParsedBody } from './unifiedRender'
 
 interface TimelineImage {
   src: string
@@ -130,7 +130,8 @@ export const Timeline_DA01: UnifiedComponentDef = {
   },
 
   renderLegacy(attrs, body, t) {
-    return this.render(attrs, body, { fields: {}, rows: [], json: null, markdown: '' }, t)
+    // 标签路径（<timeline>...</timeline>）传入原始文本，需按 spec 的 rows 格式解析后再渲染
+    return this.render(attrs, body, parseBody(body, this.spec.bodyFormat), t)
   },
 }
 
