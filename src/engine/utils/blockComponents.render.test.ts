@@ -275,11 +275,13 @@ describe('用户上报用法回归', () => {
     expect(html).toContain('复制富文本到公众号')
   })
 
-  it('行内标签条目 - [N] 解析行内 markdown 加粗（截图问题 2）', () => {
+  it('行内标签条目 - [N] 渲染为卡片并解析行内 markdown 加粗（截图问题 2）', () => {
     const md = `- [1] **自己用就好，别往外发** — 额度不多，省着点用
 - [2] **正常调用，别搞事** — 批量刷、恶意并发这些别干，这是大家共用的
 - [3] **用模型就行，别动服务器** — 这条不用多说了吧`
     const html = render(md)
+    // 必须命中 LabeledFlow 卡片式渲染，而非退化为普通列表
+    expect(html).toContain('display:flex;align-items:center;gap:16px;padding:20px')
     expect(html).toContain('自己用就好，别往外发')
     expect(html).not.toContain('**')
   })
@@ -292,5 +294,6 @@ describe('用户上报用法回归', () => {
     expect(html).toContain('已完成任务乙')
     // 任务清单应渲染复选框图形，而不是卡片式标签条
     expect(html).toContain('<svg')
+    expect(html).not.toContain('display:flex;align-items:center;gap:16px;padding:20px')
   })
 })

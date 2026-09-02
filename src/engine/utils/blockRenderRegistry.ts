@@ -569,11 +569,11 @@ const caseFlowTagRenderer: BlockRenderer = {
 const caseFlowInlineRenderer: BlockRenderer = {
   name: 'caseFlowInline',
   // 排除任务清单语法 - [ ] / - [x] / - [X]，避免抢占 unorderedListRenderer 的复选框渲染
-  match: (line) => /^-\s*\[(?![ xX]\])\[[^\]]+\]/.test(line),
+  match: (line) => /^-\s*\[(?![ xX]\])[^\]]+\]/.test(line),
   render: (ctx, _line, lines, i) => {
     const caseLines: string[] = []
     let j = i
-    while (j < lines.length && /^-\s*\[(?![ xX]\])\[[^\]]+\]/.test(lines[j])) {
+    while (j < lines.length && /^-\s*\[(?![ xX]\])[^\]]+\]/.test(lines[j])) {
       caseLines.push(lines[j])
       j++
     }
