@@ -87,6 +87,7 @@ export default function App() {
   const setTheme = useStore((s) => s.setTheme);
   const setThemeProfile = useStore((s) => s.setThemeProfile);
   const mode = useStore((s) => s.mode);
+  const cardAspect = useStore((s) => s.cardAspect);
   const setMode = useStore((s) => s.setMode);
   const platform = useStore((s) => s.platform);
   const documentSettings = useStore((s) => s.documentSettings);
@@ -125,16 +126,23 @@ export default function App() {
   }, [showToast]);
 
   const handleCopyAiGuide = useCallback(async () => {
+    // 自由画布的 AI 指令必须带设计风格令牌（在指令库中按风格选择），没有统一的"默认指令"，
+    // 直接复制长图文指令会让用户把 Markdown 贴进画布导致渲染错乱，这里引导到指令库
+    if (mode === 'html') {
+      setIsLibraryOpen(true)
+      showToast('自由画布的 AI 指令请在指令库中按风格选择后复制')
+      return
+    }
     let guide: string
     switch (mode) {
       case 'article': guide = buildArticleAiGuide(); break
       case 'document': guide = buildDocumentAiGuide(); break
-      case 'card': guide = buildCardAiGuide('3:4'); break
+      case 'card': guide = buildCardAiGuide(cardAspect); break
       default: guide = buildArticleAiGuide()
     }
     const ok = await copyText(guide)
-    showToast(ok ? `已复制${mode === 'article' ? '长图文' : mode === 'document' ? 'A4 文档' : mode === 'card' ? '小红书卡片' : 'HTML'} AI 排版指令` : '复制失败')
-  }, [mode, showToast]);
+    showToast(ok ? `已复制${mode === 'article' ? '长图文' : mode === 'document' ? 'A4 文档' : '小红书卡片'} AI 排版指令` : '复制失败')
+  }, [mode, cardAspect, showToast]);
 
   const handleWidthChange = useCallback((w: number) => setHeaderWidth(w), []);
 

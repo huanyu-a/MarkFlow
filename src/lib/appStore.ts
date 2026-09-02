@@ -7,6 +7,7 @@ import { DEFAULT_DOCUMENT_SETTINGS, type DocumentSettings } from '@/modes/docume
 import type { FontFamilyOption } from '@/lib/fonts'
 import { createIdbStorage } from '@/lib/idbStorage'
 import type { OutputType, VisualTone } from '@/data/designPrompts'
+import type { XhsAspect } from '@engine/utils/xhsCards'
 
 export type ImageHostType = 'local' | 'smms' | 'oss' | 'cos' | 'catbox'
 
@@ -163,6 +164,9 @@ export interface AppState {
   documentSettings: DocumentSettings
   articleFont: FontFamilyOption
   cardFont: FontFamilyOption
+  /** 小红书卡片画布比例（复制卡片 AI 指令时跟随该比例） */
+  cardAspect: XhsAspect
+  setCardAspect: (a: XhsAspect) => void
   accent: string
   accentDark: string
   colors: ThemeColors
@@ -215,6 +219,7 @@ export const useAppStore = create<AppState>()(
       documentSettings: DEFAULT_DOCUMENT_SETTINGS,
       articleFont: 'songti',
       cardFont: 'heiti',
+      cardAspect: '3:4',
       accent: DEFAULT_ACCENT,
       accentDark: DEFAULT_DARK,
       colors: makeColors(DEFAULT_ACCENT, DEFAULT_DARK),
@@ -293,6 +298,7 @@ export const useAppStore = create<AppState>()(
         set((state) => ({ documentSettings: { ...state.documentSettings, ...patch } })),
       setArticleFont: (f) => set({ articleFont: f }),
       setCardFont: (f) => set({ cardFont: f }),
+      setCardAspect: (a) => set({ cardAspect: a }),
       restoreDocumentSettingsDemo: () =>
         set((state) => {
           const cur = state.documentSettings
@@ -331,6 +337,7 @@ export const useAppStore = create<AppState>()(
         documentSettings: state.documentSettings,
         articleFont: state.articleFont,
         cardFont: state.cardFont,
+        cardAspect: state.cardAspect,
         accent: state.accent,
         accentDark: state.accentDark,
         themeProfileId: state.themeProfileId,

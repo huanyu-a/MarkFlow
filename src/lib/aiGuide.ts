@@ -150,10 +150,18 @@ const ARTICLE_RULES_SECTION = `## 六、使用规则（重要）
 2. 组件标签写法与普通 HTML 一致：<tag 属性="值">内容</tag> 或自闭合 <tag ...></tag>。
 3. 绝大多数属性都是可选的，不确定时可以省略，会使用默认值。
 4. 颜色值可用十六进制（如 #e74c3c）或预设名（如 red/green/yellow），留空则跟随全局主题色。
-5. ${bt('<steps>')}、${bt('<engage>')} 存在多种样式变体，用 type 属性切换（如 type="DA02"）。${bt('<compare>')} 用 direction 属性切换 horizontal/vertical 布局。
-6. 直接输出可粘贴的 Markdown 正文，不要额外解释，不要用代码块把整篇文章包起来。
-7. 合理搭配组件：开头可用 ${bt('<title>')} 或 ${bt('<breaking>')}，结尾推荐使用 ${bt('<engage type="DA02">')}（彩色引导卡片样式）。注意：不要轻易/频繁使用 ${bt('<statement>')} 居中强调语，仅在高度总结的观点或核心金句时才克制使用，正文穿插 ${bt('<steps>')}、${bt('<timeline>')} 等增强可读性。
-8. ${bt('<steps>')} 步骤流规则：
+5. ${bt('<steps>')}、${bt('<engage>')}、${bt('<title>')} 存在多种样式变体，用 type 属性切换（如 type="DA02"）。
+6. 双栏对比请使用 ${bt(':::compare')} 容器语法（注意：不是 <compare> 标签）：
+   \`\`\`
+   :::compare
+   维度 | A 方描述 | B 方描述 | accent
+   另一维度 | A 方描述 | B 方描述 | default
+   :::
+   \`\`\`
+   每行三列加可选颜色列，最后一列写 accent 的行会整行主题色高亮，写 default 为普通白底。
+7. 直接输出可粘贴的 Markdown 正文，不要额外解释，不要用代码块把整篇文章包起来。
+8. 合理搭配组件：开头可用 ${bt('<title>')} 或 ${bt('<breaking>')}，结尾推荐使用 ${bt('<engage type="DA02">')}（彩色引导卡片样式）。注意：不要轻易/频繁使用 ${bt('<statement>')} 居中强调语，仅在高度总结的观点或核心金句时才克制使用，正文穿插 ${bt('<steps>')}、${bt('<timeline>')} 等增强可读性。
+9. ${bt('<steps>')} 步骤流规则：
    - active 属性控制强调：active="2" 仅第2步强调（默认 active="1"）；active="all" 全部步骤强调；active="none" 全部不强调。
    - 步骤超过3个时，系统自动切换为竖向布局（DA02）；也可以主动指定 type="DA02"。
    - 2–3步用默认横向布局（DA01）即可，4步及以上建议主动写 type="DA02"。`;
@@ -381,9 +389,9 @@ export function buildDocumentAiGuide(meta?: DocCoverMetadata): string {
     "",
     coverSection,
     "",
-    MATH_SECTION,
-    "",
     DOCUMENT_RULES_SECTION,
+    "",
+    MATH_SECTION,
   ]
 
   if (metaSection) {
@@ -440,9 +448,9 @@ export function buildGovDocAiGuide(meta?: GovDocMetadata): string {
     "",
     GOV_DOC_HEADER_SECTION,
     "",
-    MATH_SECTION,
-    "",
     GOV_DOC_RULES_SECTION,
+    "",
+    MATH_SECTION,
   ]
 
   if (metaSection) {
@@ -513,9 +521,9 @@ export function buildTechDocAiGuide(meta?: DocCoverMetadata): string {
     "",
     coverSection,
     "",
-    MATH_SECTION,
-    "",
     DOCUMENT_RULES_SECTION,
+    "",
+    MATH_SECTION,
   ]
 
   if (metaSection) {

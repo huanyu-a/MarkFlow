@@ -60,7 +60,9 @@ export function CardMode({
   platform,
   onToast,
 }: CardModeProps) {
-  const [aspect, setAspect] = useState<XhsAspect>("3:4");
+  // 卡片比例持久化到全局 store：复制卡片 AI 指令时跟随当前比例
+  const aspect = useStore((s) => s.cardAspect);
+  const setAspect = useStore((s) => s.setCardAspect);
   const [exporting, , runExport] = useExportAction(onToast);
   const cardFont = useStore((s) => s.cardFont);
   const setCardFont = useStore((s) => s.setCardFont);

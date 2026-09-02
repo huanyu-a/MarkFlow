@@ -37,20 +37,12 @@ MarkFlow 的长图文模式把重点放在“文章表达”上：你仍然写 M
 
 <p-title num="04" title="对比：手工排版 vs 模块化输出" subtitle="BEFORE / AFTER" level="1"></p-title>
 
-<compare left-label="BEFORE" left-title="手工排版" right-label="AFTER" right-title="模块化输出">
-<left>
-- 重复调整字号和间距
-- 多平台样式难以统一
-- 复制导出容易变形
-- 后续复用成本较高
-</left>
-<right>
-- 组件化 Markdown 描述内容
-- 按场景生成不同成品
-- 导出链路可重复复用
-- 示例、指令和内容可持续迭代
-</right>
-</compare>
+:::compare
+排版方式 | 重复调整字号和间距 | 组件化 Markdown 描述内容 | accent
+样式一致性 | 多平台样式难以统一 | 按场景生成不同成品 | default
+复制导出 | 容易变形 | 导出链路可重复复用 | default
+后续复用 | 成本较高 | 示例、指令和内容可持续迭代 | default
+:::
 
 <p-title num="05" title="图文混排与基础样式" subtitle="RICH MEDIA & BASICS" level="1"></p-title>
 
@@ -113,20 +105,12 @@ $$
 
 <p-title num="08" title="什么时候切换到其他模式" subtitle="SCENARIO GUIDE" level="1"></p-title>
 
-<compare left-label="LONGFORM" left-title="继续使用长图文" right-label="OTHER MODES" right-title="切换到其他模式">
-<left>
-- 需要讲清一个完整主题
-- 希望读者连续阅读
-- 要复制富文本到公众号
-- 要导出一张完整长图
-</left>
-<right>
-- 正式归档：切到 A4 文档
-- 多张发布图：切到分页图文
-- 高度视觉化页面：切到 HTML 自由画布
-- 需要打印交付：切到 A4 文档
-</right>
-</compare>
+:::compare
+内容形态 | 需要讲清一个完整主题 | 正式归档：切到 A4 文档 | accent
+阅读体验 | 希望读者连续阅读 | 多张发布图：切到分页图文 | default
+发布渠道 | 要复制富文本到公众号 | 高度视觉化页面：切到自由画布 | default
+交付方式 | 要导出一张完整长图 | 需要打印交付：切到 A4 文档 | default
+:::
 
 <p-title num="09" title="高级图片版式：轮播图" subtitle="CAROUSEL / SLIDER" level="1"></p-title>
 

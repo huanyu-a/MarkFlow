@@ -10,6 +10,45 @@ describe('AI Guide Prompts', () => {
     expect(guide).toContain('<engage>')
   })
 
+  it('compare 应使用 :::compare 容器语法（该标签的渲染器已移除）', () => {
+    const guide = buildArticleAiGuide()
+    expect(guide).toContain(':::compare')
+    expect(guide).toContain('维度 | A 方描述 | B 方描述')
+    // 不得再教已移除的 <compare> 标签的 direction 用法（提示语中允许出现"不是 <compare> 标签"的反向警告）
+    expect(guide).not.toContain('direction')
+    expect(guide.match(/<compare>/g)?.length ?? 0).toBeLessThanOrEqual(1)
+  })
+
+  it('document 指令章节编号应按出现顺序递增', () => {
+    const guide = buildDocumentAiGuide()
+    const headings = guide.match(/^## [一二三四五六七八九十]/gm) ?? []
+    const order = ['一', '二', '三', '四', '五', '六']
+    const seen: string[] = []
+    for (const h of headings) {
+      const cn = h.replace('## ', '')
+      if (seen.length === 0 || seen[seen.length - 1] !== cn) seen.push(cn)
+    }
+    // 实际出现的编号序列必须是递增子序列（不回跳）
+    for (let i = 1; i < seen.length; i++) {
+      expect(order.indexOf(seen[i])).toBeGreaterThan(order.indexOf(seen[i - 1]))
+    }
+  })
+
+  it('gov/tech 指令章节编号同样不回跳', () => {
+    for (const guide of [buildGovDocAiGuide(), buildTechDocAiGuide()]) {
+      const headings = guide.match(/^## [一二三四五六七八九十]/gm) ?? []
+      const order = ['一', '二', '三', '四', '五', '六']
+      const seen: string[] = []
+      for (const h of headings) {
+        const cn = h.replace('## ', '')
+        if (seen.length === 0 || seen[seen.length - 1] !== cn) seen.push(cn)
+      }
+      for (let i = 1; i < seen.length; i++) {
+        expect(order.indexOf(seen[i])).toBeGreaterThan(order.indexOf(seen[i - 1]))
+      }
+    }
+  })
+
   it('should generate A4 Document guide with formal layout requirements', () => {
     const guide = buildDocumentAiGuide()
     expect(guide).toContain('A4 文档排版 Markdown 语法指令')
