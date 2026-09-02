@@ -12,7 +12,7 @@ import { copyText } from '@/lib/clipboard';
 import { Toast } from '@/components/ui/Toast';
 import { X } from '@/components/ui/Icon';
 import { LAYOUT_EXAMPLES, fallbackExample, categories } from './data';
-import { getComponentCategory, deduplicateByStyle, parseExampleTag } from './utils';
+import { getComponentCategory, deduplicateByStyle, parseExampleTag, buildLayoutSnippet } from './utils';
 import { SpotlightCard, type ComponentExample } from './SpotlightCard';
 
 interface ExtensionPageProps {
@@ -59,7 +59,8 @@ export function ExtensionPage({ onClose }: ExtensionPageProps) {
     };
     const layoutExamples = layoutModuleSpecs.map((spec: LayoutModuleSpec) => {
       const example = LAYOUT_EXAMPLES[spec.name] ?? fallbackExample(spec.bodyFormat);
-      const wrapperText = `:::${spec.name}\n${example}\n:::`;
+      // 插入 / 复制 / 代码展示统一使用带 ::: 容器的完整片段
+      const wrapperText = buildLayoutSnippet(spec.name, example);
       const lines = wrapperText.split('\n');
       const renderer = layoutRendererByName[spec.name];
       let html = '';
@@ -71,7 +72,7 @@ export function ExtensionPage({ onClose }: ExtensionPageProps) {
           console.error(`[ExtensionPage] layout render failed for ${spec.name}:`, err);
         }
       }
-      const fakeDef = { spec: { name: spec.name, label: spec.label, bodyFormat: spec.bodyFormat, example }, render: () => '', renderLegacy: () => '' } as unknown as UnifiedComponentDef;
+      const fakeDef = { spec: { name: spec.name, label: spec.label, bodyFormat: spec.bodyFormat, example: wrapperText }, render: () => '', renderLegacy: () => '' } as unknown as UnifiedComponentDef;
       return { def: fakeDef, rendered: html, id: `layout-${spec.name}` };
     });
     const all = [...tagExamples, ...unifiedExamples, ...layoutExamples]

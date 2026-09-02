@@ -16,6 +16,7 @@ import { parseMarkdown } from './markdownParser'
 import { makeColors } from '../index'
 import { layoutModuleSpecs } from '../layout-modules'
 import { LAYOUT_EXAMPLES, fallbackExample } from '@/components/extension/data'
+import { buildLayoutSnippet } from '@/components/extension/utils'
 import { Steps_DA01 } from '../editor-components/Steps_DA01'
 import { Steps_DA02 } from '../editor-components/Steps_DA02'
 import { Timeline_DA01 } from '../editor-components/Timeline_DA01'
@@ -83,7 +84,8 @@ describe('layout-modules 全组件渲染', () => {
     ':::%s 渲染正确',
     (name, bodyFormat) => {
       const example = LAYOUT_EXAMPLES[name] ?? fallbackExample(bodyFormat)
-      const md = `:::${name}\n${example}\n:::`
+      // 与组件面板「插入/复制」使用同一片段构建函数，锁定面板片段必须可渲染的契约
+      const md = buildLayoutSnippet(name, example)
       const html = render(md)
       expectRendered(html, exampleNeedle(example, bodyFormat), {
         hasBold: example.includes('**'),
@@ -92,6 +94,15 @@ describe('layout-modules 全组件渲染', () => {
       })
     },
   )
+
+  it('buildLayoutSnippet 必须输出完整容器语法（组件面板插入契约）', () => {
+    const snippet = buildLayoutSnippet('infographic', 'label: 读者画像')
+    expect(snippet).toBe(':::infographic\nlabel: 读者画像\n:::')
+    // 渲染后不得退化为普通段落
+    const html = render(snippet)
+    expect(html).not.toContain(':::')
+    expect(html).not.toContain('label: 读者画像')
+  })
 
   it('排版模块清单非空（防止注册表被清空后测试空转）', () => {
     expect(layoutModuleSpecs.length).toBeGreaterThanOrEqual(30)

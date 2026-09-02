@@ -51,6 +51,14 @@ export function viewDef(d: ComponentDef | UnifiedComponentDef) {
   return { name: d.name, tag: `<${d.tag}>`, example: d.example || '' };
 }
 
+/**
+ * 组件面板「插入 / 复制」排版模块时的片段。
+ * 必须带完整 ::: 容器语法——此前曾因只填裸 body 导致插入后渲染为普通段落。
+ */
+export function buildLayoutSnippet(name: string, example: string): string {
+  return `:::${name}\n${example}\n:::`;
+}
+
 export function parseExampleTag(example: string): { attrs: Record<string, string>; body: string } {
   const attrs: Record<string, string> = {};
   const openMatch = example.match(/^<([A-Za-z_][\w.-]*)([^>]*)>/);
