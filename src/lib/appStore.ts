@@ -338,7 +338,10 @@ export const useAppStore = create<AppState>()(
         aiConfig: state.aiConfig,
         allowIntranetResources: state.allowIntranetResources,
         customInstructions: state.customInstructions,
-        wechatDraftConfig: state.wechatDraftConfig,
+        // 公众号 AppSecret 属敏感凭据，仅存当前会话内存，不落盘（与设置界面承诺一致）
+        wechatDraftConfig: state.wechatDraftConfig
+          ? { ...state.wechatDraftConfig, appSecret: '' }
+          : state.wechatDraftConfig,
       }),
       onRehydrateStorage: () => (state) => {
         if (!state) return
