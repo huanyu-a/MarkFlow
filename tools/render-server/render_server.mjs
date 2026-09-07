@@ -33,7 +33,7 @@ for (const [key, value] of Object.entries({
   Object.defineProperty(globalThis, key, { value, configurable: true, writable: true })
 }
 
-const { renderMarkdown, makeColors, THEMES, buildArticleAiGuide } = await import('./render-bundle.mjs')
+const { renderMarkdown, makeColors, THEMES, darkenHex, buildArticleAiGuide } = await import('./render-bundle.mjs')
 
 // ---------- 配置 ----------
 const PORT = Number(process.env.MARKFLOW_RENDER_PORT || 8788)
@@ -126,11 +126,15 @@ const server = createServer(async (req, res) => {
       return
     }
 
-    const accent = isHexColor(payload.accent) ? payload.accent : DEFAULT_THEME.accent
-    const dark = isHexColor(payload.dark) ? payload.dark : DEFAULT_THEME.dark
+    // 主题色：accent+dark 成对传入最稳；只传 accent 时深色自动派生（加深 25%）；
+    // 都不传用默认主题。实际取值经响应 theme 字段回传，便于调用方向用户说明。
+    const hasAccent = isHexColor(payload.accent)
+    const hasDark = isHexColor(payload.dark)
+    const accent = hasAccent ? payload.accent : DEFAULT_THEME.accent
+    const dark = hasDark ? payload.dark : (hasAccent ? darkenHex(accent, 0.25) : DEFAULT_THEME.dark)
     const { html, meta } = renderMarkdown(markdown, makeColors(accent, dark))
 
-    sendJson(res, 200, { ok: true, html, meta: { title: meta.title, summary: meta.summary } })
+    sendJson(res, 200, { ok: true, html, meta: { title: meta.title, summary: meta.summary }, theme: { accent, dark } })
   } catch (err) {
     const status = err && err.status ? err.status : 500
     const message = err instanceof Error ? err.message : String(err)
