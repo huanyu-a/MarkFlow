@@ -2,14 +2,14 @@
 """微信公众号草稿创建脚本
 
 用法:
-    python tools/wechat/publish_wechat_draft.py \
+    python tools/render-server/wechat/publish_wechat_draft.py \
         --html article.wechat.html \
         --title "文章标题" \
         --thumb-media-id <封面素材ID>
 
     或:
 
-    python tools/wechat/publish_wechat_draft.py \
+    python tools/render-server/wechat/publish_wechat_draft.py \
         --html article.wechat.html \
         --title "文章标题" \
         --cover cover.jpg
