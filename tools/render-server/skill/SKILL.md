@@ -38,12 +38,16 @@ curl -s -X POST https://www.bx9y.com.cn/__markflow_render \
   -d '{"markdown":"<整理后的 Markdown>","accent":"#27ae60","dark":"#1e8449"}'
 ```
 
-返回 `{"ok":true,"html":"<h1 ...>...</h1>","meta":{"title":"...","summary":"..."},"theme":{"accent":"#27ae60","dark":"#1e8449"}}`。`html` 为全内联样式的片段（可直接贴入公众号编辑器或存为 `.html` 文件交付）；`theme` 是实际使用的主题色，交付时向用户说明一句。
+返回 `{"ok":true,"html":"...","meta":{"title":"...","summary":"..."},"theme":{"accent":"...","dark":"..."},"preview":"<!DOCTYPE html>..."}`：
+
+- `html`：全内联样式的正文片段，供程序化使用（如发布代理的 `content` 字段）
+- `preview`：**交付文件用它**——包好复制按钮的完整预览页（自包含单文件，双击即可在浏览器打开）
+- `meta` / `theme`：标题、摘要与实际使用的主题色，交付时向用户说明一句
 
 **第 3 步：交付或发布**
 
-- 交付：把 `html` 写入文件（如 `output.html`），并附上 `meta.title` / `meta.summary` 与所用主题色，建议用户核对后再发布。
-- 发布草稿箱（可选，需用户提供公众号 AppID/AppSecret）：
+- 交付：**把 `preview` 写入文件**（如 `output.html`）交给用户。预览页自带「复制全文」按钮——用户点按钮后到公众号编辑器 Ctrl+V，内联样式完整保留；「复制源码」按钮复制原始 HTML。同时附上 `meta.title` / `meta.summary` 与所用主题色，建议用户核对后再发布。不要把裸 `html` 片段当交付文件（没有复制按钮，用户不方便）。
+- 发布草稿箱（可选，需用户提供公众号 AppID/AppSecret），`content` 用 `html` 字段：
 
 ```bash
 curl -s -X POST https://www.bx9y.com.cn/__markflow_wechat_publish \
