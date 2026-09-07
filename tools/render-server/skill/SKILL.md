@@ -13,7 +13,7 @@ description: 调用 MarkFlow 渲染 API 把 Markdown 排版成公众号/长图�
 |----|-----|
 | 渲染 API | `https://www.bx9y.com.cn/__markflow_render` |
 | 鉴权 | 请求头 `X-Render-Token`，token 存于 `~/.zcode/secrets/markflow-render-token`（环境变量 `MARKFLOW_RENDER_TOKEN` 优先） |
-| 发布草稿（可选） | `https://www.bx9y.com.cn/__markflow_wechat_publish`（需公众号 AppID/AppSecret，见该项目 `tools/render-server/wechat/publish_server.py`） |
+| 发布草稿（可选） | `https://www.bx9y.com.cn/__markflow_wechat_publish`（需公众号 AppID/AppSecret，接口契约见 [references/publish-api.md](references/publish-api.md)） |
 
 读取 token：`TOKEN=$(cat ~/.zcode/secrets/markflow-render-token 2>/dev/null || echo "$MARKFLOW_RENDER_TOKEN")`
 
@@ -42,8 +42,16 @@ curl -s -X POST https://www.bx9y.com.cn/__markflow_render \
 
 **第 3 步：交付或发布**
 
-- 交付：把 `html` 写入文件（如 `output.html`），或附上 `meta.title` / `meta.summary` 建议用户核对。
-- 发布草稿箱：POST 发布代理，字段以 `tools/render-server/wechat/publish_server.py` 为准（含 AppID/AppSecret、标题、封面等），正文即第 2 步的 `html`。
+- 交付：把 `html` 写入文件（如 `output.html`），并附上 `meta.title` / `meta.summary` 与所用主题色，建议用户核对后再发布。
+- 发布草稿箱（可选，需用户提供公众号 AppID/AppSecret）：
+
+```bash
+curl -s -X POST https://www.bx9y.com.cn/__markflow_wechat_publish \
+  -H "Content-Type: application/json" \
+  -d '{"appId":"...","appSecret":"...","title":"文章标题","content":"<第 2 步的 html>","coverImageUrl":"https://.../cover.jpg"}'
+```
+
+  成功返回 `{"ok":true,"media_id":"..."}`，草稿进入公众号后台草稿箱。封面兜底规则、错误码处理、测试草稿清理见 [references/publish-api.md](references/publish-api.md)。
 
 ## 参数说明
 
