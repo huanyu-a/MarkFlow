@@ -40,3 +40,6 @@ __pycache__/
 public/vendor/html-anything
 public/vendor/r-markdown
 
+
+# 渲染 API 构建产物（tools/render-server/build.mjs 生成）
+tools/render-server/render-bundle.mjs

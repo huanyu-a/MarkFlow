@@ -1,0 +1,144 @@
+#!/usr/bin/env node
+// MarkFlow 渲染 API（供「排版 skill」与自动化调用）
+//
+//   POST /__markflow_render   body: { markdown, accent?, dark? }
+//                             返回: { ok, html, meta: { title, summary } }
+//   GET  /__markflow_render   返回: { ok, guide }（最新的公众号排版语法指令全文）
+//
+// 鉴权：请求头 X-Render-Token 必须与服务端环境变量 MARKFLOW_RENDER_TOKEN 一致。
+// 环境变量：
+//   MARKFLOW_RENDER_TOKEN  必填，未设置时拒绝启动（防止裸奔上公网）
+//   MARKFLOW_RENDER_PORT   监听端口，默认 8788（仅监听 127.0.0.1，由 nginx 反代）
+//
+// 依赖：render-bundle.mjs（由 tools/render-server/build.mjs 生成）+ jsdom。
+// jsdom 仅用于给净化器慢路径提供 DOMParser/Node 垫片；引擎常规输出走字符串快速路径。
+import { createServer } from 'node:http'
+import crypto from 'node:crypto'
+import { JSDOM } from 'jsdom'
+
+// ---------- jsdom 垫片（必须在 import bundle 之前注入） ----------
+const dom = new JSDOM('<!DOCTYPE html><html><body></body></html>')
+// Node 21+ 的 navigator 是 globalThis 上的只读 getter，统一用 defineProperty 覆盖
+for (const [key, value] of Object.entries({
+  DOMParser: dom.window.DOMParser,
+  XMLSerializer: dom.window.XMLSerializer,
+  Node: dom.window.Node,
+  Element: dom.window.Element,
+  Document: dom.window.Document,
+  DocumentFragment: dom.window.DocumentFragment,
+  document: dom.window.document,
+  navigator: dom.window.navigator,
+  getComputedStyle: dom.window.getComputedStyle.bind(dom.window),
+})) {
+  Object.defineProperty(globalThis, key, { value, configurable: true, writable: true })
+}
+
+const { renderMarkdown, makeColors, THEMES, buildArticleAiGuide } = await import('./render-bundle.mjs')
+
+// ---------- 配置 ----------
+const PORT = Number(process.env.MARKFLOW_RENDER_PORT || 8788)
+const TOKEN = process.env.MARKFLOW_RENDER_TOKEN || ''
+if (!TOKEN) {
+  console.error('[render-server] 缺少 MARKFLOW_RENDER_TOKEN 环境变量，拒绝启动')
+  process.exit(1)
+}
+
+// 与前端默认主题一致（appStore DEFAULT_ACCENT = THEMES[3]）
+const DEFAULT_THEME = THEMES[3] || THEMES[0]
+const MAX_BODY_BYTES = 2 * 1024 * 1024 // 2MB，足以容纳含 base64 图片的长文
+
+// ---------- 工具 ----------
+function tokenOk(req) {
+  const got = String(req.headers['x-render-token'] || '')
+  if (got.length !== TOKEN.length) return false
+  return crypto.timingSafeEqual(Buffer.from(got), Buffer.from(TOKEN))
+}
+
+function isHexColor(value) {
+  return typeof value === 'string' && /^#[0-9a-fA-F]{6}$/.test(value)
+}
+
+function sendJson(res, status, payload) {
+  const body = JSON.stringify(payload)
+  res.writeHead(status, {
+    'Content-Type': 'application/json; charset=utf-8',
+    'Cache-Control': 'no-store',
+    'Content-Length': Buffer.byteLength(body),
+  })
+  res.end(body)
+}
+
+function readBody(req, res) {
+  return new Promise((resolve, reject) => {
+    const chunks = []
+    let size = 0
+    req.on('data', (chunk) => {
+      size += chunk.length
+      if (size > MAX_BODY_BYTES) {
+        reject(Object.assign(new Error('请求体超过 2MB 限制'), { status: 413 }))
+        req.destroy()
+        return
+      }
+      chunks.push(chunk)
+    })
+    req.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')))
+    req.on('error', reject)
+  })
+}
+
+// ---------- HTTP 服务 ----------
+const server = createServer(async (req, res) => {
+  const url = (req.url || '').split('?')[0]
+  if (url !== '/__markflow_render') {
+    sendJson(res, 404, { ok: false, error: 'not found' })
+    return
+  }
+
+  if (!tokenOk(req)) {
+    sendJson(res, 401, { ok: false, error: 'X-Render-Token 无效' })
+    return
+  }
+
+  try {
+    if (req.method === 'GET') {
+      // 返回当前版本的排版语法指令，供外部 AI / skill 直接取用
+      sendJson(res, 200, { ok: true, guide: buildArticleAiGuide() })
+      return
+    }
+
+    if (req.method !== 'POST') {
+      sendJson(res, 405, { ok: false, error: '仅支持 GET / POST' })
+      return
+    }
+
+    const raw = await readBody(req, res)
+    let payload
+    try {
+      payload = JSON.parse(raw || '{}')
+    } catch {
+      sendJson(res, 400, { ok: false, error: '请求体不是合法 JSON' })
+      return
+    }
+
+    const markdown = payload.markdown
+    if (typeof markdown !== 'string' || markdown.trim() === '') {
+      sendJson(res, 400, { ok: false, error: 'markdown 字段缺失或为空' })
+      return
+    }
+
+    const accent = isHexColor(payload.accent) ? payload.accent : DEFAULT_THEME.accent
+    const dark = isHexColor(payload.dark) ? payload.dark : DEFAULT_THEME.dark
+    const { html, meta } = renderMarkdown(markdown, makeColors(accent, dark))
+
+    sendJson(res, 200, { ok: true, html, meta: { title: meta.title, summary: meta.summary } })
+  } catch (err) {
+    const status = err && err.status ? err.status : 500
+    const message = err instanceof Error ? err.message : String(err)
+    console.error(`[render-server] ${req.method} ${url} 失败:`, message)
+    sendJson(res, status, { ok: false, error: message })
+  }
+})
+
+server.listen(PORT, '127.0.0.1', () => {
+  console.log(`[render-server] listening on 127.0.0.1:${PORT}`)
+})
