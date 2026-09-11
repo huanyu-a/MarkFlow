@@ -378,6 +378,26 @@ describe('用户上报用法回归', () => {
     expect(aliasHtml).toContain('副标题保留')
   })
 
+  it(':::compare 缺列行经 onWarning 上报（第五轮 N-5）', () => {
+    const warnings: string[] = []
+    const md = `:::compare
+维度一 | A方描述 | B方描述 | accent
+只有两列的行 | 缺第三列
+:::`
+    parseMarkdown(md, COLORS, undefined, undefined, (w) => warnings.push(w))
+    expect(warnings.some((w) => w.includes('compare') && w.includes('1 行'))).toBe(true)
+
+    // 列数合法（3 内容列 + accent 标记）时无警告
+    const okWarnings: string[] = []
+    parseMarkdown(':::compare\n维度 | A | B | accent\n:::', COLORS, undefined, undefined, (w) => okWarnings.push(w))
+    expect(okWarnings).toHaveLength(0)
+  })
+
+  it('<badges> 空 body 不渲染空 flex 容器（第五轮 N-7）', () => {
+    expect(render('<badges type="accent"></badges>')).toBe('')
+    expect(render('<badges>|  </badges>')).toBe('')
+  })
+
   it(':::timeline 缺列行被忽略时通过 onWarning 上报（G6）', () => {
     const warnings: string[] = []
     const md = `:::timeline

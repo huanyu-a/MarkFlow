@@ -12,7 +12,7 @@ import type { ThemeColors } from '@engine/composables/useTheme'
  *
  * body 内容居中显示，字号较大加粗，适合金句或核心观点。
  * body 走行内格式（inlineFormat），支持 **粗体**、<Badge> 等行内语法，
- * 与 breaking / CTA 等容器组件保持一致。
+ * 与 breaking 容器组件保持一致（注：CTA 的 body 目前仅走 leaf，不在此列）。
  */
 
 export const Statement_DA01 = {

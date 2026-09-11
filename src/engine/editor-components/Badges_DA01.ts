@@ -39,6 +39,8 @@ export const Badges_DA01 = {
       .split('|')
       .map((s) => s.trim())
       .filter(Boolean)
+    // 空 body（或全空标签）直接产空串，不渲染空 flex 容器留占位空隙
+    if (items.length === 0) return ''
 
     const tone = attrs.type || 'accent'
     const tones: Record<string, { bg: string; color: string; border: string }> = {

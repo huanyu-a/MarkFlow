@@ -25,6 +25,8 @@ export interface LayoutModuleSpec {
   label: string
   /** 字段描述（可选，用于文档/校验提示） */
   fields?: { name: string; required: boolean; description: string }[]
+  /** 可选：对容器 body 原文做格式检查，返回降级警告文本（经 onWarning 上报，如缺列行被忽略） */
+  bodyWarning?: (rawBody: string) => string | undefined
 }
 
 /**

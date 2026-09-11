@@ -77,7 +77,8 @@ export function buildModuleRenderer(
       if (!extracted) return null
       const layoutBody = parseBody(extracted.body, spec.bodyFormat)
       const html = renderFn(layoutBody, ctx, extracted.body)
-      return { html, next: extracted.next, warning: extracted.warning }
+      // 未闭合截断告警优先；否则走模块级格式降级告警（如缺列行被忽略）
+      return { html, next: extracted.next, warning: extracted.warning ?? spec.bodyWarning?.(extracted.body) }
     },
   }
 }

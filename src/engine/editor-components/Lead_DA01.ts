@@ -16,7 +16,7 @@ import type { ThemeColors } from '@engine/composables/useTheme'
  * body 内容带左侧边框，适合引入话题或提供背景信息。
  * 视觉效果比普通段落更突出，但又不会像 Statement 那样过于正式。
  * body 走行内格式（inlineFormat），支持 **粗体**、<Badge> 等行内语法，
- * 与 breaking / CTA 等容器组件保持一致。
+ * 与 breaking 容器组件保持一致（注：CTA 的 body 目前仅走 leaf，不在此列）。
  */
 
 export const Lead_DA01 = {

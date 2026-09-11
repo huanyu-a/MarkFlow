@@ -9,8 +9,8 @@
 import type { BlockRenderContext } from '../../utils/blockRenderRegistry'
 import type { LayoutBody } from '../buildRenderer'
 import { buildModuleRenderer, esc } from '../buildRenderer'
-import { isAccentRow, rowContent } from '../parse'
-import type { LayoutModule } from '../types'
+import { isAccentRow, rowContent, parseRows } from '../parse'
+import type { LayoutModule, LayoutModuleSpec } from '../types'
 
 function render(body: LayoutBody, ctx: BlockRenderContext): string {
   const rows = body.rows
@@ -39,10 +39,26 @@ function render(body: LayoutBody, ctx: BlockRenderContext): string {
   return html
 }
 
+// spec 单一来源：buildModuleRenderer 消费的就是这份对象（含 bodyWarning）
+const spec: LayoutModuleSpec = {
+  name: 'compare',
+  category: 'infographic',
+  serves: ['readability'],
+  bodyFormat: 'rows',
+  label: '双栏对比',
+  bodyWarning(rawBody) {
+    // 渲染只取前 3 个内容列（维度|A|B），末列非 accent/default 标记时会被当内容列：
+    // 缺列（不足 3 列）或多余列（>3 列）的行都会静默丢内容，这里经 warning 通道上报
+    const bad = parseRows(rawBody).filter((r) => {
+      const cells = rowContent(r)
+      return cells.length !== 3
+    }).length
+    if (bad === 0) return undefined
+    return `compare 有 ${bad} 行列数不是「维度 | A方 | B方 | accent|default」，多余或缺少的列已被忽略`
+  },
+}
+
 export const compareModule: LayoutModule = {
-  spec: { name: 'compare', category: 'infographic', serves: ['readability'], bodyFormat: 'rows', label: '双栏对比' },
-  renderer: buildModuleRenderer(
-    { name: 'compare', category: 'infographic', serves: ['readability'], bodyFormat: 'rows', label: '双栏对比' },
-    render,
-  ),
+  spec,
+  renderer: buildModuleRenderer(spec, render),
 }
