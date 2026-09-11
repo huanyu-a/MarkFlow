@@ -11,7 +11,7 @@ export function inlineFormat(text: string, t: ThemeColors, formulaMap?: Map<stri
     text = text
       .replace(/`[^`]+`/g, keep) // 行内代码
       .replace(/!\[[^\]]*\]\([^)]+\)(?:\[[^\]]+\])?/g, keep) // 图片
-      .replace(/\[[^\]]+\]\([^)]+\)/g, keep) // 链接整体 [文字](url)：保护 URL 与文字间不被 pangu 插入空格（中文标题链接）
+      .replace(/\[[^\]]+\]\((?:[^()\s]|\([^()]*\))*\)/g, keep) // 链接整体 [文字](url)：保护 URL 与文字间不被 pangu 插入空格（中文标题链接），并容忍 url 内一层括号
     text = pangu(text)
     text = text.replace(/\uE000(\d+)\uE001/g, (_m, n: string) => stash[Number(n)])
   }
@@ -151,8 +151,9 @@ export function inlineFormat(text: string, t: ThemeColors, formulaMap?: Map<stri
   // 带 title 的 [t](u "d") 已在 markdownParser 预处理为脚注占位符，不会到达此处；
   // 正则要求 `\)` 紧跟 url，天然不匹配带 title 形式。
   // (?<!!) 负向后行断言排除图片语法（图片已在上一步替换为 <img>，此处为双保险）。
+  // url 允许一层平衡括号（如 Wikipedia 的 .../Foo_(bar)），避免被截断成死链。
   text = text.replace(
-    /(?<!!)\[([^\]]+)\]\(([^)\s]+)\)/g,
+    /(?<!!)\[([^\]]+)\]\(((?:[^()\s]|\([^()]*\))*)\)/g,
     (_m, label: string, url: string) => {
       const safeHref = safeUrl(url, 'href')
       return `<a href="${esc(safeHref)}" style="color:${t.accent};text-decoration:none;border-bottom:1px solid rgba(${t.rgb},0.35)">${leaf(label)}</a>`

@@ -75,8 +75,8 @@ export const CTA_DA01 = {
       if (attrs.title)
         html += `<p style="margin:0px 0px ${spacing[7]};font-size:${fontSize['4xl']};font-weight:${fontWeight.extrabold};line-height:${lineHeight.normal};color:${color.textPrimary}">${leaf(attrs.title)}</p>`
 
-      if (attrs.action)
-        html += `<span style="display:inline-block;padding:${spacing[5]} ${spacing[9]};background:${hex};border-radius:${radius.lg};font-weight:${fontWeight.bold};letter-spacing:${letterSpacing.widest};color:${color.surface}">${leaf(attrs.action)}</span>`
+      if (attrs.action || attrs.button)
+        html += `<span style="display:inline-block;padding:${spacing[5]} ${spacing[9]};background:${hex};border-radius:${radius.lg};font-weight:${fontWeight.bold};letter-spacing:${letterSpacing.widest};color:${color.surface}">${leaf(attrs.action || attrs.button)}</span>`
 
       if (body.trim())
         html += `<section style="margin-top:${spacing[7]};font-size:${fontSize.md};color:${color.ink};line-height:${lineHeight.looser}">${leaf(body.trim())}</section>`
@@ -95,8 +95,8 @@ export const CTA_DA01 = {
     if (attrs.title)
       html += `<p style="margin:0px 0px ${spacing[7]};font-size:${fontSize['4xl']};font-weight:${fontWeight.extrabold};line-height:${lineHeight.normal}">${leaf(attrs.title)}</p>`
 
-    if (attrs.action)
-      html += `<span style="display:inline-block;padding:${spacing[5]} ${spacing[9]};background:rgba(255,255,255,0.2);border-radius:${radius.lg};font-weight:${fontWeight.bold};letter-spacing:${letterSpacing.widest};backdrop-filter:blur(4px)">${leaf(attrs.action)}</span>`
+    if (attrs.action || attrs.button)
+      html += `<span style="display:inline-block;padding:${spacing[5]} ${spacing[9]};background:rgba(255,255,255,0.2);border-radius:${radius.lg};font-weight:${fontWeight.bold};letter-spacing:${letterSpacing.widest};backdrop-filter:blur(4px)">${leaf(attrs.action || attrs.button)}</span>`
 
     if (body.trim())
       html += `<section style="margin-top:${spacing[7]};font-size:${fontSize.md};opacity:0.85;line-height:${lineHeight.looser}">${leaf(body.trim())}</section>`

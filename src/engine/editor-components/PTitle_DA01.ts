@@ -114,7 +114,9 @@ export const PTitle = {
   example: `<p-title number="01" title="它解决什么问题" subtitle="ONE SOURCE · MULTI OUTPUT" level="1" size="normal"></p-title>`,
 
   render(attrs: Record<string, string>, body: string, t: ThemeColors): string {
-    const num = attrs.number || ''
+    // 序号兼容两种写法：number（官方 example/属性面板）与 num（demo 文章历史用法），
+    // 与 markdownParser 中 reading-path 的收集逻辑（attrs.number || attrs.num）保持一致
+    const num = attrs.number || attrs.num || ''
     const title = attrs.title || body // title 属性优先，fallback 到 body
     const subtitle = attrs.subtitle
     const level = parseInt(attrs.level || '1', 10)

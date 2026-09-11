@@ -341,6 +341,20 @@ describe('用户上报用法回归', () => {
     expect(html).toContain('容器按钮文案')
   })
 
+  it('<cta> 多行标签路径兼容 action 与 button 两种属性（CTA_DA01.render）', () => {
+    // 回归：多行 <cta>…</cta> 走 parseCtaTag→CTA_DA01.render，此前只读 action，button 旧写法静默丢按钮
+    const htmlAction = render('<cta title="多行标题" action="多行动作按钮">\n正文补充\n</cta>')
+    expect(htmlAction).toContain('多行动作按钮')
+    const htmlBtn = render('<cta title="多行标题" button="多行旧按钮">\n正文补充\n</cta>')
+    expect(htmlBtn).toContain('多行旧按钮')
+  })
+
+  it('<p-title> num 属性显示编号，与 reading-path 收集行为一致', () => {
+    // 回归：PTitle_DA01.render 此前只读 number，num 写法正文不显示编号而阅读路线卡显示
+    const html = render('<p-title num="07" title="编号一致性测试" level="1"></p-title>')
+    expect(html).toContain('07')
+  })
+
   it('<engage-card> / <engage-label> 精确路由，不再误撞 <engage 别名路径', () => {
     // 回归：engage-card/engage-label 是组件元数据真实 tag，此前无注册、落默认 DA01 且 subtitle/color 丢失
     const cardMd = '<engage-card title="感谢你阅读到这里！" subtitle="点个赞告诉我们反馈" color="#3b82f6"></engage-card>'

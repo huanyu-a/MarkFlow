@@ -185,6 +185,14 @@ describe('inlineFormat - markdown links', () => {
     expect(result).not.toContain('javascript:')
   })
 
+  it('url 内一层平衡括号不被截断（Wikipedia 式链接）', () => {
+    const result = inlineFormat('[词条](https://en.wikipedia.org/wiki/Foo_(bar)) 结束', t)
+    expect(result).toContain('<a href="https://en.wikipedia.org/wiki/Foo_(bar)"')
+    // 截断 bug 的残留形态：链接后游离右括号
+    expect(result).not.toContain('</a>)')
+    expect(result).toContain('结束')
+  })
+
   it('pangu spacing does not break Chinese-mixed links', () => {
     const result = inlineFormat('查看 [Markdown 指南](https://example.com/md-guide) 吧', t)
     // URL 必须保持原样（pangu 不能往 URL 里插入空格）
