@@ -160,3 +160,37 @@ describe('inlineFormat - newlines', () => {
     expect(result).toContain('<br>')
   })
 })
+
+describe('inlineFormat - markdown links', () => {
+  it('renders [text](url) as themed anchor', () => {
+    const result = inlineFormat('参考 [官方文档](https://example.com/docs) 了解更多', t)
+    expect(result).toContain('<a href="https://example.com/docs"')
+    expect(result).toContain('color:#4F46E5')
+    expect(result).toContain('text-decoration:none')
+    expect(result).toContain('rgba(79,70,229,0.35)')
+    expect(result).toContain('<span leaf="">官方文档</span>')
+    // 语法不残留：不应看到字面 [text](url)
+    expect(result).not.toContain('[官方文档]')
+  })
+
+  it('does not affect images: ![alt](url) renders as <img> only', () => {
+    const result = inlineFormat('![架构图](https://example.com/i.png)', t)
+    expect(result).toContain('<img src="https://example.com/i.png"')
+    expect(result).not.toContain('<a href')
+  })
+
+  it('rejects javascript: protocol (renders about:blank href)', () => {
+    const result = inlineFormat('[点我](javascript:alert(1))', t)
+    expect(result).toContain('<a href="about:blank"')
+    expect(result).not.toContain('javascript:')
+  })
+
+  it('pangu spacing does not break Chinese-mixed links', () => {
+    const result = inlineFormat('查看 [Markdown 指南](https://example.com/md-guide) 吧', t)
+    // URL 必须保持原样（pangu 不能往 URL 里插入空格）
+    expect(result).toContain('href="https://example.com/md-guide"')
+    expect(result).toContain('<span leaf="">Markdown 指南</span>')
+    expect(result).not.toContain('[Markdown')
+    expect(result).not.toContain('](https://')
+  })
+})

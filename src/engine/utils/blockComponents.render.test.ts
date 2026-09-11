@@ -321,4 +321,79 @@ describe('用户上报用法回归', () => {
     expect(html).toContain('<svg')
     expect(html).not.toContain('display:flex;align-items:center;gap:16px;padding:20px')
   })
+
+  it('<cta> 单行自闭合支持 action 属性（guide 注入示例的写法）', () => {
+    // 回归：单行 <cta> 走 parseCtaInline，此前只读 button，action 被静默丢弃
+    const md = '<cta label="GET STARTED" title="准备好开始创作了吗？" action="打开组件库开始创作"></cta>'
+    const html = render(md)
+    expect(html).toContain('准备好开始创作了吗')
+    expect(html).toContain('打开组件库开始创作')
+    // 旧 button 写法继续兼容
+    const mdBtn = '<cta title="按钮兼容测试" button="立即开始"></cta>'
+    expect(render(mdBtn)).toContain('立即开始')
+  })
+
+  it('<cta> 容器（:::cta）同样兼容 action 属性', () => {
+    // parseCtaBlock 从首行 header 读属性
+    const md = ':::cta label="GET STARTED" title="容器标题" action="容器按钮文案"'
+    const html = render(md + '\n:::')
+    expect(html).toContain('容器标题')
+    expect(html).toContain('容器按钮文案')
+  })
+
+  it('<engage-card> / <engage-label> 精确路由，不再误撞 <engage 别名路径', () => {
+    // 回归：engage-card/engage-label 是组件元数据真实 tag，此前无注册、落默认 DA01 且 subtitle/color 丢失
+    const cardMd = '<engage-card title="感谢你阅读到这里！" subtitle="点个赞告诉我们反馈" color="#3b82f6"></engage-card>'
+    const cardHtml = render(cardMd)
+    expect(cardHtml).toContain('感谢你阅读到这里')
+    // DA02 特征：三列图标 + 副标题独立成节（DA01 无 subtitle 渲染）
+    expect(cardHtml).toContain('点个赞告诉我们反馈')
+    // 5fa55a 是 DA01/默认配色，不应出现在 color="#3b82f6" 的 DA02 输出中
+    expect(cardHtml).not.toContain('5fa55a')
+    expect(cardHtml.toLowerCase()).toContain('#3b82f6')
+
+    const labelMd = '<engage-label title="欢迎点赞转发给需要的朋友" label="THANKS FOR READING"></engage-label>'
+    const labelHtml = render(labelMd)
+    // DA01 特征：THANKS FOR READING 底部小字
+    expect(labelHtml).toContain('欢迎点赞转发给需要的朋友')
+    expect(labelHtml).toContain('THANKS FOR READING')
+
+    // 别名 <engage type="DA02"> 行为不变
+    const aliasHtml = render('<engage type="DA02" title="别名路由测试" subtitle="副标题保留"></engage>')
+    expect(aliasHtml).toContain('别名路由测试')
+    expect(aliasHtml).toContain('副标题保留')
+  })
+
+  it(':::timeline 缺列行被忽略时通过 onWarning 上报（G6）', () => {
+    const warnings: string[] = []
+    const md = `:::timeline
+- 2026年01月 | 项目启动 | 完成团队组建
+- 缺列的行只有两列
+:::`
+    const html = parseMarkdown(md, COLORS, undefined, undefined, (w) => warnings.push(w))
+    expect(html).toContain('项目启动')
+    expect(warnings.some((w) => w.includes('timeline') && w.includes('1 行'))).toBe(true)
+
+    // 列数合法时无警告
+    const okWarnings: string[] = []
+    parseMarkdown(':::timeline\n- 2026年01月 | 启动 | 说明\n:::', COLORS, undefined, undefined, (w) => okWarnings.push(w))
+    expect(okWarnings).toHaveLength(0)
+  })
+
+  it(':::table 后紧邻非表格行被吞为表注脚（G5 引擎行为固化，guide 已要求空行）', () => {
+    const md = ':::table\n| 列A | 列B |\n| --- | --- |\n| 甲 | 乙 |\n:::\n紧随其后的正文行\n\n空行后的正常段落'
+    const html = render(md)
+    // 表注脚特征：右对齐 11px 灰色
+    expect(html).toMatch(/text-align:right;font-size:11px;color:#94a3b8[^>]*>紧随其后的正文行/)
+    expect(html).toContain('空行后的正常段落')
+  })
+
+  it('普通 GFM 表格后紧邻非管道行被吞为表注（同上，验证 guide 规则的引擎行为）', () => {
+    const md = '| 列A | 列B |\n| --- | --- |\n| 甲 | 乙 |\n紧接的正文被当作注释'
+    const html = render(md)
+    // GFM 表注特征：tfoot 中 11px 灰色小字
+    expect(html).toMatch(/<tfoot>.*font-size:11px;color:#94a3b8/)
+    expect(html).toContain('紧接的正文被当作注释')
+  })
 })
+

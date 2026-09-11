@@ -357,5 +357,18 @@ describe('parseMarkdown - 自定义标签未闭合容错（EOF 截断）', () =>
     expect(stepsHtml).toContain('步骤')
     expect(stepsHtml).toContain('后续段落')
   })
+
+  it('<reading-path> 收集序号兼容 number 属性（与 PTitle_DA01 显示一致）', () => {
+    // 回归：此前收集只读 num，而 PTitle 渲染读 number，导致阅读路线编号与正文脱节
+    const md = [
+      '<reading-path></reading-path>',
+      '<p-title number="07" title="阅读路线编号测试甲" level="1"></p-title>',
+      '<p-title number="08" title="阅读路线编号测试乙" level="1"></p-title>',
+    ].join('\n\n')
+    const html = parseMarkdown(md, colors)
+    // 阅读路线中的编号圆点应显示 07/08（number 值），而非默认序号 01/02
+    expect(html).toContain('>07<')
+    expect(html).toContain('>08<')
+  })
 })
 

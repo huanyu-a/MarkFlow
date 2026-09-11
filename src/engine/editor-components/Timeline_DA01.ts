@@ -15,6 +15,7 @@
  */
 import { resolveColor, colorToAlpha } from '@engine/utils/colorUtils'
 import { leaf, parseAttrs } from '@engine/utils/helpers'
+import { parseRows } from '@engine/layout-modules/parse'
 import { Img_DA01 } from '@engine/editor-components/Img_DA01'
 import type { ThemeColors } from '@engine/composables/useTheme'
 import { buildUnifiedRenderer, parseBody, type UnifiedComponentDef, type ParsedBody } from './unifiedRender'
@@ -132,6 +133,13 @@ export const Timeline_DA01: UnifiedComponentDef = {
   renderLegacy(attrs, body, t) {
     // 标签路径（<timeline>...</timeline>）传入原始文本，需按 spec 的 rows 格式解析后再渲染
     return this.render(attrs, body, parseBody(body, this.spec.bodyFormat), t)
+  },
+
+  bodyWarning(rawBody) {
+    // 渲染时少于 3 列（时间 | 标题 | 说明）的行会被静默忽略，这里通过 warning 通道上报
+    const dropped = parseRows(rawBody).filter((r) => r.length < 3).length
+    if (dropped === 0) return undefined
+    return `timeline 有 ${dropped} 行不足 3 列（时间 | 标题 | 说明），已被忽略`
   },
 }
 

@@ -117,13 +117,15 @@ export function parseCtaBlock(
   // 未闭合 ::: 容器：不吞掉后续内容，回退为普通段落
   if (i >= lines.length) return null
   i++
+  // 按钮文案与 parseCtaInline 保持一致：兼容 button（旧写法）与 action（CTA_DA01 主属性名）
+  const btnText = attrs.button || attrs.action
   let html = `<section style="margin:${spacing[10]} 0px;padding:${spacing[13]} ${spacing[9]};background:linear-gradient(135deg,${t.accent},${t.dark});border-radius:${radius['4xl']};text-align:center;color:${color.surface}">`
   if (attrs.label)
     html += `<p style="margin:0px 0px ${spacing[3]};font-size:${fontSize.xs};letter-spacing:${letterSpacing['5xl']};font-weight:${fontWeight.bold};opacity:0.8">${leaf(attrs.label)}</p>`
   if (attrs.title)
     html += `<p style="margin:0px 0px ${spacing[7]};font-size:${fontSize['4xl']};font-weight:${fontWeight.extrabold};line-height:${lineHeight.normal}">${leaf(attrs.title)}</p>`
-  if (attrs.button)
-    html += `<span style="display:inline-block;padding:${spacing[5]} ${spacing[9]};background:rgba(255,255,255,0.2);border-radius:${radius.lg};font-weight:${fontWeight.bold};letter-spacing:${letterSpacing.widest};backdrop-filter:blur(4px)">${leaf(attrs.button)}</span>`
+  if (btnText)
+    html += `<span style="display:inline-block;padding:${spacing[5]} ${spacing[9]};background:rgba(255,255,255,0.2);border-radius:${radius.lg};font-weight:${fontWeight.bold};letter-spacing:${letterSpacing.widest};backdrop-filter:blur(4px)">${leaf(btnText)}</span>`
   html += `</section>`
   return { html, next: i }
 }
@@ -193,13 +195,16 @@ export function parseCtaInline(
   t: ThemeColors,
 ): { html: string; next: number } {
   const attrs = parseAttrs(lines[start])
+  // 按钮文案兼容两种属性名：guide 注入的 CTA 示例使用 action（与 CTA_DA01 块级渲染一致），
+  // 旧写法 button 继续支持
+  const btnText = attrs.button || attrs.action
   let html = `<section style="margin:24px 0px;padding:32px 24px;background:linear-gradient(135deg,${t.accent},${t.dark});border-radius:16px;text-align:center;color:rgb(255,255,255)">`
   if (attrs.label)
     html += `<p style="margin:0px 0px 8px;font-size:11px;letter-spacing:3px;font-weight:700;opacity:0.8">${leaf(attrs.label)}</p>`
   if (attrs.title)
     html += `<p style="margin:0px 0px 16px;font-size:20px;font-weight:800;line-height:1.4">${leaf(attrs.title)}</p>`
-  if (attrs.button)
-    html += `<span style="display:inline-block;padding:12px 32px;background:rgba(255,255,255,0.2);border-radius:8px;font-weight:700;letter-spacing:1px;backdrop-filter:blur(4px)">${leaf(attrs.button)}</span>`
+  if (btnText)
+    html += `<span style="display:inline-block;padding:12px 32px;background:rgba(255,255,255,0.2);border-radius:8px;font-weight:700;letter-spacing:1px;backdrop-filter:blur(4px)">${leaf(btnText)}</span>`
   html += `</section>`
   return { html, next: start + 1 }
 }

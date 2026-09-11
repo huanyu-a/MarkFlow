@@ -43,6 +43,7 @@ curl -s -X POST https://www.bx9y.com.cn/__markflow_render \
 - `html`：全内联样式的正文片段，供程序化使用（如发布代理的 `content` 字段）
 - `preview`：**交付文件用它**——包好复制按钮的完整预览页（自包含单文件，双击即可在浏览器打开）
 - `meta` / `theme`：标题、摘要与实际使用的主题色，交付时向用户说明一句
+- `meta.warnings`：渲染降级警告数组（如容器未闭合、语法不符被降级为普通段落、缺列行被忽略等）。无警告时该字段缺省。**交付前必须检查该字段**：非空时逐条修正 Markdown 重新渲染；确实无法修正的，向用户转述警告内容，不要静默交付。
 
 **第 3 步：交付或发布**
 
@@ -64,6 +65,8 @@ curl -s -X POST https://www.bx9y.com.cn/__markflow_wechat_publish \
 | `markdown` | ✅ | 按语法指令整理的 Markdown 文本，≤ 2MB |
 | `accent` | 可选 | 主题主色，6 位 hex（如 `#e74c3c`）；缺省用 `#27ae60` |
 | `dark` | 可选 | 主题深色，6 位 hex；只传 `accent` 时自动派生（加深 25%），都不传用默认主题 |
+
+返回字段 `meta.warnings`：渲染降级警告数组（如容器未闭合被截断、行内语法不符被降级为普通段落、timeline 缺列行被忽略等），无警告时该字段缺省；交付前应检查该字段并向用户转述。
 
 错误码：401 token 错误；400 JSON 非法或 markdown 为空；413 超过 2MB；500 渲染失败（返回 `error` 信息）。
 

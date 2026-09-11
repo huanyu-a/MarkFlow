@@ -79,6 +79,8 @@ export interface UnifiedComponentDef {
   render: (attrs: Record<string, string>, rawBody: string, body: ParsedBody, t: ThemeColors) => string
   /** 兼容旧 3 参数签名：blockRenderRegistry / ExtensionPage 直接调用 */
   renderLegacy(attrs: Record<string, string>, body: string, t: ThemeColors): string
+  /** 可选：对容器 body 做格式检查，返回降级警告文本（经 onWarning 上报给调用方） */
+  bodyWarning?: (rawBody: string) => string | undefined
 }
 
 /** 构建 ::: 容器 block renderer */
@@ -110,7 +112,8 @@ export function buildUnifiedRenderer(def: UnifiedComponentDef): BlockRenderer {
       const rawBody = bodyLines.join('\n').trim()
       try {
         const html = def.render(attrs, rawBody, parseBody(rawBody, def.spec.bodyFormat), ctx.t)
-        return { html, next: j + 1 }
+        // bodyWarning：组件级格式降级警告（如缺列被忽略的行），经 onWarning 上报
+        return { html, next: j + 1, warning: def.bodyWarning?.(rawBody) }
       } catch {
         return null
       }

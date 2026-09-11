@@ -589,7 +589,8 @@ const timelineRenderer: BlockRenderer = {
       extractBlock(lines, i, /^<timeline\b([^>]*)>(.*)$/, /<\/timeline>/) ||
       extractBlock(lines, i, /^<timeline\b([^>]*)>/, /<\/timeline>/)
     if (!block) return null
-    return { html: Timeline_DA01.renderLegacy(block.attrs, block.body, ctx.t), next: block.next, warning: block.warning }
+    // 叠加组件级 body 降级警告（缺列行被忽略），未闭合警告优先
+    return { html: Timeline_DA01.renderLegacy(block.attrs, block.body, ctx.t), next: block.next, warning: block.warning || Timeline_DA01.bodyWarning?.(block.body) }
   },
 }
 
@@ -605,9 +606,18 @@ const sliderRenderer: BlockRenderer = {
 
 const engageRenderer: BlockRenderer = {
   name: 'engage',
-  match: (line) => /^:\s*engage\b/.test(line) || /^<engage\b/.test(line),
+  // engage-card / engage-label 是组件元数据注册的真实 tag（扩展页与 guide 示例即用此写法），
+  // <engage> 为通用别名（按 type 属性切换样式）；限定后缀，避免其它 engage-* 前缀标签误撞本路径
+  match: (line) => /^:\s*engage\b/.test(line) || /^<engage(?:-(?:card|label))?\b/.test(line),
   render: (ctx, line, _lines, i) => {
     const attrs = parseAttrs(line)
+    // 精确 tag 直接路由到对应样式，subtitle/color 等属性不再丢失
+    if (/^<engage-card\b/.test(line)) {
+      return { html: Engage_DA02.render(attrs, '', ctx.t), next: i + 1 }
+    }
+    if (/^<engage-label\b/.test(line)) {
+      return { html: Engage_DA01.render(attrs, '', ctx.t), next: i + 1 }
+    }
     if (attrs.type && attrs.type.toUpperCase() === 'DA02') {
       return { html: Engage_DA02.render(attrs, '', ctx.t), next: i + 1 }
     }

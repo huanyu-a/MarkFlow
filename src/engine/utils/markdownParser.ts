@@ -234,7 +234,9 @@ export function parseMarkdown(
       const attrs = parseAttrs(ptMatch[1])
       const level = parseInt(attrs.level || '1', 10)
       if (level === 1) {
-        const num = attrs.num || ''
+        // 序号属性兼容两种写法：PTitle_DA01 渲染读 attrs.number，此处收集需保持一致，
+        // 否则 <reading-path> 与正文编号脱节（number 优先）
+        const num = attrs.number || attrs.num || ''
         const title = attrs.title || ptMatch[2].trim()
         const subtitle = attrs.subtitle || ''
         pTitleLevel1List.push({ num, title, subtitle })
