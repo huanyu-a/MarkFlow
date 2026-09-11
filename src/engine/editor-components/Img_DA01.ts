@@ -1,4 +1,5 @@
 import type { ThemeColors } from '@engine/composables/useTheme'
+import { esc, safeUrl } from '@engine/utils/helpers'
 
 /**
  * Img_DA01 - 图片组件（默认A型01号样式）
@@ -93,7 +94,9 @@ export const Img_DA01 = {
   example: `<img src="https://robocopmao.github.io/r-markdown/banner4.webp" alt="模块化排版引擎架构示意图：Markdown 解析层 → 模块匹配层 → 主题令牌注入 → 内联样式 HTML 输出" width="100%" height="auto" radius="8px" fit="cover" align="left" left="10px" top="5px" />`,
 
   render(attrs: Record<string, string>, _body: string, _t: ThemeColors, marginSize: string = '24px'): string {
-    const src = attrs.src || ''
+    // src 统一过 safeUrl 白名单（与 imageRenderer / inlineFormat 引擎层一致），
+    // 阻断 javascript: 等危险协议进入产物，不再依赖输出层 sanitizeHtml 兜底
+    const src = safeUrl(attrs.src || '', 'src')
     const alt = attrs.alt || ''
     const width = attrs.width || '100%'
     const height = attrs.height || 'auto'
@@ -119,6 +122,6 @@ export const Img_DA01 = {
       .filter(Boolean)
       .join(';')
 
-    return `<section style="margin:${margin};width:${width};height:${height};overflow:hidden;border-radius:${radius}"><img src="${src}" alt="${alt}" style="${imgStyle}" /></section>`
+    return `<section style="margin:${margin};width:${width};height:${height};overflow:hidden;border-radius:${radius}"><img src="${esc(src)}" alt="${esc(alt)}" style="${imgStyle}" /></section>`
   },
 }

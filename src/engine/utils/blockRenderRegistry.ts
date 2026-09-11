@@ -709,7 +709,11 @@ const blockFormulaRenderer: BlockRenderer = {
       formulaLines.push(lines[j])
       j++
     }
-    if (j < lines.length) j++
+    // 未找到配对的闭合 $$：不把剩余全文吞进一个公式块，
+    // return null 让该行落入普通段落渲染（与 extractBlock / hintContainerRenderer
+    // 未闭合降级的处理哲学一致，正文不丢失）
+    if (j >= lines.length) return null
+    j++
     const formula = formulaLines.join('\n').trim()
     return {
       html: `<section style="text-align:center;margin:${spacing[10]} 0;overflow-x:auto;color:${neutral.gray1000}">${resolveSvg(formula)}</section>`,

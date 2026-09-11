@@ -1,6 +1,6 @@
 import type { ThemeColors } from '../composables/useTheme'
 import { leaf, esc, parseAttrs, safeUrl } from './helpers'
-import { extractMath, restoreMath } from './math'
+import { extractMath, restoreMath, createInlineMathRegex, createBlockMathRegex } from './math'
 import { protectCode, restoreCode } from './codeProtect'
 import { renderMath } from './mathRenderer'
 import { renderMermaidDiagram } from './mermaidRenderer'
@@ -20,8 +20,8 @@ export function collectFormulas(md: string): Array<{ formula: string; display: b
     .replace(/```[\s\S]*?```/g, '')
     .replace(/`[^`]+`/g, '')
 
-  // 行内公式 $...$（允许跨行）
-  const inlineRe = /(?<!\$)(?<!\d)\$(?!\d)([\s\S]+?)\$(?!\$|[\w])/g
+  // 行内公式 $...$（允许跨行）— 使用与 extractMath 完全一致的共享正则与防护语义
+  const inlineRe = createInlineMathRegex()
   let m: RegExpExecArray | null
   while ((m = inlineRe.exec(cleaned)) !== null) {
     const f = m[1].trim()
@@ -32,8 +32,8 @@ export function collectFormulas(md: string): Array<{ formula: string; display: b
     }
   }
 
-  // 块级公式 $$...$$ （单行和多行）
-  const blockRe = /\$\$([\s\S]+?)\$\$/g
+  // 块级公式 $$...$$ （单行和多行）— 同样复用共享正则
+  const blockRe = createBlockMathRegex()
   while ((m = blockRe.exec(cleaned)) !== null) {
     // 跳过空行 $$ $$ 前面的 $$
     if (m[0] === '$$') continue

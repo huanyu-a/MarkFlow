@@ -3,7 +3,6 @@ import { esc, leaf, parseAttrs } from './helpers'
 import { inlineFormat } from './inlineFormat'
 import { color, fontSize, fontWeight, letterSpacing, lineHeight, neutral, radius, shadowRaw, spacing } from '../tokens'
 import { CTA_DA01 } from '@engine/editor-components/Cta_DA01'
-import { Badges_DA01 } from '@engine/editor-components/Badges_DA01'
 
 export function renderFrontMatter(
   meta: Record<string, string>,
@@ -46,64 +45,9 @@ export function renderFrontMatter(
   return html
 }
 
-export function parseSteps(
-  lines: string[],
-  start: number,
-  t: ThemeColors,
-): { html: string; next: number } {
-  let i = start
-  const attrs = parseAttrs(lines[i])
-  i++
-  const steps: { name: string; desc: string }[] = []
-  while (i < lines.length && !/^:::\s*$/.test(lines[i])) {
-    const m = lines[i].match(/^-\s*(.+)\s*\|\s*(.+)/)
-    if (m) steps.push({ name: m[1].trim(), desc: m[2].trim() })
-    i++
-  }
-  i++
-  const active = parseInt(attrs.active || '1')
-  const accentColor = attrs.color || t.accent
-
-  let html = `<section style="margin:0px 0px ${spacing[10]};padding:${spacing[14]} ${spacing[9]};background:${neutral.gray50};border-radius:${radius['2xl']};border:1px solid ${neutral.gray200}">`
-  if (attrs.label)
-    html += `<p style="margin:0px 0px ${spacing[1]};font-size:${fontSize['2xs']};color:${neutral.gray500};letter-spacing:${letterSpacing['2xl']};font-weight:${fontWeight.bold}">${leaf(attrs.label)}</p>`
-  if (attrs.title)
-    html += `<p style="margin:0px 0px ${spacing[1]};font-size:${fontSize['3xl']};font-weight:${fontWeight.extrabold};color:${neutral.gray1000}">${leaf(attrs.title)}</p>`
-  if (attrs.hint)
-    html += `<p style="margin:0px 0px ${spacing[7]};font-size:${fontSize.sm};color:${neutral.gray500}">${leaf(attrs.hint)}</p>`
-  html += `<section style="display:flex;gap:${spacing[5]};overflow-x:auto">`
-  steps.forEach((s, idx) => {
-    const isActive = idx + 1 === active
-    const itemStyle = isActive
-      ? `flex:1;min-width:100px;padding:${spacing[7]} ${spacing[6]};background:${accentColor}10;border-radius:${radius.xl};border:2px solid ${accentColor};text-align:center;position:relative`
-      : `flex:1;min-width:100px;padding:${spacing[7]} ${spacing[6]};background:${color.surface};border-radius:${radius.xl};border:1px solid ${neutral.gray200};text-align:center;position:relative`
-    html += `<section style="${itemStyle}">`
-    html += `<p style="margin:0px 0px ${spacing[1]};font-size:${fontSize['5xl']};font-weight:${fontWeight.black};color:${accentColor}">${leaf(idx + 1)}</p>`
-    html += `<p style="margin:0px 0px ${spacing[0]};font-size:${fontSize.base};font-weight:${fontWeight.bold};color:${color.textTertiary}">${leaf(s.name)}</p>`
-    html += `<p style="margin:0px;font-size:${fontSize.xs};color:${neutral.gray500}">${leaf(s.desc)}</p>`
-    html += `</section>`
-  })
-  html += `</section></section>`
-  return { html, next: i }
-}
-
-export function parseBadges(
-  lines: string[],
-  start: number,
-  t: ThemeColors,
-): { html: string; next: number } {
-  let i = start
-  const attrs = parseAttrs(lines[i])
-  i++
-  let text = ''
-  while (i < lines.length && !/^:::\s*$/.test(lines[i])) {
-    text += lines[i]
-    i++
-  }
-  i++
-  const html = Badges_DA01.render(attrs, text, t)
-  return { html, next: i }
-}
+// parseSteps / parseBadges 已删除：属早期步骤流/徽章解析死代码，
+// 实际渲染路径由 blockRenderRegistry 的 stepsRenderer/badgesRenderer
+// 直接调用 Steps_DA01/Steps_DA02/Badges_DA01，全仓 grep 无调用方。
 
 export function parseCtaBlock(
   lines: string[],

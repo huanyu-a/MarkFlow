@@ -1,4 +1,4 @@
-import { leaf } from '@engine/utils/helpers'
+import { inlineFormat } from '@engine/utils/inlineFormat'
 import type { ThemeColors } from '@engine/composables/useTheme'
 
 /**
@@ -15,6 +15,8 @@ import type { ThemeColors } from '@engine/composables/useTheme'
  *
  * body 内容带左侧边框，适合引入话题或提供背景信息。
  * 视觉效果比普通段落更突出，但又不会像 Statement 那样过于正式。
+ * body 走行内格式（inlineFormat），支持 **粗体**、<Badge> 等行内语法，
+ * 与 breaking / CTA 等容器组件保持一致。
  */
 
 export const Lead_DA01 = {
@@ -36,6 +38,6 @@ export const Lead_DA01 = {
       attrs.bg ? `background:${attrs.bg};` : '',
       attrs.round ? 'border-radius:8px;overflow:clip;' : '',
     ].join('')
-    return `<section style="${wrapperStyle}"><p style="font-size:16px;color:${textColor};line-height:1.8;letter-spacing:0.5px;text-align:justify;padding:16px;border-left:3px solid ${color};margin:14px 0px;overflow-wrap:break-word;word-break:break-word">${leaf(body)}</p></section>`
+    return `<section style="${wrapperStyle}"><p style="font-size:16px;color:${textColor};line-height:1.8;letter-spacing:0.5px;text-align:justify;padding:16px;border-left:3px solid ${color};margin:14px 0px;overflow-wrap:break-word;word-break:break-word">${inlineFormat(body, t)}</p></section>`
   },
 }

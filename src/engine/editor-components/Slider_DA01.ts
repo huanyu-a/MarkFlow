@@ -14,14 +14,15 @@
  */
 
 import { buildUnifiedRenderer, parseBody, type UnifiedComponentDef } from './unifiedRender'
+import { safeUrl } from '@engine/utils/helpers'
 
 /* ------------------------------------------------------------------ */
 /*  工具函数                                                          */
 /* ------------------------------------------------------------------ */
 
-/** 生成 SVG foreignObject + img 标签（避免微信编辑器剥离 <image>） */
+/** 生成 SVG foreignObject + img 标签（避免微信编辑器剥离 <image>）；url 已过 safeUrl 白名单 */
 function foreignImg(url: string, x: number, w: number, h: number, extra: string = ''): string {
-  return `<foreignObject x="${x}" y="0" width="${w}" height="${h}"${extra}><img xmlns="http://www.w3.org/1999/xhtml" src="${url}" width="${w}" height="${h}" style="display:block;object-fit:cover"/></foreignObject>`
+  return `<foreignObject x="${x}" y="0" width="${w}" height="${h}"${extra}><img xmlns="http://www.w3.org/1999/xhtml" src="${safeUrl(url, 'src')}" width="${w}" height="${h}" style="display:block;object-fit:cover"/></foreignObject>`
 }
 
 /** SVG 容器包裹 */
@@ -233,8 +234,9 @@ export const Slider_DA01: UnifiedComponentDef = {
   render(attrs, _rawBody, _body, _t) {
     const imagesStr = attrs.images || ''
     const interval = Math.max(2, parseInt(attrs.interval || '3', 10) || 0)
-    const width = parseInt(attrs.width || '600', 10) || 0
-    const height = parseInt(attrs.height || '200', 10) || 0
+    // 尺寸非法值（如 width="abc" 或 0）回落到各自默认（600/200），避免 parseInt||0 退化 0px 空白
+    const width = parseInt(attrs.width || '600', 10) || 600
+    const height = parseInt(attrs.height || '200', 10) || 200
     const type = parseInt(attrs.type || '1', 10) || 1
 
     if (!imagesStr) {
@@ -253,7 +255,7 @@ export const Slider_DA01: UnifiedComponentDef = {
     }
 
     if (count === 1) {
-      return `<section style="margin:28px 0;width:100%;text-align:center"><img src="${images[0]}" width="${width}" height="${height}" style="max-width:100%;height:auto;border-radius:8px" /></section>`
+      return `<section style="margin:28px 0;width:100%;text-align:center"><img src="${safeUrl(images[0], 'src')}" width="${width}" height="${height}" style="max-width:100%;height:auto;border-radius:8px" /></section>`
     }
 
     switch (type) {

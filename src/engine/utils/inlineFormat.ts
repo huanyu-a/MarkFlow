@@ -1,5 +1,6 @@
 import type { ThemeColors } from '../composables/useTheme'
 import { esc, leaf, lightenHex, pangu, safeUrl } from './helpers'
+import { createInlineMathRegex } from './math'
 import { getCachedImageUrl } from '@/lib/editor/imageStorage'
 import { color, fontSize, fontWeight, neutral, radius, spacing } from '../tokens'
 
@@ -74,9 +75,12 @@ export function inlineFormat(text: string, t: ThemeColors, formulaMap?: Map<stri
 
   // $行内公式$ — 仅在提供 formulaMap 时（MathJax 模式）进行替换；
   // 否则（KaTeX 模式）由于公式已被 extractMath 提取为占位符，此处正则不会匹配到它。
+  // 使用与 extractMath / collectFormulas 完全一致的共享正则：三处判定语义统一，
+  // 避免「collectFormulas 收集了 key 但此处匹配不上（或反之）」的漂移；
+  // 共享防护保证内容首尾无空白，collectFormulas 的 trim 不再造成 key 错位。
   if (formulaMap) {
     text = text.replace(
-      /(?<!\$)(?<!\d)\$(?!\d)([^$]+?)\$(?!\$|[\w])/g,
+      createInlineMathRegex(),
       (_m, formula: string) => {
         const svg = formulaMap.get(`i:${formula}`)
         if (svg) return svg
