@@ -260,6 +260,20 @@ describe('用户上报用法回归', () => {
     expect(html).not.toContain('<step')
     expect(html).toContain('步骤一')
     expect(html).toContain('步骤四')
+    // 4 步无 type 必须命中 DA02 竖向布局特征（32px 圆形序号），防止切换逻辑被删后测试仍空过
+    expect(html).toContain('width:32px;height:32px;border-radius:50%')
+  })
+
+  it('<steps> 显式 type="DA01" 时 4 步仍保持横向布局', () => {
+    const md = `<steps type="DA01">
+<step title="步骤一" desc="描述一"></step>
+<step title="步骤二" desc="描述二"></step>
+<step title="步骤三" desc="描述三"></step>
+<step title="步骤四" desc="描述四"></step>
+</steps>`
+    const html = render(md)
+    expect(html).toContain('<table')
+    expect(html).not.toContain('width:32px;height:32px;border-radius:50%')
   })
 
   it('<steps> 支持自闭合 <step ... /> 写法', () => {

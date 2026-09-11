@@ -26,7 +26,7 @@ curl -s https://www.bx9y.com.cn/__markflow_render -H "X-Render-Token: $TOKEN"
 # 返回 {"ok":true,"guide":"# 长图文排版 Markdown 语法指令 ..."}
 ```
 
-`guide` 是完整的公众号排版 Markdown 语法规范（标准 Markdown 规则、`> [TIP]` 提示框、`:::compare` / `:::steps` 等容器组件、行内徽章 `<badge>`、数学公式、frontmatter 元信息等）。
+`guide` 是完整的公众号排版 Markdown 语法规范（标准 Markdown 规则、`> [TIP]` 提示框、`:::compare` 对比容器、`<steps>` 步骤流、`<badges>` 标签徽章、数学公式、frontmatter 元信息等）。
 
 **第 2 步：改写并渲染（POST）**
 
@@ -76,6 +76,8 @@ curl -s -X POST https://www.bx9y.com.cn/__markflow_wechat_publish \
 
 无论哪种场景，都在交付回复中写明所用主题色。自造颜色时 accent 与 dark 必须同色系且 dark 更深；拿不准就直接用下表现成的主题对。
 
+> 注：API 只接收 accent / dark 这一对主题色，仅复刻配色；前端完整主题档案中标题字号、引用风格、圆角等差异不会体现在 API 输出里。
+
 ### 预设主题对照表（accent / dark）
 
 | 主题 | accent | dark | 适合内容 |
@@ -96,7 +98,12 @@ curl -s -X POST https://www.bx9y.com.cn/__markflow_wechat_publish \
 
 ## 限制与注意
 
-- **mermaid 图**：API 同步渲染不支持，mermaid 代码块会降级为普通代码块。流程图请改用 `:::steps` 组件或文字描述。
+- **mermaid 图**：API 同步渲染不支持，mermaid 代码块会降级为普通代码块。流程图请改用 `<steps>` 组件或文字描述。
+- **数学公式**：含数学公式的文章发布到公众号时公式可能显示异常（公众号不支持 KaTeX 样式），建议改用截图或文字表述。
 - **图片**：`img://` 本地引用不可用，图片一律用 http(s) 直链。
 - **语法时效**：容器/标签语法以 GET 返回的 `guide` 为准；如果 `guide` 里没有的语法，不要发明。
+- **实测踩坑（guide 与实现不一致的两处，2026-09-10 逐项探测确认）**：
+  - 步骤流程只能用 **`<steps>` 标签**（每步一个自然段、空行分隔，步骤内不要写 `###` 小标题）。**不要用 `:::steps` 容器**——它把容器内每个自然段都拆成独立步骤，每步只是一段文字塞进直径 38px 的圆形（长文本溢出），配 `###` 时标题与正文被拆成两个这样的圆形、字面 `###` 还会留在产物里。
+  - guide 第六节第 9 条称「步骤超过 3 个自动切换竖向布局（DA02）」**与实测不符**：4 步仍是 4 列各 25%、5 步仍是 5 列各 20%，**必须显式写 `<steps type="DA02">`**。
+  - 标签徽章用行内写法 `<Badge type="tip" text="标签" />`（注意大写 B；type 可选 info/tip/warning/danger）。早期实测 `<badge type="tip" title="推荐" />` 渲染出的是 type 的值而不是 title，`<badge>文字</badge>` 则标签原样进正文——这两种写法都不要用。
 - **诚实交付**：改写时不得添加用户素材中不存在的数据、引用或结论。

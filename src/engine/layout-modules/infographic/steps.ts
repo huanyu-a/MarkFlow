@@ -5,10 +5,14 @@
  *
  * 横向 flex 排列，圆形序号（accent 背景白字），卡片间连接线装饰。
  * 超出容器宽度时横向滚动。
+ *
+ * 防御：body 行缺少 `|` 管道分隔（即非「序号 | 步骤名 | 说明」格式）时，
+ * 不做卡片渲染（避免整段长文本被塞进 38px 圆形序号导致溢出），
+ * 降级为普通段落渲染，并通过 warning 上报。
  */
-import type { BlockRenderContext } from '../../utils/blockRenderRegistry'
+import type { BlockRenderer, BlockRenderContext } from '../../utils/blockRenderRegistry'
 import type { LayoutBody } from '../buildRenderer'
-import { buildModuleRenderer, esc } from '../buildRenderer'
+import { extractModuleBody, parseBody, renderMarkdownBody, esc } from '../buildRenderer'
 import type { LayoutModule } from '../types'
 
 function render(body: LayoutBody, ctx: BlockRenderContext): string {
@@ -35,10 +39,32 @@ function render(body: LayoutBody, ctx: BlockRenderContext): string {
   return html
 }
 
+/** 自定义 renderer：在标准 buildModuleRenderer 流程前增加管道格式防御 */
 export const stepsModule: LayoutModule = {
   spec: { name: 'steps', category: 'infographic', serves: ['readability'], bodyFormat: 'rows', label: '步骤卡片' },
-  renderer: buildModuleRenderer(
-    { name: 'steps', category: 'infographic', serves: ['readability'], bodyFormat: 'rows', label: '步骤卡片' },
-    render,
-  ),
+  renderer: {
+    name: 'layout-steps',
+    // 与 buildModuleRenderer 的默认 priority 保持一致（在 callout/quote 之后、heading 之前匹配）
+    priority: 20,
+    // (?![-\w])：不吞掉统一组件 :::steps-horizontal / :::steps-vertical
+    match: (line) => /^:::\s*steps(?![-\w])/.test(line),
+    render: (ctx: BlockRenderContext, _line: string, lines: string[], i: number) => {
+      const extracted = extractModuleBody(lines, i)
+      if (!extracted) return null
+      // 防御：任一内容行缺少 `|` 管道分隔即视为格式错误，整体降级为段落渲染
+      const contentLines = extracted.body.split('\n').filter((l) => l.trim())
+      const malformed =
+        contentLines.length > 0 &&
+        contentLines.some((l) => !l.replace(/^-\s+/, '').includes('|'))
+      if (malformed) {
+        return {
+          html: renderMarkdownBody(extracted.body, ctx),
+          next: extracted.next,
+          warning: ':::steps 容器内缺少「序号 | 步骤名 | 说明」管道格式，已降级为普通段落渲染',
+        }
+      }
+      const layoutBody = parseBody(extracted.body, 'rows')
+      return { html: render(layoutBody, ctx), next: extracted.next, warning: extracted.warning }
+    },
+  } satisfies BlockRenderer,
 }

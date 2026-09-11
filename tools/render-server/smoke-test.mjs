@@ -21,6 +21,7 @@ for (const [key, value] of Object.entries({
 }
 
 const { renderMarkdown, makeColors, THEMES, buildArticleAiGuide } = await import('./render-bundle.mjs')
+const { buildPreview } = await import('./preview.mjs')
 
 let failed = 0
 function check(name, condition, detail = '') {
@@ -50,6 +51,9 @@ console.log('[2] 数学公式')
 const math = renderMarkdown('质能方程 $E=mc^2$ 与块级公式：\n\n$$\\int_0^1 x\\,dx$$\n', theme)
 check('行内公式（KaTeX）', math.html.includes('katex'))
 check('块级公式（KaTeX）', (math.html.match(/katex-display|katex/g) || []).length >= 2)
+// preview 页应为公式内嵌 katex 样式（含 katex-display class 与内嵌 <style>）
+const mathPreview = buildPreview(math.html, '公式测试', { accent: theme.accent, dark: theme.dark })
+check('preview 内嵌 KaTeX 样式', mathPreview.includes('katex-display') && mathPreview.includes('<style>') && mathPreview.includes('.katex'))
 
 // ── 3. ::: 扩展容器组件 ──
 console.log('[3] 扩展容器')
@@ -70,10 +74,23 @@ check('onerror 被剥离', !xss.html.includes('onerror'))
 // ── 6. 主题色参数生效（h2/引用/链接/compare 等元素注入 accent） ──
 console.log('[6] 主题色')
 const themed = renderMarkdown(
-  '## 二级标题\n\n> 引用块\n\n[链接](https://example.com)\n\n:::compare\n左\n***\n右\n:::',
+  [
+    '## 二级标题',
+    '',
+    '> 引用块',
+    '',
+    '[链接](https://example.com)',
+    '',
+    ':::compare',
+    '维度 | A 方描述 | B 方描述 | accent',
+    '另一维度 | A 方描述 | B 方描述 | default',
+    ':::',
+  ].join('\n'),
   makeColors('#e74c3c', '#c0392b'),
 )
 check('accent 注入 HTML', (themed.html.match(/#e74c3c/g) || []).length >= 3)
+// compare accent 行：整行 accent 背景 + B 方浅色高亮（见 layout-modules/infographic/compare.ts）
+check('compare accent 高亮行渲染', themed.html.includes('background:#e74c3c') && themed.html.includes('rgba(255,255,255,0.18)'))
 
 // ── 7. AI 排版指令（GET 端点内容源） ──
 console.log('[7] AI 指令')

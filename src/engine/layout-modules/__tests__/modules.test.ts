@@ -205,3 +205,25 @@ describe('排版模块 — 主题色响应', () => {
     expect(greenHtml).not.toContain('#3350ff')
   })
 })
+
+describe('排版模块 — :::steps 裸容器防御', () => {
+  it('行内缺少管道分隔时降级为段落渲染并上报告警', async () => {
+    const warnings: string[] = []
+    const md = ':::steps\n这是一段没有管道分隔的长文本，不应被塞进圆形序号。\n:::'
+    const html = await parseMarkdownAsync(md, t, 578, (w) => warnings.push(w), tokens)
+    expect(warnings.length).toBeGreaterThan(0)
+    expect(warnings[0]).toContain('管道格式')
+    // 降级为普通段落，文本内容保留
+    expect(html).toContain('这是一段没有管道分隔的长文本')
+    // 不应出现 38px 圆形序号卡片样式
+    expect(html).not.toContain('width:38px')
+  })
+
+  it('正常「序号 | 步骤名 | 说明」格式仍渲染步骤卡片', async () => {
+    const md = ':::steps\n01 | 需求分析 | 明确目标与边界\n02 | 方案设计 | 输出原型稿\n:::'
+    const html = await render(md)
+    expect(html).toContain('width:38px')
+    expect(html).toContain('需求分析')
+    expect(html).toContain('方案设计')
+  })
+})
