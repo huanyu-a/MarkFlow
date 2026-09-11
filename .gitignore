@@ -43,3 +43,7 @@ public/vendor/r-markdown
 
 # 渲染 API 构建产物（tools/render-server/build.mjs 生成）
 tools/render-server/render-bundle.mjs
+
+# 本地代理配置与会话 handoff，不入库
+.claude/
+.zcode/

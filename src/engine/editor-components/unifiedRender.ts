@@ -115,9 +115,9 @@ export function buildUnifiedRenderer(def: UnifiedComponentDef): BlockRenderer {
         // bodyWarning：组件级格式降级警告（如缺列被忽略的行），经 onWarning 上报
         return { html, next: j + 1, warning: def.bodyWarning?.(rawBody) }
       } catch {
-        // 组件渲染抛错：把容器 body 原文降级为纯文本（leaf 转义，不丢内容不造注入面），
-        // 并经 warning 通道上报——return null 会让 markdownParser 丢弃告警、全文静默变段落，
-        // 调用方（SKILL 的 meta.warnings 消费链路）无从感知降级发生
+        // 组件渲染抛错：把容器 body 原文降级为纯文本（leaf 包 span 保留内容，行内语法丢弃可接受；
+        // 注入面由出口 sanitizeHtml 统一净化），并经 warning 通道上报——return null 会让
+        // markdownParser 丢弃告警、容器定界符字面落段落，调用方（meta.warnings 消费链路）无从感知降级
         return { html: leaf(rawBody), next: j + 1, warning: `${def.spec.name} 组件渲染异常，已降级为纯文本` }
       }
     },
