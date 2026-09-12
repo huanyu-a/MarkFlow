@@ -5,5 +5,7 @@
 // - mermaid / MathJax 是动态懒加载且依赖浏览器 DOM，标记为 external，
 //   同步路径下 mermaid 代码块自动降级为普通代码块，不会触发加载。
 export { renderMarkdown } from '../../src/lib/render/markdown'
-export { makeColors, THEMES, darkenHex } from '../../src/engine/composables/useTheme'
+export { makeColors } from '../../src/engine/composables/useTheme'
+export { darkenColor } from '../../src/engine/utils/colorUtils'
+export { getDefaultThemeProfile } from '../../src/engine/themes'
 export { buildArticleAiGuide } from '../../src/lib/aiGuide'

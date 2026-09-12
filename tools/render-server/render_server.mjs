@@ -33,7 +33,7 @@ for (const [key, value] of Object.entries({
   Object.defineProperty(globalThis, key, { value, configurable: true, writable: true })
 }
 
-const { renderMarkdown, makeColors, THEMES, darkenHex, buildArticleAiGuide } = await import('./render-bundle.mjs')
+const { renderMarkdown, makeColors, darkenColor, getDefaultThemeProfile, buildArticleAiGuide } = await import('./render-bundle.mjs')
 const { buildPreview } = await import('./preview.mjs')
 
 // ---------- 配置 ----------
@@ -44,8 +44,8 @@ if (!TOKEN) {
   process.exit(1)
 }
 
-// 与前端默认主题一致（appStore DEFAULT_ACCENT = THEMES[3]）
-const DEFAULT_THEME = THEMES[3] || THEMES[0]
+// 与前端默认主题一致（appStore 初始 themeProfileId = 'default'）
+const DEFAULT_THEME = getDefaultThemeProfile()
 const MAX_BODY_BYTES = 2 * 1024 * 1024 // 2MB，足以容纳含 base64 图片的长文
 
 // ---------- 工具 ----------
@@ -134,7 +134,7 @@ const server = createServer(async (req, res) => {
     const hasAccent = isHexColor(payload.accent)
     const hasDark = isHexColor(payload.dark)
     const accent = hasAccent ? payload.accent : DEFAULT_THEME.accent
-    const dark = hasDark ? payload.dark : (hasAccent ? darkenHex(accent, 0.25) : DEFAULT_THEME.dark)
+    const dark = hasDark ? payload.dark : (hasAccent ? darkenColor(accent, 0.25) : DEFAULT_THEME.dark)
     // 收集渲染警告（如未闭合标签、容器格式错误），随 meta.warnings 返回；
     // 无警告时省略该字段。renderMarkdown 签名为 (md, colors, mermaidMap?, onWarning?, tokens?)
     const warnings = []

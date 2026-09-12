@@ -20,7 +20,7 @@ for (const [key, value] of Object.entries({
   Object.defineProperty(globalThis, key, { value, configurable: true, writable: true })
 }
 
-const { renderMarkdown, makeColors, THEMES, buildArticleAiGuide } = await import('./render-bundle.mjs')
+const { renderMarkdown, makeColors, getDefaultThemeProfile, buildArticleAiGuide } = await import('./render-bundle.mjs')
 const { buildPreview } = await import('./preview.mjs')
 
 let failed = 0
@@ -33,7 +33,8 @@ function check(name, condition, detail = '') {
   }
 }
 
-const theme = makeColors(THEMES[3].accent, THEMES[3].dark) // #27ae60，与前端默认主题一致
+const defaultProfile = getDefaultThemeProfile() // #27ae60，与前端默认主题一致
+const theme = makeColors(defaultProfile.accent, defaultProfile.dark)
 
 // ── 1. 基础 Markdown 结构 ──
 console.log('[1] 基础结构')
