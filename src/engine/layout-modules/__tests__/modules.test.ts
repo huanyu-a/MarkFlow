@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { parseMarkdownAsync } from '../../utils/markdownParser'
+import { parseMarkdown, parseMarkdownAsync } from '../../utils/markdownParser'
 import { makeColors } from '../../composables/useTheme'
 import { resolveTokens } from '../../tokens'
 import { resolveThemeProfile, getThemeProfile } from '../../themes'
@@ -10,6 +10,13 @@ const tokens = resolveTokens(resolveThemeProfile(getThemeProfile('default')!))
 /** 测试 helper：解析 markdown 并返回 html */
 async function render(md: string): Promise<string> {
   return parseMarkdownAsync(md, t, 578, undefined, tokens)
+}
+
+/** 测试 helper：带 warning 收集解析（sprint4 自写 renderer EOF 降级回归用） */
+function renderWithWarnings(md: string): [string, string[]] {
+  const warnings: string[] = []
+  const html = parseMarkdown(md, t, undefined, undefined, (w) => warnings.push(w), tokens)
+  return [html, warnings]
 }
 
 describe('排版模块 — fields 格式', () => {
@@ -225,5 +232,22 @@ describe('排版模块 — :::steps 裸容器防御', () => {
     expect(html).toContain('width:38px')
     expect(html).toContain('需求分析')
     expect(html).toContain('方案设计')
+  })
+})
+
+describe('排版模块 — sprint4 自写 renderer 未闭合降级（第九轮）', () => {
+  // 八个自写 renderer（quote-card/changelog/comparison-table/resource-list/
+  // definition/stat-row/question/tweet）EOF 找不到闭合 ::: 时，
+  // 统一「消费定界符行转义 + 正文逐行存活 + onWarning 上报」
+  it.each([
+    ['quote-card', '{"text":"金句"}'],
+    ['definition', '{"term":"OKR","def":"目标"}'],
+    ['changelog', '{"version":"1.0.0"}'],
+    ['stat-row', '{"items":[]}'],
+  ])(':::%s 未闭合时告警可感知且正文不丢', (name, json) => {
+    const md = `:::${name}\n${json}\n正文行应当存活`
+    const [html, warnings] = renderWithWarnings(md)
+    expect(warnings.some((w) => w.includes(name) && w.includes('未闭合'))).toBe(true)
+    expect(html).toContain('正文行应当存活')
   })
 })

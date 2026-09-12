@@ -10,6 +10,7 @@ import type { BlockRenderer } from '../../utils/blockRenderRegistry'
 import { esc } from '../buildRenderer'
 import { parseJsonArray } from '../parse'
 import type { LayoutModule } from '../types'
+import { unclosedTagFallback } from '../../utils/helpers'
 
 const statRowRenderer: BlockRenderer = {
   name: 'layout-stat-row',
@@ -22,7 +23,12 @@ const statRowRenderer: BlockRenderer = {
       bodyLines.push(lines[j])
       j++
     }
-    if (j >= lines.length) return null
+    if (j >= lines.length) {
+      // 未闭合：只消费定界符行（转义段落），容器体各行交主循环逐行解析（正文不丢），
+      // 并经 warning 通道上报——return null 会让 meta.warnings 链路无从感知降级
+      const fb = unclosedTagFallback(lines[i], ":::stat-row 容器未闭合，后续内容按普通文本解析")
+      return { html: fb.html, next: i + 1, warning: fb.warning }
+    }
     const body = bodyLines.join('\n').trim()
     const data = parseJsonArray(body)
     if (!data) {
