@@ -59,7 +59,13 @@ function hello(name) {
     let lang = attrs.lang || ''
     const codeMatch = code.match(/^```(\S*)\n([\s\S]*?)```$/)
     if (codeMatch) {
-      if (!lang) lang = codeMatch[1]
+      if (!lang) {
+        lang = codeMatch[1]
+      } else if (!lang.includes('{')) {
+        // attrs.lang 存在时围栏 info-string 里的 {2,4-5} 行号标注不得丢弃（官方 example 即两者并写）
+        const range = codeMatch[1].match(/\{[^}]*\}/)
+        if (range) lang += range[0]
+      }
       code = codeMatch[2]
     }
     const title = attrs.title || ''

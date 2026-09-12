@@ -292,7 +292,7 @@ const hintContainerRenderer: BlockRenderer = {
     if (j >= lines.length) {
       // 未闭合：只消费定界符行（转义为普通段落），容器体各行交主循环逐行解析（正文不丢），
       // 并通过 warning 通道上报——return null 会让调用方（meta.warnings 链路）无从感知降级
-      const fb = unclosedTagFallback(line, `:::${type} 容器未闭合，后续内容按普通文本解析`)
+      const fb = unclosedTagFallback(line, `${m[1]}${type} 容器未闭合，后续内容按普通文本解析`)
       return { html: fb.html, next: i + 1, warning: fb.warning }
     }
     const body = contentLines.join('\n').trim()
@@ -343,7 +343,7 @@ const tableContainerRenderer: BlockRenderer = {
     }
     if (j >= lines.length) {
       // 未闭合：只消费 :::table 定界符行（转义段落），表格体各行交主循环逐行解析（正文不丢）
-      const fb = unclosedTagFallback(line, ':::table 容器未闭合，后续内容按普通文本解析')
+      const fb = unclosedTagFallback(line, `${m[1]}table 容器未闭合，后续内容按普通文本解析`)
       return { html: fb.html, next: i + 1, warning: fb.warning }
     }
 
@@ -527,7 +527,8 @@ const pTitleRenderer: BlockRenderer = {
     }
     const ptMatch = block.match(/^<p-title\b([^>]*)>([\s\S]*?)<\/p-title>/)
     if (!ptMatch) {
-      // 未闭合：只降级当前行为转义段落并消费一行（同 titleRenderer，防 RCDATA 吞文）
+      // 未闭合：只降级当前行为转义段落并消费一行（同 titleRenderer 的转义降级策略；
+      // p-title 本身非 RCDATA 元素，统一转义为其内部混入 <title> 等场景兜底，防吞文）
       const fb = unclosedTagFallback(lines[i], '<p-title> 未闭合，已降级为纯文本')
       return { html: fb.html, next: i + 1, warning: fb.warning }
     }

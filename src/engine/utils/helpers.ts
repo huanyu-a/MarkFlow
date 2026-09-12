@@ -20,8 +20,10 @@ export function esc(s: string): string {
  * 会吞掉其后直至 `</title>` / 文档末尾的全部内容，导致「AI 漏写闭合标签 → 整篇近乎空白」。
  * 转义后 `&lt;title` 仅是可见文本，不触发 RCDATA。
  *
- * 段落样式（margin / 字号 / 行高 / 字色 / 字距 / 对齐）刻意与 blockRenderRegistry 中
- * paragraphRenderer 的普通段落一致（用默认静态令牌），使降级文本与正文视觉无缝衔接。
+ * 段落样式（margin / 字号 / 行高 / 字色 / 字距 / 对齐）取默认静态令牌，与 blockRenderRegistry
+ * 中 paragraphRenderer 在**默认令牌**下逐像素一致；主题 override 正文令牌时会有细微字号/行高差
+ * （降级形态不追求与主题令牌完全对齐，此处不传 ctx 以保持 helpers 无循环依赖）。
+ * 另：定界符行不经 inlineFormat，行上残留的行内语法（** 等）会字面显示——定界符本就是坏输入，可接受。
  * 放在 helpers（而非 blockRenderRegistry）以便 unifiedRender / buildRenderer 等下游
  * 复用，避免它们反向 import blockRenderRegistry 造成循环依赖。
  */

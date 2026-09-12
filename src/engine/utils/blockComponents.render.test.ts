@@ -463,6 +463,16 @@ describe('用户上报用法回归', () => {
     expect(html).toContain(' d = ')
   })
 
+  it(':::code-block attrs.lang 与围栏 {行号} 并写时区间标注不丢（第八轮 MINOR-5）', () => {
+    // attrs.lang="js" 存在时，围栏 info "js{2}" 的行号区间若被静默丢弃，第 2 行不会高亮
+    const md = ':::code-block lang="js"\n```js{2}\nconst a = 1\nconst b = 2\nconst c = 3\n```\n:::'
+    const html = render(md)
+    // 行 2（无行内注释）经 rangeLines 命中 → highlight 浅色出现一次
+    expect((html.match(/rgba\(255,235,59,0\.14\)/g) || []).length).toBe(1)
+    expect(html).toContain(' b = ')
+    expect(html).not.toContain('\uE002')
+  })
+
   it('parseLangLineRanges 解析围栏行号标注（单元测试）', () => {
     expect([...parseLangLineRanges('js{2,4-5}')]).toEqual([1, 3, 4])
     expect(parseLangLineRanges('js').size).toBe(0)
@@ -470,6 +480,8 @@ describe('用户上报用法回归', () => {
     // 颠倒区间 / 超界防御
     expect(parseLangLineRanges('js{5-2}').size).toBe(0)
     expect(parseLangLineRanges('js{99999}').size).toBe(0)
+    // 重复/重叠区间去重（Set 语义）
+    expect([...parseLangLineRanges('js{2,2-3,3}')].sort((a, b) => a - b)).toEqual([1, 2])
   })
 })
 
