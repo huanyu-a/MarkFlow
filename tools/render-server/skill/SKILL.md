@@ -22,9 +22,11 @@ description: 调用 MarkFlow 渲染 API 把 Markdown 排版成公众号/长图�
 **第 1 步：取语法指令（GET）**
 
 ```bash
-curl -s https://www.bx9y.com.cn/__markflow_render -H "X-Render-Token: $TOKEN"
+curl -s "https://www.bx9y.com.cn/__markflow_render?v=$(date +%s)" -H "X-Render-Token: $TOKEN"
 # 返回 {"ok":true,"guide":"# 长图文排版 Markdown 语法指令 ..."}
 ```
+
+> `?v=` 时间戳用于绕过 CDN 边缘缓存（域名走了腾讯云 EdgeOne，曾发生 GET 缓存旧 guide 的事故）；响应头若见 `x-cache: HIT` 说明命中了缓存。
 
 `guide` 是完整的公众号排版 Markdown 语法规范（标准 Markdown 规则、`> [TIP]` 提示框、`:::compare` 对比容器、`<steps>` 步骤流、`<badges>` 标签徽章、数学公式、frontmatter 元信息等）。
 
@@ -104,8 +106,8 @@ curl -s -X POST https://www.bx9y.com.cn/__markflow_wechat_publish \
 - **图片**：`img://` 本地引用不可用，图片一律用 http(s) 直链。
 - **语法时效**：容器/标签语法以 GET 返回的 `guide` 为准；如果 `guide` 里没有的语法，不要发明。
 - **顶格书写**：`:::` 容器与 `<标签>` 组件必须顶格书写（行首不能有任何前缀，包括 `>` 与空格缩进），不能嵌套在引用块（`>` 行）内，否则系统不识别，会当作普通文字残留。
-- **实测踩坑（guide 与实现不一致的两处，2026-09-10 逐项探测确认）**：
-  - 步骤流程只能用 **`<steps>` 标签**（每步一个自然段、空行分隔，步骤内不要写 `###` 小标题）。**不要用 `:::steps` 容器**——它把容器内每个自然段都拆成独立步骤，每步只是一段文字塞进直径 38px 的圆形（长文本溢出），配 `###` 时标题与正文被拆成两个这样的圆形、字面 `###` 还会留在产物里。
-  - guide 第六节第 9 条称「步骤超过 3 个自动切换竖向布局（DA02）」**与实测不符**：4 步仍是 4 列各 25%、5 步仍是 5 列各 20%，**必须显式写 `<steps type="DA02">`**。
-  - 标签徽章用行内写法 `<Badge type="tip" text="标签" />`（注意大写 B；type 可选 info/tip/warning/danger）。早期实测 `<badge type="tip" title="推荐" />` 渲染出的是 type 的值而不是 title，`<badge>文字</badge>` 则标签原样进正文——这两种写法都不要用。
+- **实测踩坑（2026-09-12 修订：线上引擎已更新至 11 轮修复后版本）**：
+  - 步骤流程用 **`<steps>` 标签**，标准写法是每行 `- 名称 | 描述`（每行一步，步骤内不要写 `###` 小标题）。不要用 `:::steps` 裸容器——它的行格式是「序号 | 步骤名 | 说明」三列，与 `<steps>` 不同且极易写错（新引擎对不含管道分隔的行已会降级为普通段落并在 `meta.warnings` 告警，但写对仍以 `<steps>` 为准）。
+  - 步骤超过 3 个时系统自动切换竖向布局（DA02）；2–3 步用默认横向布局即可，4 步及以上也可显式写 `type="DA02"`。~~旧版引擎不自动切换、必须显式写~~（已随 2026-09-12 部署修复，显式写法仍然有效）。
+  - 标签徽章用行内写法 `<Badge type="tip" text="标签" />`（注意大写 B；type 可选 info/tip/warning/danger）。旧写法 `<badge type title>` 新引擎已兼容（缺 text 时回落 title），但仍以 text 写法为准。
 - **诚实交付**：改写时不得添加用户素材中不存在的数据、引用或结论。
