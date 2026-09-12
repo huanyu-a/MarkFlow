@@ -1,6 +1,6 @@
 import { useEffect, type ReactNode } from 'react'
 import type { RenderMode } from '@/lib/store'
-import { THEMES } from '@engine/composables/useTheme'
+import { THEME_PROFILES } from '@engine/themes'
 import { FileText, Book, ImageIcon, Palette, HelpCircle, Settings, RotateCcw, Shield, AiStar } from '@/components/ui/Icon'
 
 /** 抽屉内功能按钮统一样式 */
@@ -29,8 +29,9 @@ interface MobileDrawerProps {
   onClose: () => void
   mode: RenderMode
   setMode: (mode: RenderMode) => void
-  accent: string
-  setTheme: (accent: string, dark: string) => void
+  /** 当前主题风格 ID（与 header 主题面板行为一致） */
+  themeProfileId: string
+  setThemeProfile: (id: string) => void
   onTriggerGuide: () => void
   onOpenSettings: () => void
   onOpenPrivacy: () => void
@@ -50,8 +51,8 @@ export function MobileDrawer({
   onClose,
   mode,
   setMode,
-  accent,
-  setTheme,
+  themeProfileId,
+  setThemeProfile,
   onTriggerGuide,
   onOpenSettings,
   onOpenPrivacy,
@@ -153,20 +154,20 @@ export function MobileDrawer({
           />
         </div>
 
-        {/* 主题色切换 */}
+        {/* 主题风格切换（与 header 主题面板一致：点击整块切换主题） */}
         <div className="border-t border-slate-100 pt-5 mb-6">
-          <div className="mb-3 text-[11px] font-bold text-slate-400 uppercase tracking-wider">切换系统主题色</div>
-          <div className="flex items-center gap-3 justify-center">
-            {THEMES.map((t) => (
+          <div className="mb-3 text-[11px] font-bold text-slate-400 uppercase tracking-wider">切换主题风格</div>
+          <div className="grid grid-cols-5 gap-2 justify-items-center">
+            {THEME_PROFILES.map((p) => (
               <button
-                key={t.accent}
-                title={t.accent}
-                onClick={() => setTheme(t.accent, t.dark)}
+                key={p.id}
+                title={p.name}
+                onClick={() => setThemeProfile(p.id)}
                 className="h-8 w-8 rounded-full border transition-transform hover:scale-110 cursor-pointer flex items-center justify-center"
                 style={{
-                  background: t.accent,
-                  borderColor: accent === t.accent ? '#111' : 'transparent',
-                  boxShadow: accent === t.accent ? '0 0 0 2px #fff, 0 0 0 4px var(--accent)' : 'none',
+                  background: `linear-gradient(135deg, ${p.accent} 0%, ${p.dark} 100%)`,
+                  borderColor: themeProfileId === p.id ? '#111' : 'transparent',
+                  boxShadow: themeProfileId === p.id ? '0 0 0 2px #fff, 0 0 0 4px var(--accent)' : 'none',
                 }}
               />
             ))}

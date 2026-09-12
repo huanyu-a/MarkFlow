@@ -1,8 +1,15 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
-import { THEMES, makeColors, type ThemeColors } from '@engine/composables/useTheme'
+import { makeColors, type ThemeColors } from '@engine/composables/useTheme'
 import { resolveTokens, type ResolvedTokens } from '@engine/tokens'
-import { THEME_PROFILES, getDefaultThemeProfile, getThemeProfile, resolveThemeProfile } from '@engine/themes'
+import {
+  THEME_PROFILES,
+  findProfileByColors,
+  getDefaultThemeProfile,
+  getThemeProfile,
+  resolveThemeProfile,
+  type ThemeProfile,
+} from '@engine/themes'
 import { DEFAULT_DOCUMENT_SETTINGS, type DocumentSettings } from '@/modes/document/documentModel'
 import type { FontFamilyOption } from '@/lib/fonts'
 import { createIdbStorage } from '@/lib/idbStorage'
@@ -78,11 +85,11 @@ const DEFAULT_IMAGE_HOST_CONFIG: ImageHostConfig = {
   activeType: 'local',
 }
 
-const DEFAULT_ACCENT = THEMES[3].accent
-const DEFAULT_DARK = THEMES[3].dark
+// 默认主题色取自默认主题风格（单一数据源：THEME_PROFILES）
+const DEFAULT_ACCENT = getDefaultThemeProfile().accent
+const DEFAULT_DARK = getDefaultThemeProfile().dark
 
 const MODE_STORAGE_KEY = 'm2v-mode'
-const THEME_STORAGE_KEY = 'm2v-theme'
 const DOCUMENT_SETTINGS_STORAGE_KEY = 'm2v-document-settings'
 const ARTICLE_FONT_KEY = 'm2v-article-font'
 const CARD_FONT_KEY = 'm2v-card-font'
@@ -125,19 +132,51 @@ export function getInitialAppStateFromLegacyKeys(): Partial<AppState> {
     } catch { /* ignore */ }
   }
 
-  const themeStr = localStorage.getItem(THEME_STORAGE_KEY)
-  if (themeStr) {
-    try {
-      const t = JSON.parse(themeStr)
-      if (t.accent && t.dark) {
-        state.accent = t.accent
-        state.accentDark = t.dark
-        state.colors = makeColors(t.accent, t.dark)
-      }
-    } catch { /* ignore */ }
-  }
+  // 说明：旧版 'm2v-theme' 主题色迁移路径已删除——该值自 zustand 化以来从未被
+  // 应用（死路径）；若此时补应用，会让 localStorage 中的陈旧主题色在每次加载时
+  // 覆盖 IndexedDB 中较新的持久化主题，反而引入回归。
 
   return state
+}
+
+/** reconcileTheme 的返回值 */
+export interface ReconciledTheme {
+  profileId: string
+  profile: ThemeProfile
+  accent: string
+  dark: string
+}
+
+/**
+ * 消解持久化状态中 accent/accentDark 与 themeProfileId 的冲突（纯函数，便于单测）。
+ *
+ * 背景：历史版本的「配色」Tab 允许单独改 accent 而不动 themeProfileId，导致
+ * 持久化的 accent 与 themeProfileId 各自演化、互不一致。恢复时按以下优先级消解：
+ *   1. 持久化 profile 与配色一致 → 原样使用该 profile；
+ *   2. 冲突 → 反查 THEME_PROFILES 中配色（accent+dark）完全匹配的 profile，
+ *      匹配到则切换到该 profile；
+ *   3. 匹配不到 → 置为 'custom'（排版轴沿用默认 profile，配色保留用户值）。
+ */
+export function reconcileTheme(
+  persistedProfileId: string | undefined,
+  accent: string,
+  dark: string,
+): ReconciledTheme {
+  // 'custom' 不是真实 profile id：排版轴回落默认 profile
+  const isCustom = persistedProfileId === 'custom'
+  const profile = isCustom
+    ? getDefaultThemeProfile()
+    : (getThemeProfile(persistedProfileId ?? '') ?? getDefaultThemeProfile())
+  let profileId = isCustom ? 'custom' : profile.id
+
+  if (profile.accent !== accent || profile.dark !== dark) {
+    const matched = findProfileByColors(accent, dark)
+    if (matched) {
+      return { profileId: matched.id, profile: matched, accent, dark }
+    }
+    profileId = 'custom'
+  }
+  return { profileId, profile, accent, dark }
 }
 
 export interface AiConfig {
@@ -206,7 +245,6 @@ export interface AppState {
   setArticleFont: (f: FontFamilyOption) => void
   setCardFont: (f: FontFamilyOption) => void
   restoreDocumentSettingsDemo: () => void
-  setTheme: (accent: string, dark: string) => void
   /** 切换主题风格（按 profile id），同步更新 accent/dark/colors/tokens */
   setThemeProfile: (id: string) => void
 }
@@ -311,10 +349,6 @@ export const useAppStore = create<AppState>()(
             },
           }
         }),
-      setTheme: (accent, dark) => {
-        applyCssVars(accent, dark)
-        set({ accent, accentDark: dark, colors: makeColors(accent, dark) })
-      },
       setThemeProfile: (id) => {
         const profile = getThemeProfile(id) ?? getDefaultThemeProfile()
         applyCssVars(profile.accent, profile.dark)
@@ -363,16 +397,15 @@ export const useAppStore = create<AppState>()(
           })
         }
 
-        // 恢复主题风格：优先用已持久化的 themeProfileId，否则回退到默认主题
-        const persistedProfileId = state.themeProfileId
-        const profile = persistedProfileId
-          ? (getThemeProfile(persistedProfileId) ?? getDefaultThemeProfile())
-          : getDefaultThemeProfile()
-        state.themeProfileId = profile.id
-        state.themeTokens = resolveTokens(resolveThemeProfile(profile))
-
-        state.colors = makeColors(state.accent, state.accentDark)
-        applyCssVars(state.accent, state.accentDark)
+        // 恢复主题：消解 accent 与 themeProfileId 的持久化冲突（accent 优先级更高：
+        // 它能反查到唯一 profile 则用该 profile，否则置为 custom）
+        const theme = reconcileTheme(state.themeProfileId, state.accent, state.accentDark)
+        state.themeProfileId = theme.profileId
+        state.themeTokens = resolveTokens(resolveThemeProfile(theme.profile))
+        state.accent = theme.accent
+        state.accentDark = theme.dark
+        state.colors = makeColors(theme.accent, theme.dark)
+        applyCssVars(theme.accent, theme.dark)
         state.customInstructions ??= []
         // 确保 aiConfig 正确恢复
         state.aiConfig = {

@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
   THEME_PROFILES,
   THEME_CATEGORIES,
+  findProfileByColors,
   getThemeProfile,
   getDefaultThemeProfile,
   getThemesByCategory,
@@ -10,13 +11,18 @@ import {
 import { resolveTokens } from './tokens'
 
 describe('THEME_PROFILES', () => {
-  it('应有 52 套主题', () => {
-    expect(THEME_PROFILES.length).toBe(52)
+  it('应有 60 套主题', () => {
+    expect(THEME_PROFILES.length).toBe(60)
   })
 
   it('每个主题 ID 唯一', () => {
     const ids = new Set(THEME_PROFILES.map((p) => p.id))
     expect(ids.size).toBe(THEME_PROFILES.length)
+  })
+
+  it('accent+dark 配色组合唯一（防止主题风格之间出现重复色）', () => {
+    const combos = THEME_PROFILES.map((p) => `${p.accent.toLowerCase()}|${p.dark.toLowerCase()}`)
+    expect(new Set(combos).size).toBe(combos.length)
   })
 
   it('每个主题都有必需字段', () => {
@@ -26,6 +32,8 @@ describe('THEME_PROFILES', () => {
       expect(p.category, `theme ${p.id}`).toBeTruthy()
       expect(p.accent, `theme ${p.id}`).toMatch(/^#[0-9a-fA-F]{6}$/)
       expect(p.dark, `theme ${p.id}`).toMatch(/^#[0-9a-fA-F]{6}$/)
+      // spacingScale 死轴已删除，不得回潮
+      expect(p, `theme ${p.id}`).not.toHaveProperty('spacingScale')
     }
   })
 
@@ -58,6 +66,12 @@ describe('getThemeProfile / getDefaultThemeProfile', () => {
   it('getDefaultThemeProfile 返回 default', () => {
     expect(getDefaultThemeProfile().id).toBe('default')
   })
+
+  it('findProfileByColors 按配色反查主题', () => {
+    expect(findProfileByColors('#27ae60', '#1e8449')?.id).toBe('default')
+    expect(findProfileByColors('#6c5ce7', '#5a4bd1')?.id).toBe('violet')
+    expect(findProfileByColors('#123456', '#654321')).toBeUndefined()
+  })
 })
 
 describe('resolveThemeProfile → resolveTokens', () => {
@@ -72,9 +86,17 @@ describe('resolveThemeProfile → resolveTokens', () => {
     expect(tokens.bodyFontSize).toMatch(/px$/)
     expect(tokens.bodyLineHeight).toBeTruthy()
     expect(tokens.radiusMap.lg).toMatch(/px$/)
-    expect(tokens.spacingMultiplier).toBeGreaterThan(0)
+    // spacingMultiplier 死轴已删除，ResolvedTokens 不再包含该字段
+    expect(tokens).not.toHaveProperty('spacingMultiplier')
     expect(tokens.quote.bg).toBeTruthy()
     expect(tokens.quote.borderRadius).toMatch(/px$/)
+  })
+
+  it('border-bg 风格的引用块开启 accentText，其余风格关闭', () => {
+    const borderBg = resolveTokens(resolveThemeProfile(getThemeProfile('elegant-gold')!))
+    expect(borderBg.quote.accentText).toBe(true)
+    const border = resolveTokens(resolveThemeProfile(getThemeProfile('default')!))
+    expect(border.quote.accentText).toBe(false)
   })
 
   it('headingScale 会缩放标题字号', () => {

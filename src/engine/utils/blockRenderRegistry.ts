@@ -566,7 +566,9 @@ const quoteRenderer: BlockRenderer = {
     // 根据主题 quoteStyle 决定引用块外观
     const quoteBg = tokens.quote.bg === 'transparent' ? 'transparent' : t.accent + '12'
     const quoteBorder = tokens.quote.bg === 'transparent' ? `3px solid ${t.accent}` : `1px solid ${t.accent}33`
-    let html = `<section style="margin:${spacing[6]} 0px;padding:${spacing[5]} ${spacing[7]};background:${quoteBg};border-left:${quoteBorder};border-radius:0px ${tokens.quote.borderRadius} ${tokens.quote.borderRadius} 0px;color:${neutral.gray700};font-size:${tokens.bodyFontSize}">`
+    // border-bg 风格（tokens.quote.accentText）下引用文字用主题色着色，与浅色背景形成层次
+    const quoteColor = tokens.quote.accentText ? t.accent : neutral.gray700
+    let html = `<section style="margin:${spacing[6]} 0px;padding:${spacing[5]} ${spacing[7]};background:${quoteBg};border-left:${quoteBorder};border-radius:0px ${tokens.quote.borderRadius} ${tokens.quote.borderRadius} 0px;color:${quoteColor};font-size:${tokens.bodyFontSize}">`
     ql.forEach((l) => {
       html += `<section><p style="margin:${spacing[1]} 0px;line-height:${lineHeight.loosest};text-align:justify;letter-spacing:${letterSpacing.wider}">${inlineFormat(l, t, formulaMap)}</p></section>`
     })

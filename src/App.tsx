@@ -83,8 +83,7 @@ export default function App() {
   const contentHydrated = useContentStore((s) => s.hasHydrated);
 
   const colors = useStore((s) => s.colors);
-  const accent = useStore((s) => s.accent);
-  const setTheme = useStore((s) => s.setTheme);
+  const themeProfileId = useStore((s) => s.themeProfileId);
   const setThemeProfile = useStore((s) => s.setThemeProfile);
   const mode = useStore((s) => s.mode);
   const cardAspect = useStore((s) => s.cardAspect);
@@ -212,8 +211,6 @@ export default function App() {
       <AppHeader
         mode={mode}
         setMode={setMode}
-        accent={accent}
-        setTheme={setTheme}
         setThemeProfile={setThemeProfile}
         onOpenMobileMenu={() => setIsMobileMenuOpen(true)}
         onWidthChange={handleWidthChange}
@@ -306,8 +303,8 @@ export default function App() {
         onClose={() => setIsMobileMenuOpen(false)}
         mode={mode}
         setMode={setMode}
-        accent={accent}
-        setTheme={setTheme}
+        themeProfileId={themeProfileId}
+        setThemeProfile={setThemeProfile}
         onTriggerGuide={() => triggerGuide(mode)}
         onOpenSettings={() => setIsSettingsOpen(true)}
         onOpenPrivacy={() => setIsPrivacyOpen(true)}

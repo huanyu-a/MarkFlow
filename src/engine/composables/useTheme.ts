@@ -9,24 +9,8 @@ export interface ThemeColors {
   rgb: string
 }
 
-/** 预设主题色（accent 主色 / dark 深色） */
-export const THEMES = [
-  { accent: '#6c5ce7', dark: '#5a4bd1' },
-  { accent: '#667eea', dark: '#536DFE' },
-  { accent: '#e74c3c', dark: '#c0392b' },
-  { accent: '#27ae60', dark: '#1e8449' },
-  { accent: '#f39c12', dark: '#e67e22' },
-  { accent: '#e84393', dark: '#d63384' },
-  { accent: '#00b894', dark: '#00a381' },
-  { accent: '#0984e3', dark: '#0769b5' },
-  { accent: '#fd79a8', dark: '#e84393' },
-  { accent: '#a29bfe', dark: '#6c5ce7' },
-  { accent: '#888888', dark: '#666666' },
-  { accent: '#000000', dark: '#1a1a1a' },
-  { accent: '#1e3a5f', dark: '#0f2744' },
-  { accent: '#722f37', dark: '#5a252c' },
-  { accent: '#556B2F', dark: '#3d4f1f' },
-]
+// 说明：预设主题色已并入 src/engine/themes.ts 的 THEME_PROFILES（主题 = 配色 + 排版轴），
+// 此处不再保留独立的 THEMES 色板，避免两套主题数据源各自演化。
 
 export function hexToRgb(hex: string): string {
   const r = parseInt(hex.slice(1, 3), 16)

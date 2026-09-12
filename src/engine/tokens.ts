@@ -235,14 +235,6 @@ export interface ResolvedTokens {
   }
   /** 主题化圆角映射 */
   radiusMap: Record<string, string>
-  /** 间距缩放（乘法器，renderer 按需使用） */
-  spacingMultiplier: number
-}
-
-function pxMult(pxStr: string, mult: number): string {
-  const n = parseFloat(pxStr)
-  if (Number.isNaN(n)) return pxStr
-  return `${Math.round(n * mult * 100) / 100}px`
 }
 
 /**
@@ -250,7 +242,6 @@ function pxMult(pxStr: string, mult: number): string {
  * 无 overrides 时返回与当前基础令牌一致的默认值（保持现状）。
  */
 export function resolveTokens(overrides?: ThemeTokenOverrides): ResolvedTokens {
-  const m = overrides?.spacingMultiplier ?? 1
   return {
     headingSizes: overrides?.headingSizes ?? {
       1: fontSize['6xl'],
@@ -279,14 +270,5 @@ export function resolveTokens(overrides?: ThemeTokenOverrides): ResolvedTokens {
       '3xl': radius['3xl'],
       '4xl': radius['4xl'],
     },
-    spacingMultiplier: m,
   }
-}
-
-/**
- * 把基础间距值按主题 spacingScale 等比缩放。
- * 供 renderer 按需调用：themeSpacing(spacing[7], tokens)
- */
-export function themeSpacing(base: string, tokens: ResolvedTokens): string {
-  return pxMult(base, tokens.spacingMultiplier)
 }

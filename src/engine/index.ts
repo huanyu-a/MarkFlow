@@ -14,10 +14,10 @@ export { extractMath, restoreMath } from './utils/math'
 export { renderCodeBlock } from './utils/codeBlock'
 export { components, componentMap, tagMap, type ComponentDef, unifiedComponents } from './editor-components'
 export {
-  THEMES,
   makeColors,
   hexToRgb,
   lightenHex,
   darkenHex,
   type ThemeColors,
 } from './composables/useTheme'
+export { findProfileByColors } from './themes'
