@@ -56,8 +56,11 @@ export function inlineFormat(text: string, t: ThemeColors, formulaMap?: Map<stri
       // 解析任意顺序的属性
       const typeMatch = attrString.match(/type="([^"]*)"/i)
       const textMatch = attrString.match(/text="([^"]*)"/i)
+      const titleMatch = attrString.match(/title="([^"]*)"/i)
       const type = typeMatch ? typeMatch[1] : 'info'
-      const displayText = textMatch ? textMatch[1] : type
+      // 缺 text 时回落 title（外部 AI 高频沿用 VuePress 旧写法 <badge type title>，
+      // 此前 title 被静默丢弃、显示 type 字面值）；两者都缺才显示 type
+      const displayText = textMatch ? textMatch[1] : titleMatch ? titleMatch[1] : type
       const colors = BADGE_COLORS[type.toLowerCase()] || BADGE_COLORS.info
       return `<span style="display:inline-block;padding:0 ${spacing[2]};margin:0 ${spacing[1]};border-radius:${radius.sm};font-size:${fontSize.xs};font-weight:${fontWeight.semibold};background:${colors.bg};color:${colors.fg};border:1px solid ${colors.border};line-height:1.6;vertical-align:middle">${leaf(displayText)}</span>`
     },

@@ -152,6 +152,19 @@ describe('inlineFormat - other markers', () => {
     expect(result).toContain('<em>')
     expect(result).toContain('斜体')
   })
+
+  it('<Badge text> 与旧写法 <badge title>：text 优先，缺 text 回落 title', () => {
+    // 主形态：text
+    expect(inlineFormat('<Badge type="tip" text="推荐" />', t)).toContain('<span leaf="">推荐</span>')
+    // 回归：外部 AI 高频沿用 VuePress 旧写法 title=，此前被静默丢弃显示 type 字面值
+    const byTitle = inlineFormat('<badge type="tip" title="旧写法" />', t)
+    expect(byTitle).toContain('<span leaf="">旧写法</span>')
+    expect(byTitle).not.toContain('>tip<')
+    // text 与 title 并写时 text 优先
+    expect(inlineFormat('<Badge type="info" title="弃" text="取" />', t)).toContain('<span leaf="">取</span>')
+    // 两者皆缺：回落 type 字面值（既有行为不变）
+    expect(inlineFormat('<Badge type="warning" />', t)).toContain('warning')
+  })
 })
 
 describe('inlineFormat - newlines', () => {
