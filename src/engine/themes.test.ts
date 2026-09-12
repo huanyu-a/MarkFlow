@@ -72,6 +72,12 @@ describe('getThemeProfile / getDefaultThemeProfile', () => {
     expect(findProfileByColors('#6c5ce7', '#5a4bd1')?.id).toBe('violet')
     expect(findProfileByColors('#123456', '#654321')).toBeUndefined()
   })
+
+  it('findProfileByColors 对大写 hex 也能反查（旧配色 Tab 持久化大写值，如优雅绿 #556B2F）', () => {
+    expect(findProfileByColors('#556B2F', '#3D4F1F')?.id).toBe('elegant-green')
+    expect(findProfileByColors('#27AE60', '#1E8449')?.id).toBe('default')
+    expect(findProfileByColors('', '')).toBeUndefined()
+  })
 })
 
 describe('resolveThemeProfile → resolveTokens', () => {

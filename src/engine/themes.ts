@@ -12,8 +12,6 @@
  *   - quoteStyle                                     引用块风格
  */
 
-import { hexToRgb } from './composables/useTheme'
-
 // ─── 类型 ──────────────────────────────────────────────
 
 export type HeadingColorMode = 'textPrimary' | 'accent' | 'dark'
@@ -76,7 +74,7 @@ export const THEME_CATEGORIES: ThemeCategory[] = [
   { id: 'dark', name: '暗色', description: '深色基底，视觉冲击与沉浸感' },
 ]
 
-// ─── 52 套主题 ────────────────────────────────────────
+// ─── 60 套主题 ────────────────────────────────────────
 
 export const THEME_PROFILES: ThemeProfile[] = [
   // ── 极简 (8) ──
@@ -178,9 +176,13 @@ export function getThemesByCategory(category: ThemeCategoryId): ThemeProfile[] {
   return THEME_PROFILES.filter((p) => p.category === category)
 }
 
-/** 按配色（accent+dark）反查主题，用于持久化状态恢复时消解 accent 与 profile 的冲突 */
+/** 按配色（accent+dark）反查主题，用于持久化状态恢复时消解 accent 与 profile 的冲突。
+ * 历史持久化值可能为大写 hex（如旧配色 Tab 的 #556B2F），比较前统一小写。 */
 export function findProfileByColors(accent: string, dark: string): ThemeProfile | undefined {
-  return THEME_PROFILES.find((p) => p.accent === accent && p.dark === dark)
+  if (!accent || !dark) return undefined
+  const a = accent.toLowerCase()
+  const d = dark.toLowerCase()
+  return THEME_PROFILES.find((p) => p.accent.toLowerCase() === a && p.dark.toLowerCase() === d)
 }
 
 // ─── resolveThemeProfile ───────────────────────────────
@@ -248,10 +250,4 @@ export function resolveThemeProfile(profile: ThemeProfile): ThemeTokenOverrides 
     blockAccentText,
     radiusMap: radiusPreset,
   }
-}
-
-// ─── 主题色工具（供 UI 层生成预览等） ──────────────────
-
-export function themeAccentRgb(accent: string): string {
-  return hexToRgb(accent)
 }

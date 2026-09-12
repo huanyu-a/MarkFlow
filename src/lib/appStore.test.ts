@@ -57,6 +57,13 @@ describe('reconcileTheme（持久化主题冲突消解）', () => {
     expect(r.dark).toBe('#445566')
   })
 
+  it('大写 hex 与 profile 冲突时仍能按配色反查（旧配色 Tab 持久化大写值）', () => {
+    const green = getThemeProfile('elegant-green')!
+    const r = reconcileTheme('default', green.accent.toUpperCase(), green.dark.toUpperCase())
+    expect(r.profileId).toBe('elegant-green')
+    expect(r.profile.id).toBe('elegant-green')
+  })
+
   it('持久化 profile id 无效：回落默认 profile，配色一致时不误判为 custom', () => {
     const def = getDefaultThemeProfile()
     const r = reconcileTheme('removed-profile-id', def.accent, def.dark)

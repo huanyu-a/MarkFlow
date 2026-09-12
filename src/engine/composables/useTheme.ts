@@ -19,25 +19,8 @@ export function hexToRgb(hex: string): string {
   return `${r},${g},${b}`
 }
 
-export function lightenHex(hex: string, factor: number): string {
-  const r = parseInt(hex.slice(1, 3), 16)
-  const g = parseInt(hex.slice(3, 5), 16)
-  const b = parseInt(hex.slice(5, 7), 16)
-  const lr = Math.round(r + (255 - r) * factor)
-  const lg = Math.round(g + (255 - g) * factor)
-  const lb = Math.round(b + (255 - b) * factor)
-  return '#' + ((1 << 24) + (lr << 16) + (lg << 8) + lb).toString(16).slice(1)
-}
-
-export function darkenHex(hex: string, factor: number): string {
-  const r = parseInt(hex.slice(1, 3), 16)
-  const g = parseInt(hex.slice(3, 5), 16)
-  const b = parseInt(hex.slice(5, 7), 16)
-  const dr = Math.round(r * (1 - factor))
-  const dg = Math.round(g * (1 - factor))
-  const db = Math.round(b * (1 - factor))
-  return '#' + ((1 << 24) + (dr << 16) + (dg << 8) + db).toString(16).slice(1)
-}
+// 说明：lightenHex/darkenHex 已删除——渲染实际使用的是 utils/helpers.ts 中的同名实现，
+// 这两个副本经 engine/index.ts 导出后无任何消费方。
 
 /** 根据主色与深色生成完整的 ThemeColors（供渲染引擎使用） */
 export function makeColors(accent: string, dark: string): ThemeColors {

@@ -1,6 +1,7 @@
 import { useEffect, type ReactNode } from 'react'
 import type { RenderMode } from '@/lib/store'
-import { THEME_PROFILES } from '@engine/themes'
+import { useStore } from '@/lib/store'
+import { THEME_CATEGORIES } from '@engine/themes'
 import { FileText, Book, ImageIcon, Palette, HelpCircle, Settings, RotateCcw, Shield, AiStar } from '@/components/ui/Icon'
 
 /** 抽屉内功能按钮统一样式 */
@@ -59,6 +60,9 @@ export function MobileDrawer({
   onRestoreDemo,
   onOpenAiTypeset,
 }: MobileDrawerProps) {
+  // 主题数据源与 header 主题面板一致：从 store 读取（含 reconcile 后的 profiles）
+  const themeProfiles = useStore((s) => s.themeProfiles)
+
   // 阻止背景滚动穿透
   useEffect(() => {
     if (isOpen) {
@@ -154,24 +158,34 @@ export function MobileDrawer({
           />
         </div>
 
-        {/* 主题风格切换（与 header 主题面板一致：点击整块切换主题） */}
+        {/* 主题风格切换（与 header 主题面板一致：按分类分组，点击色点切换主题） */}
         <div className="border-t border-slate-100 pt-5 mb-6">
           <div className="mb-3 text-[11px] font-bold text-slate-400 uppercase tracking-wider">切换主题风格</div>
-          <div className="grid grid-cols-5 gap-2 justify-items-center">
-            {THEME_PROFILES.map((p) => (
-              <button
-                key={p.id}
-                title={p.name}
-                onClick={() => setThemeProfile(p.id)}
-                className="h-8 w-8 rounded-full border transition-transform hover:scale-110 cursor-pointer flex items-center justify-center"
-                style={{
-                  background: `linear-gradient(135deg, ${p.accent} 0%, ${p.dark} 100%)`,
-                  borderColor: themeProfileId === p.id ? '#111' : 'transparent',
-                  boxShadow: themeProfileId === p.id ? '0 0 0 2px #fff, 0 0 0 4px var(--accent)' : 'none',
-                }}
-              />
-            ))}
-          </div>
+          {THEME_CATEGORIES.map((cat) => {
+            const profiles = themeProfiles.filter((p) => p.category === cat.id)
+            if (profiles.length === 0) return null
+            return (
+              <div key={cat.id} className="mb-3 last:mb-0">
+                <div className="mb-1.5 text-[11px] font-medium text-slate-400">{cat.name}</div>
+                <div className="grid grid-cols-8 gap-1.5 justify-items-center">
+                  {profiles.map((p) => (
+                    <button
+                      key={p.id}
+                      title={`${cat.name} · ${p.name}`}
+                      aria-label={`${cat.name} · ${p.name}`}
+                      onClick={() => setThemeProfile(p.id)}
+                      className="h-7 w-7 rounded-full border transition-transform hover:scale-110 cursor-pointer"
+                      style={{
+                        background: `linear-gradient(135deg, ${p.accent} 0%, ${p.dark} 100%)`,
+                        borderColor: themeProfileId === p.id ? '#111' : 'transparent',
+                        boxShadow: themeProfileId === p.id ? '0 0 0 2px #fff, 0 0 0 3px var(--accent)' : 'none',
+                      }}
+                    />
+                  ))}
+                </div>
+              </div>
+            )
+          })}
         </div>
 
         {/* 关于与外链 */}

@@ -169,7 +169,11 @@ export function reconcileTheme(
     : (getThemeProfile(persistedProfileId ?? '') ?? getDefaultThemeProfile())
   let profileId = isCustom ? 'custom' : profile.id
 
-  if (profile.accent !== accent || profile.dark !== dark) {
+  // hex 比较统一小写：历史持久化值可能为大写（如旧配色 Tab 的 #556B2F）
+  const accentLc = typeof accent === 'string' ? accent.toLowerCase() : ''
+  const darkLc = typeof dark === 'string' ? dark.toLowerCase() : ''
+
+  if (profile.accent.toLowerCase() !== accentLc || profile.dark.toLowerCase() !== darkLc) {
     const matched = findProfileByColors(accent, dark)
     if (matched) {
       return { profileId: matched.id, profile: matched, accent, dark }

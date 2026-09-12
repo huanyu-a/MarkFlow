@@ -16,8 +16,6 @@ export { components, componentMap, tagMap, type ComponentDef, unifiedComponents 
 export {
   makeColors,
   hexToRgb,
-  lightenHex,
-  darkenHex,
   type ThemeColors,
 } from './composables/useTheme'
 export { findProfileByColors } from './themes'
