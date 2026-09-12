@@ -528,5 +528,21 @@ describe('未闭合标签与容器降级（C-1/C-2）', () => {
     expect(html).toContain('后续正文行内容')
     expect(warnings.some((w) => w.includes('未闭合'))).toBe(true)
   })
+
+  it('未闭合 <cta> 多行标签：转义降级、正文存活、onWarning 上报', () => {
+    const warnings: string[] = []
+    const html = parseMarkdown('<cta title="行动标题" action="立即开始">\n正文第一行\n正文第二行', COLORS, undefined, undefined, (w) => warnings.push(w))
+    expect(html).toContain('&lt;cta')
+    expect(html).not.toContain('<cta title')
+    expect(html).toContain('正文第一行')
+    expect(warnings.some((w) => w.includes('<cta>') && w.includes('未闭合'))).toBe(true)
+  })
+
+  it('未闭合 :::cta 容器：定界符转义降级、正文存活、onWarning 上报', () => {
+    const warnings: string[] = []
+    const html = parseMarkdown(':::cta title="容器标题" action="按钮文案"\n正文行内容', COLORS, undefined, undefined, (w) => warnings.push(w))
+    expect(html).toContain('正文行内容')
+    expect(warnings.some((w) => w.includes(':::cta') && w.includes('未闭合'))).toBe(true)
+  })
 })
 

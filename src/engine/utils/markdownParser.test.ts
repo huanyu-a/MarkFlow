@@ -367,18 +367,23 @@ describe('parseMarkdown - 自定义标签未闭合容错（EOF 截断）', () =>
     expect(html).toContain('<steps>')
   })
 
-  it('未闭合 <cta> 标签不吞掉后续内容，回退为段落', () => {
+  it('未闭合 <cta> 标签：转义降级为普通文本、正文存活、onWarning 上报', () => {
+    // 第十轮契约更新：旧行为是字面 <cta 残留（浏览器可能把开标签当未知元素解析），
+    // 统一降级策略后定界符行 esc 转义并告警，正文逐行解析不变
     const md = '<cta title="行动召唤">\n按钮文案\n后续正常段落'
-    const html = parseMarkdown(md, colors)
+    const warnings: string[] = []
+    const html = parseMarkdown(md, colors, undefined, undefined, (w) => warnings.push(w))
     expect(html).toContain('后续正常段落')
-    expect(html).toContain('<cta title="行动召唤">')
+    expect(html).toContain('&lt;cta title')
+    expect(warnings.some((w) => w.includes('<cta>') && w.includes('未闭合'))).toBe(true)
   })
 
-  it('未闭合 ::: cta 容器不吞掉后续内容，回退为段落', () => {
+  it('未闭合 ::: cta 容器：定界符降级、正文存活、onWarning 上报', () => {
     const md = '::: cta\n按钮文案\n后续正常段落'
-    const html = parseMarkdown(md, colors)
+    const warnings: string[] = []
+    const html = parseMarkdown(md, colors, undefined, undefined, (w) => warnings.push(w))
     expect(html).toContain('后续正常段落')
-    expect(html).toContain('::: cta')
+    expect(warnings.some((w) => w.includes(':::cta') || (w.includes('cta') && w.includes('未闭合')))).toBe(true)
   })
 
   it('未闭合 <compare> 不吞掉后续内容，回退为段落', () => {

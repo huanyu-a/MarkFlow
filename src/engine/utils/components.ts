@@ -1,5 +1,5 @@
 import type { ThemeColors } from '../composables/useTheme'
-import { esc, leaf, parseAttrs } from './helpers'
+import { esc, leaf, parseAttrs, unclosedTagFallback } from './helpers'
 import { inlineFormat } from './inlineFormat'
 import { color, fontSize, fontWeight, letterSpacing, lineHeight, neutral, radius, shadowRaw, spacing } from '../tokens'
 import { CTA_DA01 } from '@engine/editor-components/Cta_DA01'
@@ -53,13 +53,17 @@ export function parseCtaBlock(
   lines: string[],
   start: number,
   t: ThemeColors,
-): { html: string; next: number } | null {
+): { html: string; next: number; warning?: string } | null {
   let i = start
   const attrs = parseAttrs(lines[i])
   i++
   while (i < lines.length && !/^:::\s*$/.test(lines[i])) i++
-  // 未闭合 ::: 容器：不吞掉后续内容，回退为普通段落
-  if (i >= lines.length) return null
+  // 未闭合 :::cta：消费定界符行（转义段落），后续各行交主循环逐行解析（正文不丢），
+  // 并经 warning 通道上报——与 :::tip/:::table 等容器的未闭合降级策略统一
+  if (i >= lines.length) {
+    const fb = unclosedTagFallback(lines[start], ':::cta 容器未闭合，后续内容按普通文本解析')
+    return { html: fb.html, next: start + 1, warning: fb.warning }
+  }
   i++
   // 按钮文案三条路径统一为 action 优先（CTA_DA01 主属性名），button 旧写法兼容
   const btnText = attrs.action || attrs.button
@@ -78,7 +82,7 @@ export function parseCtaTag(
   lines: string[],
   start: number,
   t: ThemeColors,
-): { html: string; next: number } | null {
+): { html: string; next: number; warning?: string } | null {
   let i = start
   const openMatch = lines[i].match(/<cta\s*(.*)>/)
   const attrs = openMatch && openMatch[1] ? parseAttrs(openMatch[1]) : {}
@@ -88,49 +92,14 @@ export function parseCtaTag(
     body += lines[i] + '\n'
     i++
   }
-  // 未闭合 <cta>：不吞掉后续内容，回退为普通段落
-  if (i >= lines.length) return null
+  // 未闭合 <cta>：消费开标签行（转义段落），后续各行交主循环逐行解析（正文不丢），
+  // 并经 warning 通道上报，与 :::cta 容器未闭合策略一致
+  if (i >= lines.length) {
+    const fb = unclosedTagFallback(lines[start], '<cta> 未闭合，已降级为普通文本')
+    return { html: fb.html, next: start + 1, warning: fb.warning }
+  }
   i++
   return { html: CTA_DA01.render(attrs, body, t), next: i }
-}
-
-export function parseBreaking(
-  lines: string[],
-  start: number,
-  t: ThemeColors,
-): { html: string; next: number } | null {
-  let i = start
-  const openMatch = lines[i].match(/<breaking\s*(.*)>/)
-  const attrs = openMatch && openMatch[1] ? parseAttrs(openMatch[1]) : {}
-  i++
-  let body = ''
-  while (i < lines.length && !/^<\/breaking>/.test(lines[i])) {
-    body += lines[i] + '\n'
-    i++
-  }
-  // 未闭合 <breaking>：不吞掉后续内容，回退为普通段落
-  if (i >= lines.length) return null
-  i++
-  const color = attrs.color || t.accent
-  let html = `<section style="margin:24px 0px;padding:28px 24px;background:linear-gradient(135deg,${t.light},rgba(255,255,255,0.8));border:1px solid ${t.border};border-radius:16px;position:relative;overflow:hidden">`
-  html += `<section style="position:absolute;top:-20px;right:-20px;width:100px;height:100px;background:${t.light};border-radius:50%;opacity:0.5"></section>`
-  if (attrs.badge)
-    html += `<span style="display:inline-block;padding:4px 12px;background:${color};color:rgb(255,255,255);border-radius:6px;font-size:11px;font-weight:700;letter-spacing:1px;margin-bottom:12px">${leaf(attrs.badge)}</span>`
-  if (attrs.title)
-    html += `<p style="margin:0px 0px 8px;font-size:22px;font-weight:800;color:rgb(26,26,26);line-height:1.4">${leaf(attrs.title)}</p>`
-  if (attrs.subtitle)
-    html += `<p style="margin:0px 0px 12px;font-size:14px;color:rgb(102,102,102)">${leaf(attrs.subtitle)}</p>`
-  if (attrs.chips) {
-    html += `<section style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">`
-    attrs.chips.split('|').forEach((c) => {
-      html += `<span style="display:inline-block;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:600;background:rgba(255,255,255,0.8);color:${color};border:1px solid ${t.border}">${leaf('#' + c.trim())}</span>`
-    })
-    html += `</section>`
-  }
-  if (body.trim())
-    html += `<section style="font-size:14px;color:rgb(85,85,85);line-height:1.8;letter-spacing:0.5px;text-align:justify;margin-top:8px">${inlineFormat(body.trim(), t)}</section>`
-  html += `</section>`
-  return { html, next: i }
 }
 
 export function parseCtaInline(
