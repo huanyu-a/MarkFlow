@@ -245,7 +245,8 @@ export function parseMarkdown(
   }
 
   const renderers = createDefaultBlockRenderers()
-  const ctx: BlockRenderContext = { t, tokens: resolvedTokens, tokensRaw, md, formulaMap, mermaidMap, pTitleLevel1List, parseMarkdownFn: (md_, t_, fm, mm) => parseMarkdown(md_, t_, fm, mm, onWarning, resolvedTokens) }
+  // codeStore 透传给需要围栏原文的容器组件（如 :::code-block，见 BlockRenderContext 注释）
+  const ctx: BlockRenderContext = { t, tokens: resolvedTokens, tokensRaw, md, formulaMap, mermaidMap, codeStore, pTitleLevel1List, parseMarkdownFn: (md_, t_, fm, mm) => parseMarkdown(md_, t_, fm, mm, onWarning, resolvedTokens) }
 
   while (i < lines.length) {
     const line = lines[i]

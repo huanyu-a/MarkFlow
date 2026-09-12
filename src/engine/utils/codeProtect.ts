@@ -66,6 +66,29 @@ export function protectCode(md: string): { text: string; store: CodeStore } {
 }
 
 /**
+ * 将代码占位符还原为「围栏 / 反引号原文」文本（而非最终 HTML）。
+ *
+ * 供 :::code-block 这类需要看到围栏源文、自行做高亮与行标注的容器组件使用：
+ * 若占位符原样进入这类组件，renderCodeBlock 内部的 hljs 会剥掉私有区字符，
+ * 出口 restoreCode 再也匹配不上 token，导致代码内容整体丢失。
+ */
+export function restoreCodePlaceholdersToText(text: string, store: CodeStore): string {
+  let out = text
+  for (let i = 0; i < store.entries.length; i++) {
+    const entry = store.entries[i]
+    const token = entry.type === 'block'
+      ? `${BLOCK_OPEN}B${i}${BLOCK_CLOSE}`
+      : `${INLINE_OPEN}I${i}${INLINE_CLOSE}`
+    // block 的 lang 即 protectCode 保存的 info 首词（可能含 {2,4-5} 行标注后缀），原样回写
+    const replacement = entry.type === 'block'
+      ? '```' + entry.lang + '\n' + entry.code + '\n```'
+      : '`' + entry.code + '`'
+    out = out.split(token).join(replacement)
+  }
+  return out
+}
+
+/**
  * 将占位符还原为渲染后的代码 HTML。
  * 先处理被 <p> 包裹的块级占位符，再处理裸占位符。
  */

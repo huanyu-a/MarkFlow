@@ -12,7 +12,8 @@
  */
 
 import type { BlockRenderer } from '../utils/blockRenderRegistry'
-import { parseAttrs, leaf } from '../utils/helpers'
+import { parseAttrs, leaf, unclosedTagFallback } from '../utils/helpers'
+import { restoreCodePlaceholdersToText } from '../utils/codeProtect'
 import {
   parseFields,
   parseRows,
@@ -32,6 +33,12 @@ export interface UnifiedComponentSpec {
   bodyFormat: UnifiedBodyFormat
   example: string
   fields?: { name: string; required: boolean; description: string }[]
+  /**
+   * 组件 render 依赖 ``` 围栏原文（如 code-block 的围栏语言 + {行标注} 解析）。
+   * markdownParser 的 protectCode 会在容器解析前把围栏换成占位符，置 true 时
+   * buildUnifiedRenderer 会在调用 render 前用 ctx.codeStore 把占位符还原为围栏原文。
+   */
+  needsFenceSource?: boolean
 }
 
 export interface ParsedBody {
@@ -93,6 +100,14 @@ export function buildUnifiedRenderer(def: UnifiedComponentDef): BlockRenderer {
     render: (ctx, line, lines, i) => {
       const headerMatch = line.match(/^:::\s*\S+\s*(.*)/)
       const attrs = headerMatch?.[1]?.trim() ? parseAttrs(headerMatch[1]) : {}
+      // needsFenceSource：markdownParser 的 protectCode 已在容器解析前把 ``` 围栏
+      // 换成占位符，依赖围栏原文的组件（如 :::code-block 的 lang{2,4-5} 行标注解析）
+      // 需先把占位符还原为围栏文本，否则 renderCodeBlock 内部 hljs 会剥掉私有区字符，
+      // 出口 restoreCode 匹配不上，导致代码内容整体丢失（C-4 实测结论）
+      const prepareBody = (raw: string): string =>
+        def.spec.needsFenceSource && ctx.codeStore
+          ? restoreCodePlaceholdersToText(raw, ctx.codeStore)
+          : raw
       const bodyLines: string[] = []
       let j = i + 1
       const MAX = 80
@@ -100,7 +115,7 @@ export function buildUnifiedRenderer(def: UnifiedComponentDef): BlockRenderer {
         bodyLines.push(lines[j])
         j++
         if (j - i > MAX) {
-          const rawBody = bodyLines.join('\n').trim()
+          const rawBody = prepareBody(bodyLines.join('\n').trim())
           return {
             html: def.render(attrs, rawBody, parseBody(rawBody, def.spec.bodyFormat), ctx.t),
             next: j,
@@ -108,8 +123,13 @@ export function buildUnifiedRenderer(def: UnifiedComponentDef): BlockRenderer {
           }
         }
       }
-      if (j >= lines.length) return null
-      const rawBody = bodyLines.join('\n').trim()
+      // EOF 未闭合：只消费 ::: 定界符行（转义段落），容器体各行交主循环逐行解析（正文不丢），
+      // 并经 warning 通道上报——return null 会让 meta.warnings 链路无从感知降级
+      if (j >= lines.length) {
+        const fb = unclosedTagFallback(line, `:::${def.spec.name} 容器未闭合，后续内容按普通文本解析`)
+        return { html: fb.html, next: i + 1, warning: fb.warning }
+      }
+      const rawBody = prepareBody(bodyLines.join('\n').trim())
       try {
         const html = def.render(attrs, rawBody, parseBody(rawBody, def.spec.bodyFormat), ctx.t)
         // bodyWarning：组件级格式降级警告（如缺列被忽略的行），经 onWarning 上报

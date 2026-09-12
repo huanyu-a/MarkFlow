@@ -13,6 +13,7 @@
  */
 import { describe, it, expect } from 'vitest'
 import { parseMarkdown } from './markdownParser'
+import { parseLangLineRanges } from './codeBlock'
 import { makeColors } from '../index'
 import { layoutModuleSpecs } from '../layout-modules'
 import { LAYOUT_EXAMPLES, fallbackExample } from '@/components/extension/data'
@@ -428,6 +429,92 @@ describe('用户上报用法回归', () => {
     // GFM 表注特征：tfoot 中 11px 灰色小字
     expect(html).toMatch(/<tfoot>.*font-size:11px;color:#94a3b8/)
     expect(html).toContain('紧接的正文被当作注释')
+  })
+
+  it(':::code-block 官方示例：protectCode 占位符还原后单框渲染、行标注生效（C-4 疑云排除）', () => {
+    // 疑云验证：markdownParser 的 protectCode 先于容器解析把 body 内 ``` 围栏换成占位符，
+    // 此前 CodeBlock_DA01.render 的 codeMatch 永失配，出口 restoreCode 又把占位符还原成
+    // 完整 code section 嵌进外层 <pre>（双框），行内 // [!code focus] 标注全部失效。
+    const example = CodeBlock_DA01.spec.example
+    const html = render(example)
+    // 1. 单框：整个产物只允许一个 data-block="code" section（容器外套 + 出口还原 = 双框即 >1）
+    expect((html.match(/data-block="code"/g) || []).length).toBe(1)
+    // 2. 无占位符残渣：私有区字符 \uE002/\uE003 不得出现在产物（此前 B0 字面残留）
+    expect(html).not.toContain('\uE002')
+    expect(html).not.toContain('\uE003')
+    expect(html).not.toMatch(/<span[^>]*>B0<\/span>/)
+    // 3. 代码内容真实进入高亮区（而非被剥成空 <pre>）
+    expect(html).toContain('function')
+    expect(html).toContain('console')
+    // 4. 行内注释行标注生效（[!code focus] 特征样式：rgba(56,139,253) 背景）
+    expect(html).toContain('rgba(56,139,253')
+    expect(html).toContain('rgba(255,235,59')  // [!code highlight]
+    // 5. 容器头部 title 与语言徽标保留
+    expect(html).toContain('示例')
+  })
+
+  it('裸围栏 ```js{2,4} 与 :::code-block 的 {行号} 范围高亮生效（C-4 附带能力）', () => {
+    // 围栏 info 中的 {2,4} 行号标注：无行内注释的行按 highlight 样式高亮
+    const html = render('```js{2,4}\nconst a = 1\nconst b = 2\nconst c = 3\nconst d = 4\n```')
+    // highlight 特征样式计数：行 2 与行 4 各一次
+    expect((html.match(/rgba\(255,235,59,0\.14\)/g) || []).length).toBe(2)
+    // 行内容仍在（注意 hljs 会把 const 拆成独立 span，探针取「 b = 」避免误判）
+    expect(html).toContain(' b = ')
+    expect(html).toContain(' d = ')
+  })
+
+  it('parseLangLineRanges 解析围栏行号标注（单元测试）', () => {
+    expect([...parseLangLineRanges('js{2,4-5}')]).toEqual([1, 3, 4])
+    expect(parseLangLineRanges('js').size).toBe(0)
+    expect([...parseLangLineRanges('python{10-11}')]).toEqual([9, 10])
+    // 颠倒区间 / 超界防御
+    expect(parseLangLineRanges('js{5-2}').size).toBe(0)
+    expect(parseLangLineRanges('js{99999}').size).toBe(0)
+  })
+})
+
+// ── E. 未闭合标签 / 容器降级（C-1 / C-2 回归契约） ─────────────
+
+describe('未闭合标签与容器降级（C-1/C-2）', () => {
+  it('未闭合 <title>：定界符行转义（防 RCDATA 吞文）、正文逐行存活、onWarning 上报', () => {
+    const warnings: string[] = []
+    const html = parseMarkdown('<title>未闭合\n正文第一行内容\n正文第二行内容', COLORS, undefined, undefined, (w) => warnings.push(w))
+    expect(html).toContain('&lt;title')
+    expect(html).not.toContain('<title>未闭合')
+    expect(html).toContain('正文第一行内容')
+    expect(html).toContain('正文第二行内容')
+    expect(warnings.some((w) => w.includes('未闭合'))).toBe(true)
+  })
+
+  it('未闭合 <p-title>：定界符行转义、正文逐行存活、onWarning 上报', () => {
+    const warnings: string[] = []
+    const html = parseMarkdown('<p-title>未闭合\n正文第一行内容\n正文第二行内容', COLORS, undefined, undefined, (w) => warnings.push(w))
+    expect(html).toContain('&lt;p-title')
+    expect(html).not.toContain('<p-title>未闭合')
+    expect(html).toContain('正文第一行内容')
+    expect(html).toContain('正文第二行内容')
+    expect(warnings.some((w) => w.includes('未闭合'))).toBe(true)
+  })
+
+  it('未闭合 :::tip：onWarning 上报「未闭合」且容器体按普通文本逐行解析', () => {
+    const warnings: string[] = []
+    const html = parseMarkdown(':::tip\n容器内正文第一行\n容器内正文第二行', COLORS, undefined, undefined, (w) => warnings.push(w))
+    expect(html).toContain('容器内正文第一行')
+    expect(html).toContain('容器内正文第二行')
+    expect(warnings.some((w) => w.includes(':::tip') && w.includes('未闭合'))).toBe(true)
+  })
+
+  it('未闭合 :::table：onWarning 上报「未闭合」且表体行仍存活', () => {
+    const warnings: string[] = []
+    parseMarkdown(':::table\n| 列A | 列B |\n| --- | --- |\n| 甲 | 乙 |', COLORS, undefined, undefined, (w) => warnings.push(w))
+    expect(warnings.some((w) => w.includes(':::table') && w.includes('未闭合'))).toBe(true)
+  })
+
+  it('未闭合 $$：onWarning 上报「未闭合」且后续正文存活', () => {
+    const warnings: string[] = []
+    const html = parseMarkdown('$$\n\\int_0^1 x^2 \\,dx\n后续正文行内容', COLORS, undefined, undefined, (w) => warnings.push(w))
+    expect(html).toContain('后续正文行内容')
+    expect(warnings.some((w) => w.includes('未闭合'))).toBe(true)
   })
 })
 

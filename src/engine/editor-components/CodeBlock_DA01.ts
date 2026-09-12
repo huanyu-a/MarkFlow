@@ -21,6 +21,9 @@
  *   lang         - 语言（js/ts/python/css/html/bash/json/md）
  *   title        - 标题
  *   line-numbers - 启用行号（写任意值即启用）
+ *
+ * 注意：aiGuide 未宣传 :::code-block 容器（维持 guide 最小面原则，标准围栏已够用），
+ * 本组件为组件面板 / 工具栏专用。
  */
 import { renderCodeBlock } from '@engine/utils/codeBlock'
 import { radius, spacing } from '@engine/tokens'
@@ -31,6 +34,9 @@ export const CodeBlock_DA01: UnifiedComponentDef = {
     name: 'code-block',
     label: '代码块',
     bodyFormat: 'markdown',
+    // 本组件 render 依赖围栏原文（lang{2,4-5} 行标注解析），
+    // 声明 needsFenceSource 让 buildUnifiedRenderer 在 render 前还原 protectCode 占位符
+    needsFenceSource: true,
     example: `:::code-block lang="js" title="示例" line-numbers
 \`\`\`js{2,4-5}
 function hello(name) {

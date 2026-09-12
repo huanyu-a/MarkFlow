@@ -1,7 +1,8 @@
 import type { ThemeColors } from '../composables/useTheme'
-import { esc, leaf, parseAttrs, safeUrl } from './helpers'
+import { esc, leaf, parseAttrs, safeUrl, unclosedTagFallback } from './helpers'
 import { inlineFormat } from './inlineFormat'
 import { renderCodeBlock } from './codeBlock'
+import type { CodeStore } from './codeProtect'
 import { getCachedImageUrl } from '@/lib/editor/imageStorage'
 import { color, fontSize, fontWeight, letterSpacing, lineHeight, neutral, radius, shadowRaw, spacing, type ResolvedTokens } from '../tokens'
 import {
@@ -39,6 +40,12 @@ export interface BlockRenderContext {
   md: string
   formulaMap?: Map<string, string>
   mermaidMap?: Map<string, { svg: string; error?: string }>
+  /**
+   * protectCode 生成的代码占位符还原表。
+   * parseMarkdown 在容器解析前已把 ``` 围栏替换为块级占位符， :::code-block 等
+   * 需要看到围栏原文的组件可经此取回原始代码（可选字段，外部直接构造 ctx 时可缺省）
+   */
+  codeStore?: CodeStore
   pTitleLevel1List: Array<{ num: string; title: string; subtitle: string }>
   parseMarkdownFn?: (md: string, t: ThemeColors, formulaMap?: Map<string, string>, mermaidMap?: Map<string, { svg: string; error?: string }>, tokens?: ResolvedTokens) => string
 }
@@ -282,7 +289,12 @@ const hintContainerRenderer: BlockRenderer = {
       contentLines.push(lines[j])
       j++
     }
-    if (j >= lines.length) return null // 未闭合
+    if (j >= lines.length) {
+      // 未闭合：只消费定界符行（转义为普通段落），容器体各行交主循环逐行解析（正文不丢），
+      // 并通过 warning 通道上报——return null 会让调用方（meta.warnings 链路）无从感知降级
+      const fb = unclosedTagFallback(line, `:::${type} 容器未闭合，后续内容按普通文本解析`)
+      return { html: fb.html, next: i + 1, warning: fb.warning }
+    }
     const body = contentLines.join('\n').trim()
 
     // 渲染容器正文：优先用 parseMarkdownFn（完整 markdown），否则用 inlineFormat
@@ -329,7 +341,11 @@ const tableContainerRenderer: BlockRenderer = {
       contentLines.push(lines[j])
       j++
     }
-    if (j >= lines.length) return null
+    if (j >= lines.length) {
+      // 未闭合：只消费 :::table 定界符行（转义段落），表格体各行交主循环逐行解析（正文不丢）
+      const fb = unclosedTagFallback(line, ':::table 容器未闭合，后续内容按普通文本解析')
+      return { html: fb.html, next: i + 1, warning: fb.warning }
+    }
 
     // 解析 ::: header 中的属性
     const attrs: Record<string, string> = {}
@@ -480,8 +496,11 @@ const titleRenderer: BlockRenderer = {
     }
     const titleMatch = block.match(/^<title\b([^>]*)>([\s\S]*?)<\/title>/)
     if (!titleMatch) {
-      // 未闭合：回退为普通段落渲染，避免吞掉后续内容
-      return null
+      // 未闭合：只降级当前行为转义段落并消费一行（后续行仍由主循环逐行解析，正文不丢）。
+      // 不能直接透传字面 `<title>`——浏览器把正文中的 <title 当 RCDATA 起始，
+      // 会吞掉其后直至 </title> / 文档末尾的全部内容（esc 后为 &lt;title，不再触发）
+      const fb = unclosedTagFallback(lines[i], '<title> 未闭合，已降级为纯文本')
+      return { html: fb.html, next: i + 1, warning: fb.warning }
     }
     let html = ''
     const attrs = parseAttrs(titleMatch[1])
@@ -508,8 +527,9 @@ const pTitleRenderer: BlockRenderer = {
     }
     const ptMatch = block.match(/^<p-title\b([^>]*)>([\s\S]*?)<\/p-title>/)
     if (!ptMatch) {
-      // 未闭合：回退为普通段落渲染，避免吞掉后续内容
-      return null
+      // 未闭合：只降级当前行为转义段落并消费一行（同 titleRenderer，防 RCDATA 吞文）
+      const fb = unclosedTagFallback(lines[i], '<p-title> 未闭合，已降级为纯文本')
+      return { html: fb.html, next: i + 1, warning: fb.warning }
     }
     const attrs = parseAttrs(ptMatch[1])
     const body = ptMatch[2].trim()
@@ -710,9 +730,13 @@ const blockFormulaRenderer: BlockRenderer = {
       j++
     }
     // 未找到配对的闭合 $$：不把剩余全文吞进一个公式块，
-    // return null 让该行落入普通段落渲染（与 extractBlock / hintContainerRenderer
-    // 未闭合降级的处理哲学一致，正文不丢失）
-    if (j >= lines.length) return null
+    // 只消费当前 $$ 定界符行（转义段落，unclosedTagFallback），公式体各行交主循环
+    // 逐行解析（正文不丢），并经 warning 通道上报——return null 虽同样不丢正文，
+    // 但定界符字面残留且调用方（meta.warnings 链路）无从感知降级
+    if (j >= lines.length) {
+      const fb = unclosedTagFallback(line, '$$ 公式块未闭合，后续内容按普通文本解析')
+      return { html: fb.html, next: i + 1, warning: fb.warning }
+    }
     j++
     const formula = formulaLines.join('\n').trim()
     return {

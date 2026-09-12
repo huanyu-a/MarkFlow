@@ -135,7 +135,9 @@ const CALLOUT_SECTION = `## 三、提示框（Callout）
 > [TIP] 这里是标题
 > 这里是提示框正文内容
 
-可用类型：[TIP] / [NOTE] / [INFO] / [WARNING] / [CAUTION] / [IMPORTANT]`;
+可用类型：[TIP] / [NOTE] / [INFO] / [WARNING] / [CAUTION] / [IMPORTANT]
+
+注意：提示框本身用引用块（每行以 > 开头）书写；但 ${bt(':::')} 容器与 ${bt('<标签>')} 组件必须顶格书写（行首不留 \`${bt('>')}\`），不能嵌套在引用块（${bt('>')} 行）内，否则系统不识别，会当作普通文字残留。`;
 
 const MATH_SECTION = `## 五、数学公式（KaTeX）
 

@@ -4,6 +4,7 @@
 
 import type { BlockRenderer, BlockRenderContext } from '../utils/blockRenderRegistry'
 import type { LayoutModuleSpec } from './types'
+import { unclosedTagFallback } from '../utils/helpers'
 import {
   parseFields,
   parseRows,
@@ -20,11 +21,20 @@ export interface LayoutBody {
   markdown: string
 }
 
+/** 容器解析结果；eof=true 表示扫描到文档末尾仍未找到闭合 ::: */
+export interface ExtractedModule {
+  body: string
+  next: number
+  warning?: string
+  /** EOF 未闭合标记：调用方应只消费定界符行并降级为普通文本（正文交主循环逐行解析） */
+  eof?: boolean
+}
+
 /** 解析 :::module 容器 body 为统一结构 */
 export function extractModuleBody(
   lines: string[],
   start: number,
-): { body: string; next: number; warning?: string } | null {
+): ExtractedModule | null {
   const line = lines[start]
   const openMatch = line.match(/^:::\s*\S+\b(.*)$/)
   if (!openMatch) return null
@@ -40,7 +50,8 @@ export function extractModuleBody(
       return { body: collected.join('\n').trim(), next: i, warning: `模块未闭合，已扫描 ${MAX} 行` }
     }
   }
-  if (i >= lines.length) return null // 未闭合，回退
+  // 未闭合：不再 return null（会让调用方丢弃告警），改为标记 eof 并只回退「消费定界符行」
+  if (i >= lines.length) return { body: '', next: start + 1, eof: true }
   return { body: collected.join('\n').trim(), next: i + 1 }
 }
 
@@ -75,6 +86,12 @@ export function buildModuleRenderer(
       // 行内标题 :::module[标题] — 收集 body
       const extracted = collectModuleContainer(lines, i)
       if (!extracted) return null
+      // EOF 未闭合：只消费定界符行（转义段落），容器体各行交主循环逐行解析（正文不丢），
+      // 并经 warning 通道上报——return null 会让 meta.warnings 链路无从感知降级
+      if (extracted.eof) {
+        const fb = unclosedTagFallback(lines[i], `${spec.name} 模块容器未闭合，后续内容按普通文本解析`)
+        return { html: fb.html, next: extracted.next, warning: fb.warning }
+      }
       const layoutBody = parseBody(extracted.body, spec.bodyFormat)
       const html = renderFn(layoutBody, ctx, extracted.body)
       // 未闭合截断告警优先；否则走模块级格式降级告警（如缺列行被忽略）
@@ -92,7 +109,7 @@ export function buildModuleRenderer(
 function collectModuleContainer(
   lines: string[],
   start: number,
-): { body: string; next: number; warning?: string } | null {
+): ExtractedModule | null {
   // start 行是 :::module[title] 或 :::module key=val 等形式
   // 从 start+1 开始收集，到独立行 ::: 结束
   const collected: string[] = []
@@ -105,7 +122,8 @@ function collectModuleContainer(
       return { body: collected.join('\n').trim(), next: i, warning: `模块未闭合，已扫描 ${MAX} 行` }
     }
   }
-  if (i >= lines.length) return null
+  // 未闭合（EOF）：标记 eof，由调用方消费定界符行并降级为普通文本
+  if (i >= lines.length) return { body: '', next: start + 1, eof: true }
   return { body: collected.join('\n').trim(), next: i + 1 }
 }
 

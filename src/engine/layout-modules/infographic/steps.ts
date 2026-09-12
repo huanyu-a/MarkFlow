@@ -13,6 +13,7 @@
 import type { BlockRenderer, BlockRenderContext } from '../../utils/blockRenderRegistry'
 import type { LayoutBody } from '../buildRenderer'
 import { extractModuleBody, parseBody, renderMarkdownBody, esc } from '../buildRenderer'
+import { unclosedTagFallback } from '../../utils/helpers'
 import type { LayoutModule } from '../types'
 
 function render(body: LayoutBody, ctx: BlockRenderContext): string {
@@ -51,6 +52,11 @@ export const stepsModule: LayoutModule = {
     render: (ctx: BlockRenderContext, _line: string, lines: string[], i: number) => {
       const extracted = extractModuleBody(lines, i)
       if (!extracted) return null
+      // EOF 未闭合：只消费定界符行（转义段落），后续各行交主循环逐行解析（正文不丢），并上报告警
+      if (extracted.eof) {
+        const fb = unclosedTagFallback(lines[i], ':::steps 模块容器未闭合，后续内容按普通文本解析')
+        return { html: fb.html, next: extracted.next, warning: fb.warning }
+      }
       // 防御：任一内容行缺少 `|` 管道分隔即视为格式错误，整体降级为段落渲染
       const contentLines = extracted.body.split('\n').filter((l) => l.trim())
       const malformed =

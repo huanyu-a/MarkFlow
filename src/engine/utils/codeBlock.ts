@@ -145,18 +145,48 @@ const ANN_STYLES: Record<string, string> = {
   focus: `${ANN_BASE}background:rgba(56,139,253,0.1);border-left-color:#388bfd;`,
 }
 
-function wrapAnnotatedLines(highlightedHtml: string, annotations: Map<number, LineAnnotation>): string {
-  if (annotations.size === 0) return highlightedHtml
+/**
+ * 解析围栏 info 字符串中的行号范围标注，如 `js{2,4-5}` → {1,3,4}（0 基行索引）。
+ * 供 codeBlockRenderer（裸围栏）与 :::code-block 组件共用，落实组件源码注释中
+ * 承诺的「括号内数字高亮指定行」语义（此前该后缀只被 cleanLang 剥掉、从未生效）。
+ */
+export function parseLangLineRanges(lang: string): Set<number> {
+  const ranges = new Set<number>()
+  const m = lang.match(/\{([0-9,\-\s]+)\}/)
+  if (!m) return ranges
+  for (const part of m[1].split(',')) {
+    const s = part.trim()
+    if (!s) continue
+    const range = s.match(/^(\d+)\s*-\s*(\d+)$/)
+    if (range) {
+      const from = parseInt(range[1], 10)
+      const to = parseInt(range[2], 10)
+      // 防呆：颠倒区间、异常大数（避免构造巨量 Set 项）
+      if (from > to || to > 10000) continue
+      for (let n = from; n <= to; n++) ranges.add(n - 1)
+    } else if (/^\d+$/.test(s)) {
+      const n = parseInt(s, 10)
+      if (n >= 1 && n <= 10000) ranges.add(n - 1)
+    }
+  }
+  return ranges
+}
 
+function wrapAnnotatedLines(highlightedHtml: string, annotations: Map<number, LineAnnotation>, rangeLines?: Set<number>): string {
   const hasFocus = Array.from(annotations.values()).some(a => a.focus)
+  if (annotations.size === 0 && (!rangeLines || rangeLines.size === 0)) return highlightedHtml
+
   const lines = highlightedHtml.split('\n')
   const result: string[] = []
 
   for (let idx = 0; idx < lines.length; idx++) {
     const ann = annotations.get(idx)
     if (!ann) {
-      // Dim non-focus lines when focus mode is active
-      if (hasFocus) {
+      // 围栏 {2,4-5} 行号标注：无行内 [!code] 注释时按 highlight 样式高亮该行
+      if (rangeLines?.has(idx)) {
+        result.push(`<span style="${ANN_STYLES.highlight}">${lines[idx]}</span>`)
+      } else if (hasFocus) {
+        // Dim non-focus lines when focus mode is active
         result.push(`<span style="opacity:0.4">${lines[idx]}</span>`)
       } else {
         result.push(lines[idx])
@@ -189,10 +219,12 @@ export function renderCodeBlock(code: string, lang = 'text', options?: { lineNum
 
   // Strip line-numbers/lang suffix from lang string (e.g. "js{1,3-5}" or "js line-numbers")
   const cleanLang = language.replace(/\{[^}]*\}/, '').replace(/\s+line-numbers\s*$/, '').trim() || 'text'
+  // 围栏 {1,3-5} 行号高亮标注
+  const rangeLines = parseLangLineRanges(language)
 
   const { cleanCode, annotations } = parseAnnotations(code.trimEnd())
   const highlighted = inlineHighlight(cleanCode, cleanLang)
-  const finalHtml = wrapAnnotatedLines(highlighted, annotations)
+  const finalHtml = wrapAnnotatedLines(highlighted, annotations, rangeLines)
 
   const showLineNumbers = options?.lineNumbers || /\bline-numbers\b/.test(lang)
   const maxH = options?.maxHeight

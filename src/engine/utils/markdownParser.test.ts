@@ -303,18 +303,61 @@ describe('parseMarkdown - 代码区域保护', () => {
 describe('parseMarkdown - 自定义标签未闭合容错（EOF 截断）', () => {
   const colors = makeColors('#2563eb', '#1e40af')
 
-  it('未闭合 <title> 不吞掉后续内容，回退为段落', () => {
+  it('未闭合 <title> 降级为转义段落：不吞正文且字面 < 被转义（C-1 防 RCDATA 吞文）', () => {
     const md = '<title>未闭合标题\n后续正常段落'
-    const html = parseMarkdown(md, colors)
+    const warnings: string[] = []
+    const html = parseMarkdown(md, colors, undefined, undefined, (w) => warnings.push(w))
     expect(html).toContain('后续正常段落')
-    expect(html).toContain('<title>未闭合标题')
+    // 关键：不能输出字面 <title（浏览器按 RCDATA 吞掉其后整篇内容）
+    expect(html).not.toContain('<title>未闭合标题')
+    expect(html).toContain('&lt;title&gt;未闭合标题')
+    expect(warnings.some((w) => w.includes('<title>') && w.includes('未闭合'))).toBe(true)
   })
 
-  it('未闭合 <p-title> 不吞掉后续内容，回退为段落', () => {
+  it('未闭合 <p-title> 降级为转义段落：不吞正文且字面 < 被转义（C-1）', () => {
     const md = '<p-title>未闭合标题\n后续正常段落'
-    const html = parseMarkdown(md, colors)
+    const warnings: string[] = []
+    const html = parseMarkdown(md, colors, undefined, undefined, (w) => warnings.push(w))
     expect(html).toContain('后续正常段落')
-    expect(html).toContain('<p-title>未闭合标题')
+    expect(html).not.toContain('<p-title>未闭合标题')
+    expect(html).toContain('&lt;p-title&gt;未闭合标题')
+    expect(warnings.some((w) => w.includes('<p-title>') && w.includes('未闭合'))).toBe(true)
+  })
+
+  it('未闭合 ::: 容器 / $$ 公式块 / 排版模块容器只消费定界符行并上报降级告警（C-2）', () => {
+    // :::tip
+    let warnings: string[] = []
+    let html = parseMarkdown(':::tip\n第一行容器内正文\n第二行容器内正文', colors, undefined, undefined, (w) => warnings.push(w))
+    expect(html).toContain('第一行容器内正文')
+    expect(html).toContain('第二行容器内正文')
+    expect(warnings.some((w) => w.includes(':::tip') && w.includes('未闭合'))).toBe(true)
+
+    // :::table
+    warnings = []
+    html = parseMarkdown(':::table 标题\n| 列A | 列B |\n| --- | --- |\n| 甲 | 乙 |', colors, undefined, undefined, (w) => warnings.push(w))
+    expect(html).toContain('甲')
+    expect(warnings.some((w) => w.includes(':::table') && w.includes('未闭合'))).toBe(true)
+
+    // $$ 公式块
+    warnings = []
+    html = parseMarkdown('$$\nE=mc^2\n后续正常段落', colors, undefined, undefined, (w) => warnings.push(w))
+    expect(html).toContain('后续正常段落')
+    expect(warnings.some((w) => w.includes('$$') && w.includes('未闭合'))).toBe(true)
+  })
+
+  it('未闭合 ::: 排版模块 / 统一组件容器上报降级告警（C-2，buildRenderer + unifiedRender）', () => {
+    // 排版模块（layout-modules/buildRenderer EOF 路径）
+    let warnings: string[] = []
+    let html = parseMarkdown(':::hero\nlabel: 深度观察\ntitle: 未闭合模块标题\n后续正常段落', colors, undefined, undefined, (w) => warnings.push(w))
+    expect(html).toContain('后续正常段落')
+    expect(html).toContain('深度观察')
+    expect(warnings.some((w) => w.includes('hero') && w.includes('未闭合'))).toBe(true)
+
+    // 统一组件（editor-components/unifiedRender EOF 路径）
+    warnings = []
+    html = parseMarkdown(':::timeline\n- 2026年01月 | 项目启动 | 完成团队组建\n后续正常段落', colors, undefined, undefined, (w) => warnings.push(w))
+    expect(html).toContain('后续正常段落')
+    expect(warnings.some((w) => w.includes('timeline') && w.includes('未闭合'))).toBe(true)
   })
 
   it('未闭合 <steps> 不吞掉后续内容，回退为段落', () => {

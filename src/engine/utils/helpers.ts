@@ -1,3 +1,5 @@
+import { color, fontSize, letterSpacing, lineHeight, spacing } from '../tokens'
+
 export function esc(s: string): string {
   return String(s)
     .replace(/&/g, '&amp;')
@@ -5,6 +7,30 @@ export function esc(s: string): string {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;')
+}
+
+/**
+ * 未闭合标签 / 容器定界符的降级段落。
+ *
+ * 用于 <title>、<p-title>、::: 容器、$$ 公式等在文件末尾找不到闭合标记时的兜底：
+ * 只消费「当前这一行」，把定界符行原样转义为普通段落（后续各行交主循环逐行解析，正文不丢），
+ * 并携带一条降级告警。
+ *
+ * 关键点：必须对 `<` 做 esc——浏览器按 HTML 规范把正文中的 `<title` 当作 RCDATA 起始标签，
+ * 会吞掉其后直至 `</title>` / 文档末尾的全部内容，导致「AI 漏写闭合标签 → 整篇近乎空白」。
+ * 转义后 `&lt;title` 仅是可见文本，不触发 RCDATA。
+ *
+ * 段落样式（margin / 字号 / 行高 / 字色 / 字距 / 对齐）刻意与 blockRenderRegistry 中
+ * paragraphRenderer 的普通段落一致（用默认静态令牌），使降级文本与正文视觉无缝衔接。
+ * 放在 helpers（而非 blockRenderRegistry）以便 unifiedRender / buildRenderer 等下游
+ * 复用，避免它们反向 import blockRenderRegistry 造成循环依赖。
+ */
+export function unclosedTagFallback(
+  line: string,
+  warning: string,
+): { html: string; warning: string } {
+  const html = `<section style="margin:0px 0px ${spacing[10]}"><p style="margin:0px;font-size:${fontSize.xl};color:${color.textTertiary};line-height:${lineHeight.document};letter-spacing:${letterSpacing.wider};text-align:justify;overflow-wrap:break-word">${esc(line)}</p></section>`
+  return { html, warning }
 }
 
 export function leaf(s: string | number): string {
