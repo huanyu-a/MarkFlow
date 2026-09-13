@@ -54,7 +54,9 @@ export function parseFields(body: string): Record<string, string> {
         const leading = raw.length - raw.trimStart().length
         if (indent < 0) indent = leading
         // 非缩进的非空行 → 块结束（该行交回普通 key: value 解析）
-        if (leading < indent) break
+        // 基准缩进必须大于 0：`body: |` 后紧跟零缩进行是常见笔误，
+        // 若按 leading>=0 收集会把后续所有字段静默吞进块里（旧解析器尚且能存活这些字段）
+        if (indent === 0 || leading < indent) break
         collected.push(raw.slice(indent).trimEnd())
         j++
       }

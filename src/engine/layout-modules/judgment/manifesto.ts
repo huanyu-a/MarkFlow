@@ -6,7 +6,7 @@
 import type { BlockRenderContext } from '../../utils/blockRenderRegistry'
 import type { LayoutBody } from '../buildRenderer'
 import { buildModuleRenderer, esc, moduleLabel, moduleSubtitle, moduleTitle } from '../buildRenderer'
-import type { LayoutModule } from '../types'
+import type { LayoutModule, LayoutModuleSpec } from '../types'
 
 function render(body: LayoutBody, ctx: BlockRenderContext): string {
   const f = body.fields
@@ -20,22 +20,22 @@ function render(body: LayoutBody, ctx: BlockRenderContext): string {
   return html
 }
 
+// spec 单一来源：consumedFields 必须在传给 buildModuleRenderer 的对象上才生效
+const spec: LayoutModuleSpec = {
+  name: 'manifesto',
+  category: 'judgment',
+  serves: ['memorability'],
+  bodyFormat: 'fields',
+  label: '宣言式大标题',
+  fields: [
+    { name: 'label', required: true, description: '标签/徽章文字' },
+    { name: 'title', required: true, description: '主标题' },
+    { name: 'subtitle', required: false, description: '副标题' },
+  ],
+  consumedFields: ['label', 'title', 'subtitle'],
+}
+
 export const manifestoModule: LayoutModule = {
-  spec: {
-    name: 'manifesto',
-    category: 'judgment',
-    serves: ['memorability'],
-    bodyFormat: 'fields',
-    label: '宣言式大标题',
-    fields: [
-      { name: 'label', required: true, description: '标签/徽章文字' },
-      { name: 'title', required: true, description: '主标题' },
-      { name: 'subtitle', required: false, description: '副标题' },
-    ],
-    consumedFields: ['label', 'title', 'subtitle'],
-  },
-  renderer: buildModuleRenderer(
-    { name: 'manifesto', category: 'judgment', serves: ['memorability'], bodyFormat: 'fields', label: '宣言式大标题' },
-    render,
-  ),
+  spec,
+  renderer: buildModuleRenderer(spec, render),
 }

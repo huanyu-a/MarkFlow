@@ -17,6 +17,7 @@ export const LAYOUT_EXAMPLES: Record<string, string> = {
   part: 'label: CHAPTER 02\ntitle: 模块化排版的四个核心原则\nbody: 在深入具体模块之前，我们先建立一套评估框架——什么样的排版才算「好排版」？本章从认知负荷、视觉节奏、信息密度和品牌一致性四个维度展开。',
 
   // ── infographic ──
+  'label-title': 'label: 本章导读\ntitle: 排版是内容的第一印象\nsubtitle: 在读者开口之前，版面已经替你说了话',
   metrics: '完读率 | 79% | 高于行业均值 1.8 倍 | accent\n制作时间 | 35 分钟 | 较旧版手工排版节省 60% | default\n读者收藏率 | 23.6% | 同比增长 4.2 个百分点 | default\n分享转发率 | 8.1% | 干货类推文排名前 5% | accent',
   infographic: 'label: 读者画像\ntitle: 谁在看你的文章\nsubtitle: 基于 12,000 份问卷的核心发现\nbody: |\n  78% 的读者会在 5 秒内判断是否继续阅读\n  排版质量直接影响信任度评分（r=0.71）\n  手机端阅读占比 83%，但大多数文章按桌面端设计',
   compare: '上手成本 | 模块化排版 10 分钟填字段即可上手 | 手工排版熟练需 3 个月 | accent\n完读表现 | 模块化读者完读率 79% | 手工排版完读率 41% | default',

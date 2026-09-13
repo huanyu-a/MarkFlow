@@ -10,7 +10,7 @@ import type { BlockRenderer } from '../../utils/blockRenderRegistry'
 import { esc } from '../buildRenderer'
 import { parseJsonArray } from '../parse'
 import type { LayoutModule } from '../types'
-import { unclosedTagFallback } from '../../utils/helpers'
+import { unclosedTagFallback, safeUrl } from '../../utils/helpers'
 
 const resourceListRenderer: BlockRenderer = {
   name: 'layout-resource-list',
@@ -58,7 +58,7 @@ const resourceListRenderer: BlockRenderer = {
       html += `<section style="flex:1;min-width:0">`
       if (name) {
         if (url) {
-          html += `<p style="margin:0px 0px 4px;font-size:15px;font-weight:700"><a href="${esc(url)}" style="color:${ctx.t.accent};text-decoration:none" target="_blank" rel="noopener noreferrer">${esc(name)}</a></p>`
+          html += `<p style="margin:0px 0px 4px;font-size:15px;font-weight:700"><a href="${esc(safeUrl(url, 'href'))}" style="color:${ctx.t.accent};text-decoration:none" target="_blank" rel="noopener noreferrer">${esc(name)}</a></p>`
         } else {
           html += `<p style="margin:0px 0px 4px;font-size:15px;font-weight:700;color:#1e293b">${esc(name)}</p>`
         }

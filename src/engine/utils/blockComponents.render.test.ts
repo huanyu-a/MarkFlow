@@ -306,6 +306,21 @@ describe('标签组件渲染', () => {
   })
 })
 
+// ── C2. myth-fact 旧关键字协议回归（myth | 内容 / fact | 内容） ──
+
+describe('myth-fact 旧关键字协议回归', () => {
+  it('myth 行渲染为误解卡且内容不丢', () => {
+    const html = render(':::myth-fact\nmyth | 排版就是加粗变色\n:::')
+    expect(html).toContain('排版就是加粗变色')
+    expect(html).not.toContain(':::')
+  })
+
+  it('fact 行渲染为事实卡且内容不丢', () => {
+    const html = render(':::myth-fact\nfact | 排版是信息架构的可视化\n:::')
+    expect(html).toContain('排版是信息架构的可视化')
+  })
+})
+
 // ── D. 回归：用户上报的真实用法 ───────────────────────────────
 
 describe('用户上报用法回归', () => {

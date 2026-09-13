@@ -142,7 +142,8 @@ function unknownFieldsWarning(
   name: string,
 ): string | undefined {
   const known = new Set(consumed)
-  const extra = Object.keys(fields).filter((k) => !known.has(k))
+  // 含 | 的 key 来自 rows 类行被 fields 误切（如 image-annotate 的混合 body），是解析垃圾而非用户错误，不告警
+  const extra = Object.keys(fields).filter((k) => !known.has(k) && !k.includes('|'))
   if (extra.length === 0) return undefined
   return `${name} 未消费字段：${extra.join('、')}（已忽略）`
 }

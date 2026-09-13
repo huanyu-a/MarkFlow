@@ -6,7 +6,7 @@
 import type { BlockRenderContext } from '../../utils/blockRenderRegistry'
 import type { LayoutBody } from '../buildRenderer'
 import { buildModuleRenderer, esc, moduleLabel, moduleSubtitle, moduleTitle } from '../buildRenderer'
-import type { LayoutModule } from '../types'
+import type { LayoutModule, LayoutModuleSpec } from '../types'
 
 function render(body: LayoutBody, ctx: BlockRenderContext): string {
   const f = body.fields
@@ -19,10 +19,17 @@ function render(body: LayoutBody, ctx: BlockRenderContext): string {
   return html
 }
 
+// spec 单一来源：consumedFields 必须在传给 buildModuleRenderer 的对象上才生效
+const spec: LayoutModuleSpec = {
+  name: 'label-title',
+  category: 'opening',
+  serves: ['attention'],
+  bodyFormat: 'fields',
+  label: '标签标题',
+  consumedFields: ['label', 'title', 'subtitle'],
+}
+
 export const labelTitleModule: LayoutModule = {
-  spec: { name: 'label-title', category: 'opening', serves: ['attention'], bodyFormat: 'fields', label: '标签标题', consumedFields: ['label', 'title', 'subtitle'] },
-  renderer: buildModuleRenderer(
-    { name: 'label-title', category: 'opening', serves: ['attention'], bodyFormat: 'fields', label: '标签标题' },
-    render,
-  ),
+  spec,
+  renderer: buildModuleRenderer(spec, render),
 }
