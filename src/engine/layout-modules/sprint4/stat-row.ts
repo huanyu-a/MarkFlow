@@ -51,6 +51,9 @@ const statRowRenderer: BlockRenderer = {
       const label = String(item.label ?? '')
       const value = String(item.value ?? '')
       const unit = String(item.unit ?? '')
+      const trend = String(item.trend ?? '')
+      // trend 涨跌色：+ 开头用涨色（绿），- 开头用跌色（红），其余灰色
+      const trendColor = trend.startsWith('+') ? '#16a34a' : trend.startsWith('-') ? '#dc2626' : '#94a3b8'
       html += `<section style="text-align:center">`
       if (label) {
         html += `<p style="margin:0px 0px 4px;font-size:12px;color:#94a3b8;letter-spacing:0.5px">${esc(label)}</p>`
@@ -58,6 +61,9 @@ const statRowRenderer: BlockRenderer = {
       html += `<p style="margin:0px;font-size:26px;font-weight:800;color:${ctx.t.accent};line-height:1.2">${esc(value)}`
       if (unit) {
         html += `<span style="font-size:14px;font-weight:600;color:#64748b;margin-left:2px">${esc(unit)}</span>`
+      }
+      if (trend) {
+        html += `<span style="font-size:12px;font-weight:700;color:${trendColor};margin-left:6px">${esc(trend)}</span>`
       }
       html += `</p>`
       html += `</section>`

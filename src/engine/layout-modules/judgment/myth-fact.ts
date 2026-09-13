@@ -1,31 +1,48 @@
 /**
  * myth-fact — 辟谣卡片
  * body_format: rows
- *   myth|fact | 内容
+ *
+ * 两种行协议（自动识别）：
+ *   成对写法（推荐）：误解文本 | 事实文本 — 每行渲染「误解 + 事实」相邻两张卡片
+ *   旧关键字协议（向后兼容）：myth|fact | 内容 — 单行渲染一张对应卡片
  */
 import type { BlockRenderContext } from '../../utils/blockRenderRegistry'
 import type { LayoutBody } from '../buildRenderer'
 import { buildModuleRenderer, esc } from '../buildRenderer'
 import type { LayoutModule } from '../types'
 
+/** 渲染一张误解/事实卡片（myth=true 为误解，false 为事实） */
+function card(content: string, isMyth: boolean, accent: string): string {
+  const label = isMyth ? '误解' : '事实'
+  const icon = isMyth ? '🚫' : '✓'
+  const bg = isMyth ? '#fef2f2' : '#f0fdf4'
+  const borderColor = isMyth ? '#fecaca' : '#bbf7d0'
+  const accentColor = isMyth ? '#dc2626' : accent
+  const textColor = isMyth ? '#7f1d1d' : '#14532d'
+  return `<section style="padding:18px 16px;background:${bg};border:1px solid ${borderColor};border-radius:14px;position:relative;overflow:hidden">` +
+    `<p style="margin:0px 0px 10px;font-size:11px;letter-spacing:2.4px;font-weight:800;color:${accentColor};text-transform:uppercase;line-height:1.4">${icon} ${esc(label)}</p>` +
+    `<p style="margin:0px;font-size:14px;color:${textColor};line-height:1.7;letter-spacing:0.3px">${esc(content)}</p>` +
+    `</section>`
+}
+
 function render(body: LayoutBody, ctx: BlockRenderContext): string {
   const rows = body.rows
   const accent = ctx.t.accent
   let html = `<section style="margin:0px 0px 28px;display:grid;grid-template-columns:1fr 1fr;gap:14px">`
   rows.forEach((row) => {
-    const type = row[0]?.trim().toLowerCase()
-    const content = row.slice(1).join('|').trim()
-    const isMyth = type === 'myth'
-    const label = isMyth ? '误解' : '事实'
-    const icon = isMyth ? '🚫' : '✓'
-    const bg = isMyth ? '#fef2f2' : '#f0fdf4'
-    const borderColor = isMyth ? '#fecaca' : '#bbf7d0'
-    const accentColor = isMyth ? '#dc2626' : accent
-    const textColor = isMyth ? '#7f1d1d' : '#14532d'
-    html += `<section style="padding:18px 16px;background:${bg};border:1px solid ${borderColor};border-radius:14px;position:relative;overflow:hidden">`
-    html += `<p style="margin:0px 0px 10px;font-size:11px;letter-spacing:2.4px;font-weight:800;color:${accentColor};text-transform:uppercase;line-height:1.4">${icon} ${esc(label)}</p>`
-    html += `<p style="margin:0px;font-size:14px;color:${textColor};line-height:1.7;letter-spacing:0.3px">${esc(content)}</p>`
-    html += `</section>`
+    const first = row[0]?.trim() ?? ''
+    const isKeyword = /^(myth|fact)\b/i.test(first)
+    if (isKeyword) {
+      // 旧关键字协议：myth|fact 开头 → 单卡片
+      const content = row.slice(1).join('|').trim()
+      html += card(content, first.toLowerCase().startsWith('myth'), accent)
+    } else {
+      // 成对写法：误解 | 事实，相邻两张卡片
+      const myth = first
+      const fact = row[1]?.trim() ?? ''
+      if (myth) html += card(myth, true, accent)
+      if (fact) html += card(fact, false, accent)
+    }
   })
   html += `</section>`
   return html

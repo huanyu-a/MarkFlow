@@ -19,28 +19,28 @@ export const LAYOUT_EXAMPLES: Record<string, string> = {
   // ── infographic ──
   metrics: '完读率 | 79% | 高于行业均值 1.8 倍 | accent\n制作时间 | 35 分钟 | 较旧版手工排版节省 60% | default\n读者收藏率 | 23.6% | 同比增长 4.2 个百分点 | default\n分享转发率 | 8.1% | 干货类推文排名前 5% | accent',
   infographic: 'label: 读者画像\ntitle: 谁在看你的文章\nsubtitle: 基于 12,000 份问卷的核心发现\nbody: |\n  78% 的读者会在 5 秒内判断是否继续阅读\n  排版质量直接影响信任度评分（r=0.71）\n  手机端阅读占比 83%，但大多数文章按桌面端设计',
-  compare: '模块化排版 | 上手 10 分钟 | 品牌一致性 95% | 读者完读率 79% | accent\n手工排版 | 熟练需 3 个月 | 品牌一致性 60% | 读者完读率 41% | default',
+  compare: '上手成本 | 模块化排版 10 分钟填字段即可上手 | 手工排版熟练需 3 个月 | accent\n完读表现 | 模块化读者完读率 79% | 手工排版完读率 41% | default',
   steps: '01 | 发现模块 | 浏览组件库，找到适合当前场景的排版模块\n02 | 查看规格 | 展开模块详情，确认必填字段和示例格式\n03 | 复制语法 | 复制 ::: 容器代码到编辑器中对应位置\n04 | 编辑内容 | 替换字段值为实际内容，保存后实时预览\n05 | 导出发布 | 导出公众号 HTML，或复制富文本到公众号后台',
   timeline: '2024 Q1 | 项目启动 | 完成团队组建与需求调研，确定技术选型\n2024 Q2 | MVP 上线 | 核心渲染引擎完成，支持 12 个基础模块\n2024 Q3 | 主题系统 | 64 套专业主题上线，支持一键切换品牌风格\n2024 Q4 | 模块扩展 | 排版组件增至 61 个，覆盖全内容场景\n2025 Q1 | 生态建设 | 开放 AI 排版指令库，社区贡献 200+ 风格模板',
 
   // ── judgment ──
   verdict: 'label: 最终判断\ntitle: 排版的本质不是「好看」，是「降低认知成本」\nbody: 每一篇文章都是一次决策——读者在 3 秒内决定留下还是划走。排版的价值不在于装饰，而在于用结构告诉读者：这里有你要的答案，而且不难读。',
-  'audience-fit': '技术团队 | 结构严谨、代码块清晰、API 文档可直接复制 | 高\n运营人员 | 步骤卡片 + 指标看板，一眼看到关键数据和行动项 | 高\nC 端读者 | 标题吸睛、金句醒目、图文混排降低阅读疲劳 | 中',
+  'audience-fit': 'fit | 技术团队 | 结构严谨、代码块清晰、API 文档可直接复制\nfit | 运营人员 | 步骤卡片 + 指标看板，一眼看到关键数据和行动项\nfit | C 端读者 | 标题吸睛、金句醒目、图文混排降低阅读疲劳',
   'myth-fact': '排版就是加粗变色 | 排版是信息架构的可视化，核心是降低读者的认知负荷\n好看的文章一定好读 | 视觉吸引力只是入口，阅读完成率取决于结构是否匹配阅读习惯\n模块化排版让文章千篇一律 | 64 套主题 + 灵活字段组合，每篇都可以有独特气质',
   manifesto: 'label: 设计原则\ntitle: 好排版让信息自己会说话\nsubtitle: 六个字概括：少即是多，结构优先',
   bridge: 'from: 为什么内容有问题\nto: 用结构化的模块化排版解决它',
 
   // ── evidence ──
   quote: '最好的排版是让读者感觉不到排版的存在——他们的注意力完全被内容吸引，而不是被装饰分散。 | 唐·诺曼 | 《设计心理学》作者',
-  'image-annotate': 'src: https://robocopmao.github.io/r-markdown/banner4.webp\ntitle: 模块化排版引擎架构\nbody: 从上到下依次为：Markdown 解析层 → 模块匹配层 → 主题令牌注入 → 内联样式 HTML 输出',
+  'image-annotate': 'src: https://robocopmao.github.io/r-markdown/banner4.webp\ntitle: 模块化排版引擎架构\n01 | 12 | 24 | 解析层 | Markdown 文本在此进入解析器\n02 | 68 | 40 | 渲染层 | 排版模块与主题令牌在此注入\nnote: 从上到下依次为：Markdown 解析层 → 模块匹配层 → 主题令牌注入 → 内联样式 HTML 输出',
   'image-compare': 'before: https://robocopmao.github.io/r-markdown/banner4.webp\nafter: https://robocopmao.github.io/r-markdown/banner4.webp\nlabel_before: 手工排版（2h）\nlabel_after: MarkFlow 一键生成（3min）',
   'image-steps': '01 | 在组件库中找到合适的排版模块 | https://robocopmao.github.io/r-markdown/banner4.webp\n02 | 按字段格式替换为实际文案 | https://robocopmao.github.io/r-markdown/banner4.webp\n03 | 右侧即时查看渲染效果 | https://robocopmao.github.io/r-markdown/banner4.webp',
   'image-text': 'src: https://robocopmao.github.io/r-markdown/banner4.webp\ntitle: 移动端阅读体验优化\nbody: 所有模块均针对手机竖屏（375-414px 视口）做了适配。图片自动缩放、表格横向滚动、卡片单列堆叠。无需额外调整即可同时适配桌面端与移动端。\nlayout: right',
 
   // ── conversion ──
   faq: '这些排版模块能在公众号后台直接使用吗？ | 可以。MarkFlow 输出的内联样式 HTML 可直接粘贴到公众号编辑器，样式不会丢失。\n需要付费吗？ | 全部 61 个排版组件 + 64 套主题免费使用，无任何功能限制。\n支持导出为图片吗？ | 支持一键导出完整长图 PNG，适合在知识星球、社群等平台分发。',
-  checklist: '☐ 确定文章核心观点（一句话能说清） | true\n☐ 搭建大纲框架（3-5 个主段落） | true\n☐ 为每个段落选择合适的排版模块 | false\n☐ 填充正文内容并调整字段 | false\n☐ 预览移动端显示效果 | false\n☐ 复制富文本到公众号后台 | false',
-  cases: '01 | 自媒体主创小李 | 从 2 小时到 10 分钟，排版效率提升 12 倍，月产出从 8 篇增至 20 篇\n02 | 技术博主老张 | 代码块 + 术语定义卡的组合让技术教程的收藏率翻倍\n03 | 企业培训师王姐 | A4 文档模式直接输出培训手册，省去排版外包费用',
+  checklist: '确定文章核心观点（一句话能说清） | done\n搭建大纲框架（3-5 个主段落） | done\n为每个段落选择合适的排版模块 | todo\n填充正文内容并调整字段 | todo\n预览移动端显示效果 | todo\n复制富文本到公众号后台 | todo',
+  cases: '01 | 自媒体主创 | 从 2 小时到 10 分钟，排版效率提升 12 倍，月产出从 8 篇增至 20 篇\n02 | 技术博主 | 代码块 + 术语定义卡的组合让技术教程的收藏率翻倍\n03 | 企业培训师 | A4 文档模式直接输出培训手册，省去排版外包费用',
   summary: '核心要点回顾：\n\n1. **模块化排版的本质**是降低读者的认知成本，而非堆砌装饰\n2. **61 个排版组件**覆盖从开篇吸引到结尾转化的完整阅读旅程\n3. **64 套主题**让你一键切换品牌气质，无需设计背景\n4. **导出链路**支持富文本、长图、A4 文档、卡片等多种成品形态\n\n下一步：打开组件库，挑一个模块试写你的第一段排版。',
   notice: 'title: 主题系统 v2.6 已上线\nbody: 主题扩充至 64 套，按极简、商务、科技、文艺编辑、复古人文、温暖、高亮七大分组管理。原「暗色」分组更名为「高亮」——均为高饱和亮色，输出仍为白底，并非暗色渲染；并新增明黄、正青、咖啡棕、复古纸等主题。旧版主题配置仍可使用，恢复时按 accent+dark 色对自动对齐。',
 
@@ -55,9 +55,9 @@ export const LAYOUT_EXAMPLES: Record<string, string> = {
   definition: '{"term":"认知负荷","def":"人在处理信息时心智资源的总消耗量。排版的核心目标之一就是将认知负荷降到最低，让读者能专注于内容本身。","termLabel":"UX 术语"}',
   'quote-card': '{"text":"如果你不能向一个六岁孩子解释清楚，那你就是没真正理解。","source":"理查德·费曼 · 诺贝尔物理学奖得主"}',
   tweet: '{"name":"独立开发者周刊","handle":"@indiedev","verified":true,"text":"MarkFlow 的模块化排版彻底改变了我的内容工作流。以前公众号排版要 2 小时，现在写好 Markdown、套上模块、复制粘贴，10 分钟搞定。关键是样式还能保持一致——这在以前根本不敢想。","timestamp":"2026-06-15","likes":"2.4K","retweets":"586","replies":"127"}',
-  'stat-row': '[{"label":"覆盖模块数","value":"61 个","trend":"+18","color":"accent"},{"label":"支持主题","value":"64 套","trend":"+4 套","color":"default"},{"label":"平均导出耗时","value":"0.8s","trend":"-40%","color":"accent"},{"label":"月活创作者","value":"12K+","trend":"+23%","color":"default"}]',
+  'stat-row': '[{"label":"覆盖模块数","value":"61 个","trend":"+18"},{"label":"支持主题","value":"64 套","trend":"+4 套"},{"label":"平均导出耗时","value":"0.8s","trend":"-40%"},{"label":"月活创作者","value":"12K+","trend":"+23%"}]',
   question: '[{"q":"排版模块和 Markdown 扩展语法是什么关系？","a":"排版模块是 Markdown 的自定义容器扩展（:::name），在标准 Markdown 基础上增加了结构化排版能力，同时保持纯文本可读性。"},{"q":"我可以在一个模块里嵌套另一个模块吗？","a":"目前不支持嵌套，但可以将多个模块按顺序排列。每个模块的 body 区域支持标准 Markdown 语法。"},{"q":"导出的富文本能在其他平台使用吗？","a":"导出的 HTML 使用内联样式（inline style），兼容微信公众号、知乎、语雀、Notion 等主流平台。"}]',
-  'resource-list': '[{"title":"MarkFlow 使用指南 v2.0","desc":"从零到一掌握所有模块和主题的完整教程","url":"#","type":"pdf"},{"title":"排版认知科学白皮书","desc":"为什么结构化排版能提升阅读完成率——来自认知心理学的证据","url":"#","type":"link"},{"title":"示例模板库","desc":"10 套可直接复用的排版模板，覆盖观点文、教程、周报等场景","url":"#","type":"download"}]',
+  'resource-list': '[{"title":"MarkFlow 使用指南 v2.0","desc":"从零到一掌握所有模块和主题的完整教程","url":"#","icon":"📄"},{"title":"排版认知科学白皮书","desc":"为什么结构化排版能提升阅读完成率——来自认知心理学的证据","url":"#","icon":"🔗"},{"title":"示例模板库","desc":"10 套可直接复用的排版模板，覆盖观点文、教程、周报等场景","url":"#","icon":"📦"}]',
   'comparison-table': '{"left":{"title":"传统手工排版","items":["上手 2-4 周","依赖设计师手感","需逐篇调整移动端"]},"right":{"title":"MarkFlow 模块化","items":["上手 10 分钟","64 套主题自动保证","所有模块内置适配"]}}',
   changelog: '{"version":"v2.6.0","date":"2026-09-12","added":["新增 4 套主题：明黄、正青、咖啡棕、复古纸","新增「复古人文」分组，收编优雅三件套、留白禅意、抹茶、墨黑手记"],"changed":["主题总数为 64 套","原「暗色」分组更名为「高亮」：均为高饱和亮色，输出仍为白底、并非暗色渲染","12 套主题重命名使名称与渲染色相符（如靛蓝→长春花蓝、薄荷绿→翡翠绿、优雅紫→酒红）","Tailwind/琥珀亮/Vercel 微调主题色以错开同 accent 色对，旧配色将回落自定义"],"fixed":[]}',
 }

@@ -5,7 +5,7 @@
  */
 import type { BlockRenderContext } from '../../utils/blockRenderRegistry'
 import type { LayoutBody } from '../buildRenderer'
-import { buildModuleRenderer, esc, moduleLabel, moduleTitle } from '../buildRenderer'
+import { buildModuleRenderer, esc, moduleLabel, moduleSubtitle, moduleTitle } from '../buildRenderer'
 import type { LayoutModule } from '../types'
 
 function render(body: LayoutBody, ctx: BlockRenderContext): string {
@@ -14,12 +14,13 @@ function render(body: LayoutBody, ctx: BlockRenderContext): string {
   let html = `<section style="margin:0px 0px 28px">`
   if (f.label) html += moduleLabel(esc(f.label), accent)
   if (f.title) html += moduleTitle(esc(f.title), { color: '#1a1a1a', size: '24px', weight: '800' })
+  if (f.subtitle) html += `<section style="margin:-4px 0px 0px">${moduleSubtitle(esc(f.subtitle))}</section>`
   html += `</section>`
   return html
 }
 
 export const labelTitleModule: LayoutModule = {
-  spec: { name: 'label-title', category: 'opening', serves: ['attention'], bodyFormat: 'fields', label: '标签标题' },
+  spec: { name: 'label-title', category: 'opening', serves: ['attention'], bodyFormat: 'fields', label: '标签标题', consumedFields: ['label', 'title', 'subtitle'] },
   renderer: buildModuleRenderer(
     { name: 'label-title', category: 'opening', serves: ['attention'], bodyFormat: 'fields', label: '标签标题' },
     render,

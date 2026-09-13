@@ -1,17 +1,30 @@
 /**
  * image-annotate — 图片标注
- * body_format: fields + rows
- *   fields: src, title, note
- *   rows: 序号 | x坐标(0-100) | y坐标(0-100) | 标签 | 说明
+ * body_format: fields + rows 混合
+ *   fields: src, title, note（或 body，作为说明文字的别名）
+ *   rows:   序号 | x坐标(0-100) | y坐标(0-100) | 标签 | 说明
+ *
+ * 解析策略：fields 行（key: value）由 parseFields 消费；
+ * 其余含 | 的行按 rows 解析为标注点。混合解析在 renderFn 内完成
+ * （bodyFormat 声明为 fields，rows 从 raw 中自行提取，改动面最小）。
  */
 import type { BlockRenderContext } from '../../utils/blockRenderRegistry'
 import type { LayoutBody } from '../buildRenderer'
 import { buildModuleRenderer, esc, moduleTitle } from '../buildRenderer'
-import type { LayoutModule } from '../types'
+import { parseRows } from '../parse'
+import type { LayoutModule, LayoutModuleSpec } from '../types'
 
-function render(body: LayoutBody, ctx: BlockRenderContext): string {
+/** 从混合 body 原文中提取标注行（跳过 key: value 字段行，收集含 | 的行） */
+function extractAnnotateRows(raw: string): string[][] {
+  const rowLines = raw
+    .split('\n')
+    .filter((l) => l.trim() && !/^[A-Za-z_][\w-]*\s*:/.test(l.trim()))
+  return parseRows(rowLines.join('\n'))
+}
+
+function render(body: LayoutBody, ctx: BlockRenderContext, raw: string): string {
   const f = body.fields
-  const rows = body.rows
+  const rows = extractAnnotateRows(raw)
   const accent = ctx.t.accent
   let html = `<section style="margin:0px 0px 28px">`
   if (f.title) html += moduleTitle(esc(f.title), { color: '#1a1a1a', size: '18px', weight: '800' })
@@ -49,17 +62,26 @@ function render(body: LayoutBody, ctx: BlockRenderContext): string {
     })
     html += `</section>`
   }
-  if (f.note) {
-    html += `<p style="margin:12px 0px 0px;font-size:13px;color:#94a3b8;line-height:1.6;font-style:italic">${esc(f.note)}</p>`
+  const noteText = f.note ?? f.body
+  if (noteText) {
+    html += `<p style="margin:12px 0px 0px;font-size:13px;color:#94a3b8;line-height:1.6;font-style:italic">${esc(noteText)}</p>`
   }
   html += `</section>`
   return html
 }
 
+// spec 单一来源：buildModuleRenderer 消费的就是这份对象（含 consumedFields 告警；
+// rows 标注行不是 key: value 字段，不会误报）
+const spec: LayoutModuleSpec = {
+  name: 'image-annotate',
+  category: 'evidence',
+  serves: ['readability'],
+  bodyFormat: 'fields',
+  label: '图片标注',
+  consumedFields: ['src', 'title', 'note', 'body'],
+}
+
 export const imageAnnotateModule: LayoutModule = {
-  spec: { name: 'image-annotate', category: 'evidence', serves: ['readability'], bodyFormat: 'fields', label: '图片标注' },
-  renderer: buildModuleRenderer(
-    { name: 'image-annotate', category: 'evidence', serves: ['readability'], bodyFormat: 'fields', label: '图片标注' },
-    render,
-  ),
+  spec,
+  renderer: buildModuleRenderer(spec, render),
 }

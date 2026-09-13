@@ -40,7 +40,7 @@ const quoteCardRenderer: BlockRenderer = {
     const text = String(data.text ?? '')
     const source = String(data.source ?? '')
     let html = `<section style="margin:16px 0px;padding:28px 32px;background:linear-gradient(135deg,#fefce8 0%,#fef9c3 100%);border-radius:14px;position:relative;overflow:hidden">`
-    html += `<span style="position:absolute;top:8px;left:16px;font-size:72px;line-height:1;color:${ctx.t.accent}30;font-family:Georgia,ser-serif">"</span>`
+    html += `<span style="position:absolute;top:8px;left:16px;font-size:72px;line-height:1;color:${ctx.t.accent}30;font-family:Georgia,serif">"</span>`
     html += `<p style="margin:0px;padding:0px 24px;font-size:18px;font-style:italic;color:#1e293b;line-height:1.7;letter-spacing:0.4px;position:relative;z-index:1;text-align:center">${esc(text)}</p>`
     if (source) {
       html += `<p style="margin:16px 0px 0px;text-align:right;font-size:13px;color:#94a3b8;letter-spacing:0.5px">— ${esc(source)}</p>`

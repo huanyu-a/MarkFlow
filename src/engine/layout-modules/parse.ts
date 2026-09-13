@@ -21,14 +21,63 @@ export type BodyFormat = 'fields' | 'rows' | 'json_object' | 'json_array' | 'mar
 
 export function parseFields(body: string): Record<string, string> {
   const result: Record<string, string> = {}
-  for (const rawLine of body.split('\n')) {
-    const line = rawLine.trim()
+  const lines = body.split('\n')
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim()
     if (!line) continue
     const colonIdx = line.indexOf(':')
     if (colonIdx < 0) continue
     const key = line.slice(0, colonIdx).trim()
     const value = line.slice(colonIdx + 1).trim()
-    if (key) result[key] = value
+    if (!key) continue
+    // YAML 块标量：value 为 |、|-、|+（保留换行）或 >、>-（折叠为空格）时，
+    // 收集后续比 key 行更缩进的行，直到出现非缩进的非空行为止。
+    // 示例：
+    //   body: |
+    //     第一行事实
+    //     第二行事实
+    const blockMatch = value.match(/^([|>])([+-]?)$/)
+    if (blockMatch) {
+      const keepNewlines = blockMatch[1] === '|'
+      const collected: string[] = []
+      // 块内容缩进基准：第一个非空行的前导空白数
+      let indent = -1
+      let j = i + 1
+      while (j < lines.length) {
+        const raw = lines[j]
+        // 空行：属于块的延续（可能分隔段落），先占位，最终按折叠规则决定去留
+        if (!raw.trim()) {
+          collected.push('')
+          j++
+          continue
+        }
+        const leading = raw.length - raw.trimStart().length
+        if (indent < 0) indent = leading
+        // 非缩进的非空行 → 块结束（该行交回普通 key: value 解析）
+        if (leading < indent) break
+        collected.push(raw.slice(indent).trimEnd())
+        j++
+      }
+      // 丢弃块尾部的空行（YAML 字面量会保留它们，但对排版渲染没有意义）
+      while (collected.length > 0 && !collected[collected.length - 1]) collected.pop()
+      // 折叠标量（>）：单个换行折为空格；连续空行产生的多个换行压缩为一个真实换行（分段）
+      // 字面量标量（|）：按 \n 连接，空行原样保留（分段语义）
+      let joined: string
+      if (keepNewlines) {
+        joined = collected.join('\n')
+      } else {
+        joined = collected
+          .join('\n')
+          .replace(/\n{2,}/g, '\u0000PARA\u0000') // 先保护段落分隔
+          .replace(/\n/g, ' ') // 单换行 → 空格
+          .replace(/\u0000PARA\u0000/g, '\n')
+          .trim()
+      }
+      result[key] = joined
+      i = j - 1
+      continue
+    }
+    result[key] = value
   }
   return result
 }

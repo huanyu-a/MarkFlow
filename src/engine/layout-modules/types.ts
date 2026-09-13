@@ -25,6 +25,12 @@ export interface LayoutModuleSpec {
   label: string
   /** 字段描述（可选，用于文档/校验提示） */
   fields?: { name: string; required: boolean; description: string }[]
+  /**
+   * fields 格式模块实际消费的字段名清单（可选）。
+   * 声明后，body 中出现清单外的 key 时经 onWarning 上报「字段未被消费」告警，
+   * 用于捕获示例/用户写法与渲染器协议脱节。
+   */
+  consumedFields?: string[]
   /** 可选：对容器 body 原文做格式检查，返回降级警告文本（经 onWarning 上报，如缺列行被忽略） */
   bodyWarning?: (rawBody: string) => string | undefined
 }

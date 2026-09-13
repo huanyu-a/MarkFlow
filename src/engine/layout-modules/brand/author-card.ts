@@ -13,8 +13,9 @@ function render(body: LayoutBody, ctx: BlockRenderContext): string {
   const accent = ctx.t.accent
   const initial = esc((f.title || '?').charAt(0).toUpperCase())
   const avatarUrl = f.avatar?.trim()
+  // 支持 , 与 | 双分隔符（官方示例用 |，用户习惯用 ,）
   const tags = f.tags
-    ? f.tags.split(',').map((t) => t.trim()).filter(Boolean)
+    ? f.tags.split(/[,|]/).map((t) => t.trim()).filter(Boolean)
     : []
   let html = `<section style="margin:0px 0px 28px;padding:24px;display:flex;gap:18px;align-items:flex-start;background:#fff;border:1px solid #e2e8f0;border-radius:16px">`
   // 左侧头像

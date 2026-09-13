@@ -47,7 +47,8 @@ const resourceListRenderer: BlockRenderer = {
     let html = `<section style="margin:16px 0px;display:flex;flex-direction:column;gap:10px">`
     items.forEach((item) => {
       const icon = String(item.icon ?? '')
-      const name = String(item.name ?? '')
+      // title 为 name 的别名（官方示例与常见写法均用 title）
+      const name = String(item.title ?? item.name ?? '')
       const url = String(item.url ?? '')
       const desc = String(item.desc ?? '')
       html += `<section style="padding:14px 16px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;display:flex;align-items:flex-start;gap:12px">`

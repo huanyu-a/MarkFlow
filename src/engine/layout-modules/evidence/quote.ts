@@ -1,7 +1,8 @@
 /**
  * quote — 引用强调
  * body_format: rows
- *   引用内容 | 来源 | 作者
+ *   引用内容 | 作者 | 来源
+ * 署名行渲染为「— 作者 · 来源」
  */
 import type { BlockRenderContext } from '../../utils/blockRenderRegistry'
 import type { LayoutBody } from '../buildRenderer'
@@ -16,8 +17,8 @@ function render(body: LayoutBody, ctx: BlockRenderContext): string {
   html += `<span style="position:absolute;top:8px;left:12px;font-size:56px;line-height:1;font-weight:900;color:${accent}22;font-family:Georgia,serif">"</span>`
   rows.forEach((row) => {
     const quote = row[0] ?? ''
-    const source = row[1] ?? ''
-    const author = row[2] ?? ''
+    const author = row[1] ?? ''
+    const source = row[2] ?? ''
     if (quote) {
       html += `<p style="margin:0px 0px 12px;font-size:16px;color:#1a1a1a;line-height:1.8;letter-spacing:0.3px;font-style:italic;text-align:justify;padding-left:28px">${esc(quote)}</p>`
     }

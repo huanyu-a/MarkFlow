@@ -1,7 +1,7 @@
 /**
  * checklist — 任务清单
  * body_format: rows
- *   描述 | 状态(done|todo|na)
+ *   描述 | 状态(done|todo|na，兼容 true=done、false=todo，大小写不敏感)
  */
 import type { BlockRenderContext } from '../../utils/blockRenderRegistry'
 import type { LayoutBody } from '../buildRenderer'
@@ -12,10 +12,11 @@ function render(body: LayoutBody, _ctx: BlockRenderContext): string {
   const rows = body.rows
   let html = `<section style="margin:0px 0px 28px;padding:20px 22px;background:#fff;border:1px solid #e2e8f0;border-radius:14px">`
   rows.forEach((row) => {
-    const last = row[row.length - 1]?.toLowerCase() ?? ''
-    const isStatus = last === 'done' || last === 'todo' || last === 'na'
-    const status = isStatus ? last : 'todo'
-    const desc = isStatus ? (row[0] ?? '') : (row[0] ?? '')
+    const lastRaw = row[row.length - 1]?.toLowerCase() ?? ''
+    const isStatus = ['done', 'todo', 'na', 'true', 'false'].includes(lastRaw)
+    // true/false 为 done/todo 的别名（大小写不敏感）
+    const status = lastRaw === 'true' ? 'done' : lastRaw === 'false' ? 'todo' : isStatus ? lastRaw : 'todo'
+    const desc = row[0] ?? ''
     let checkSymbol: string
     let checkColor: string
     let descColor: string

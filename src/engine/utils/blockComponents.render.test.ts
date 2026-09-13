@@ -16,6 +16,7 @@ import { parseMarkdown } from './markdownParser'
 import { parseLangLineRanges } from './codeBlock'
 import { makeColors } from '../index'
 import { layoutModuleSpecs } from '../layout-modules'
+import { parseFields, parseRows, parseJsonObject, parseJsonArray } from '../layout-modules/parse'
 import { LAYOUT_EXAMPLES, fallbackExample } from '@/components/extension/data'
 import { buildLayoutSnippet } from '@/components/extension/utils'
 import { Steps_DA01 } from '../editor-components/Steps_DA01'
@@ -108,6 +109,80 @@ describe('layout-modules 全组件渲染', () => {
   it('排版模块清单非空（防止注册表被清空后测试空转）', () => {
     expect(layoutModuleSpecs.length).toBeGreaterThanOrEqual(30)
   })
+})
+
+// ── A2. 官方示例字段完整性契约 ────────────────────────────────
+//
+// 示例 = 官方承诺：fields/json/rows 模块的官方示例中，每个字段值（或其分段）
+// 都必须真实出现在渲染产物中。本契约用于捕获「示例与渲染器协议脱节」类问题
+// （如字段被静默丢弃、示例用了渲染器不认识的字段名）。
+
+describe('官方示例字段完整性契约（示例 = 官方承诺，字段不得静默丢失）', () => {
+  // rows 中的协议标记（颜色/状态/关键字列）不算内容字段
+  const ROW_MARKERS = /^(accent|default|done|todo|na|true|false|fit|not-fit|myth|fact)$/i
+  // fields 中的协议开关值（如 image-text 的 layout: left|right）渲染为结构变化而非文本，不做文本断言
+  const FIELD_PROTOCOL_VALUES = /^(left|right|accent|default)$/i
+  // HTML 转义（与 buildRenderer.esc 同规则），保证含 & < > " 的字段值可比对
+  const escHtml = (s: string) =>
+    s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+  // 归一化：去掉全部空白字符，抵消 pangu 排版空格、换行与缩进差异
+  const squash = (s: string) => escHtml(s).replace(/\s+/g, '')
+
+  /** 从示例中提取待校验字段值：fields 逐 key、rows 逐列、json 递归逐值 */
+  function exampleValues(example: string, bodyFormat: string): string[] {
+    const text = example.trim()
+    if (bodyFormat === 'fields') {
+      const values: string[] = []
+      for (const v of Object.values(parseFields(text))) {
+        if (FIELD_PROTOCOL_VALUES.test(v.trim())) continue
+        // 块标量按行、行内值按 | 分段（如 tags: a|b|c 渲染为独立标签），逐段校验
+        for (const seg of v.split(/\n|\|/)) {
+          if (seg.trim()) values.push(seg.trim())
+        }
+      }
+      return values
+    }
+    if (bodyFormat === 'rows') {
+      return parseRows(text)
+        .flat()
+        .filter((c) => c.trim() && !ROW_MARKERS.test(c.trim()))
+    }
+    if (bodyFormat === 'json_object' || bodyFormat === 'json_array') {
+      const parsed =
+        bodyFormat === 'json_object' ? parseJsonObject(text) : (parseJsonArray(text) as unknown)
+      const out: string[] = []
+      const walk = (v: unknown) => {
+        if (typeof v === 'string') {
+          if (v.trim()) out.push(v)
+        } else if (typeof v === 'number') {
+          out.push(String(v))
+        } else if (Array.isArray(v)) {
+          v.forEach(walk)
+        } else if (typeof v === 'object' && v !== null) {
+          Object.values(v).forEach(walk)
+        }
+        // boolean 等协议开关（如 tweet.verified）不校验文本
+      }
+      if (parsed) walk(parsed)
+      return out
+    }
+    return [] // markdown 格式由既有 needle 冒烟断言覆盖，不适用逐字段契约
+  }
+
+  it.each(layoutModuleSpecs.filter((s) => s.bodyFormat !== 'markdown').map((s) => [s.name, s.bodyFormat] as const))(
+    ':::%s 官方示例每个字段都出现在渲染产物中',
+    (name, bodyFormat) => {
+      const example = LAYOUT_EXAMPLES[name] ?? fallbackExample(bodyFormat)
+      const values = exampleValues(example, bodyFormat)
+      // 示例必须能提取到至少一个字段值，防止提取逻辑失配后测试空转
+      expect(values.length).toBeGreaterThan(0)
+      const html = render(buildLayoutSnippet(name, example))
+      const squashed = squash(html)
+      for (const v of values) {
+        expect(squashed).toContain(squash(v))
+      }
+    },
+  )
 })
 
 // ── B. editor-components 全部统一 ::: 组件 ─────────────────────

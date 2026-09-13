@@ -94,8 +94,13 @@ export function buildModuleRenderer(
       }
       const layoutBody = parseBody(extracted.body, spec.bodyFormat)
       const html = renderFn(layoutBody, ctx, extracted.body)
-      // 未闭合截断告警优先；否则走模块级格式降级告警（如缺列行被忽略）
-      return { html, next: extracted.next, warning: extracted.warning ?? spec.bodyWarning?.(extracted.body) }
+      // 告警合并：未闭合截断 > 模块级格式降级（bodyWarning）> fields 多余字段（consumedFields）
+      const warnings = [
+        extracted.warning,
+        spec.bodyWarning?.(extracted.body),
+        spec.consumedFields ? unknownFieldsWarning(layoutBody.fields, spec.consumedFields, spec.name) : undefined,
+      ].filter((w): w is string => Boolean(w))
+      return { html, next: extracted.next, warning: warnings.length > 0 ? warnings.join('；') : undefined }
     },
   }
 }
@@ -125,6 +130,21 @@ function collectModuleContainer(
   // 未闭合（EOF）：标记 eof，由调用方消费定界符行并降级为普通文本
   if (i >= lines.length) return { body: '', next: start + 1, eof: true }
   return { body: collected.join('\n').trim(), next: i + 1 }
+}
+
+/**
+ * fields 格式多余字段告警（参考 compare.ts 的 bodyWarning 范本）：
+ * body 中出现 consumedFields 之外的字段时提示「已忽略」，防止示例/用户写法与渲染器协议脱节被静默吞掉。
+ */
+function unknownFieldsWarning(
+  fields: Record<string, string>,
+  consumed: string[],
+  name: string,
+): string | undefined {
+  const known = new Set(consumed)
+  const extra = Object.keys(fields).filter((k) => !known.has(k))
+  if (extra.length === 0) return undefined
+  return `${name} 未消费字段：${extra.join('、')}（已忽略）`
 }
 
 // ── 公共片段：各模块复用的内联样式 token ──────────────
