@@ -321,6 +321,26 @@ describe('myth-fact 旧关键字协议回归', () => {
   })
 })
 
+// ── C3. audience-fit 旧格式兜底回归（用户手写的 无关键字 行） ──
+
+describe('audience-fit 旧格式兜底回归', () => {
+  it('旧 3 列格式：首列受众名渲染，末列 高/中/低 映射 ✓/●/✗', () => {
+    const html = render(
+      ':::audience-fit\n技术团队 | 结构严谨、代码块清晰 | 高\n运营人员 | 步骤卡片 + 指标看板 | 中\n普通读者 | 纯文字堆砌难读 | 低\n:::',
+    )
+    expect(html).toContain('技术团队')
+    expect(html).toContain('运营人员')
+    expect(html).toContain('普通读者')
+    expect(html).toContain('结构严谨、代码块清晰')
+  })
+
+  it('fit 协议行仍正常（推荐写法）', () => {
+    const html = render(':::audience-fit\nfit | 技术团队 | 结构严谨\n:::')
+    expect(html).toContain('技术团队')
+    expect(html).toContain('结构严谨')
+  })
+})
+
 // ── D. 回归：用户上报的真实用法 ───────────────────────────────
 
 describe('用户上报用法回归', () => {
