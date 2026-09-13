@@ -181,8 +181,8 @@ const separatorRenderer: BlockRenderer = {
   match: (line) => /^---+\s*$/.test(line.trim()),
   render: (ctx, _line, _lines, i) => {
     const tokens = tk(ctx)
-    const isDark = tokens.headingColor === 'accent' || tokens.headingColor === 'dark'
-    const lineColor = isDark ? `${ctx.t.accent}55` : neutral.gray350
+    const isAccent = tokens.headingColor === 'accent'
+    const lineColor = isAccent ? `${ctx.t.accent}55` : neutral.gray350
     return {
       html: `<section style="border:none;height:1px;background:linear-gradient(90deg,transparent,${lineColor},transparent);margin:${spacing[10]} 0px"></section>`,
       next: i + 1,
@@ -654,11 +654,7 @@ const headingRenderer: BlockRenderer = {
   render: (ctx, line, _lines, i) => {
     const { t, formulaMap } = ctx
     const tokens = tk(ctx)
-    const headingColor = tokens.headingColor === 'accent'
-      ? t.accent
-      : tokens.headingColor === 'dark'
-        ? t.dark
-        : color.textPrimary
+    const headingColor = tokens.headingColor === 'accent' ? t.accent : color.textPrimary
     const headingWeight = tokens.headingWeight
     const h1m = line.match(/^#\s+(.+)/)
     if (h1m) {

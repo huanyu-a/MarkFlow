@@ -218,8 +218,8 @@ export interface ResolvedTokens {
   headingSizes: Record<1 | 2 | 3 | 4 | 5 | 6, string>
   /** 标题字重 */
   headingWeight: string
-  /** 标题着色模式：textPrimary=中性色, accent=主题色, dark=深色 */
-  headingColor: 'textPrimary' | 'accent' | 'dark'
+  /** 标题着色模式：textPrimary=中性色, accent=主题色 */
+  headingColor: 'textPrimary' | 'accent'
   /** 正文字号 */
   bodyFontSize: string
   /** 正文行高 */

@@ -11,8 +11,8 @@ import {
 import { resolveTokens } from './tokens'
 
 describe('THEME_PROFILES', () => {
-  it('应有 60 套主题', () => {
-    expect(THEME_PROFILES.length).toBe(60)
+  it('应有 64 套主题', () => {
+    expect(THEME_PROFILES.length).toBe(64)
   })
 
   it('每个主题 ID 唯一', () => {
@@ -57,6 +57,21 @@ describe('getThemeProfile / getDefaultThemeProfile', () => {
   it('能按 id 取到主题', () => {
     expect(getThemeProfile('bytedance')?.name).toBe('字节跳动')
     expect(getThemeProfile('elegant-gold')?.name).toBe('优雅金')
+  })
+
+  it('重命名与重分类口径：分类含 vivid/retro 不含 dark，名称与渲染色相符', () => {
+    const ids = THEME_CATEGORIES.map((c) => c.id)
+    expect(ids).toContain('vivid')
+    expect(ids).toContain('retro')
+    expect(ids).not.toContain('dark')
+    expect(getThemeProfile('elegant-purple')?.name).toBe('酒红')
+    expect(getThemeProfile('mint-green')?.name).toBe('翡翠绿')
+    expect(getThemeProfile('olive-journal')?.name).toBe('墨黑手记')
+    expect(getThemeProfile('indigo')?.name).toBe('长春花蓝')
+    expect(getThemeProfile('midnight')?.name).toBe('宝石蓝')
+    expect(getThemeProfile('midnight')?.category).toBe('vivid')
+    expect(getThemeProfile('sepia')?.category).toBe('retro')
+    expect(getThemeProfile('bright-yellow')?.category).toBe('vivid')
   })
 
   it('未知 id 返回 undefined', () => {
