@@ -176,3 +176,25 @@ export function parseAttrs(s: string): Record<string, string> {
   )
   return attrs
 }
+
+/**
+ * 未声明属性告警：比较实际传入的 attrs 与组件声明集合，多出的 key 上报
+ * 「未声明属性被忽略」，用于捕获「声明与渲染脱节 / 用户拼错属性名」被静默吞掉。
+ *
+ * @param attrs     实际解析出的属性
+ * @param declared  组件声明的属性 key 集合（ComponentDef.attrs[].key / spec.fields[].name）
+ * @param name      报错前缀（如 ':::table' 或 '<cta>'）
+ * @param aliases   兼容别名（如 CTA 的 button、Engage/Steps 的 type），不计为未声明
+ * @returns 告警文本；无多余属性时返回 undefined
+ */
+export function unknownAttrWarning(
+  attrs: Record<string, string>,
+  declared: readonly string[],
+  name: string,
+  aliases: readonly string[] = [],
+): string | undefined {
+  const known = new Set<string>([...declared, ...aliases])
+  const extra = Object.keys(attrs).filter((k) => !known.has(k))
+  if (extra.length === 0) return undefined
+  return `${name} 未声明属性被忽略：${extra.join('、')}`
+}

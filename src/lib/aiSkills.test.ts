@@ -56,6 +56,13 @@ describe('getBlockSkills', () => {
       expect(s.description).toBeTruthy()
     }
   })
+
+  it('table 技能描述包含 title 属性与官方示例（P0 声明-消费对齐后）', () => {
+    const table = getBlockSkills().find((s) => s.tag === ':::table')
+    expect(table).toBeTruthy()
+    expect(table!.description).toContain('title')
+    expect(table!.description).toContain('四种输出模式对比')
+  })
 })
 
 /* ------------------------------------------------------------------ */

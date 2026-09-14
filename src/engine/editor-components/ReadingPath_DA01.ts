@@ -13,7 +13,18 @@
  */
 import { buildUnifiedRenderer, parseBody, type UnifiedComponentDef } from './unifiedRender'
 import { radius, spacing } from '@engine/tokens'
-import { leaf } from '@engine/utils/helpers'
+import { esc, leaf } from '@engine/utils/helpers'
+
+/** 从容器 body 提取章节行（- 章节名 | 描述），供 render 与 bodyWarning 共用 */
+function extractChapters(text: string): string[][] {
+  return text
+    .split('\n')
+    .map((l) => l.trim())
+    .filter((l) => l.startsWith('- '))
+    .map((l) => l.slice(2).split('|').map((x) => x.trim()))
+    .filter((r) => r[0])
+}
+
 export const ReadingPath_DA01: UnifiedComponentDef = {
   spec: {
     name: 'reading-path',
@@ -31,14 +42,12 @@ export const ReadingPath_DA01: UnifiedComponentDef = {
 
   render(_attrs, rawBody, body, t): string {
     // 组件库预览：从 body 提取 mock 渲染
-    const chapters = (body.markdown || rawBody)
-      .split('\n')
-      .map((l) => l.trim())
-      .filter((l) => l.startsWith('- '))
-      .map((l) => l.slice(2).split('|').map((x) => x.trim()))
-      .filter((r) => r[0])
+    const chapters = extractChapters(body.markdown || rawBody)
 
-    if (chapters.length < 2) return ''
+    if (chapters.length < 2) {
+      // 空 body / 章节不足：不静默返回空串（用户看不到任何提示），给出可见的降级提示
+      return `<section style="margin:0px 0px ${spacing[8]};padding:${spacing[6]} ${spacing[5]};border:1px dashed #e2e8f0;border-radius:${radius['3xl']};background:#f8fafc;text-align:center"><p style="margin:0px;font-size:12px;line-height:1.7;color:#94a3b8">阅读路线需要至少两行「- 章节名 | 描述」；如需自动提取文档章节，请改用 ${esc('<reading-path>')} 标签。</p></section>`
+    }
 
     let html = `<section style="margin:0px 0px ${spacing[12]}"><section>`
     html += `<section style="display:flex;align-items:flex-end;justify-content:space-between;padding-bottom:${spacing[6]};gap:${spacing[5]}"><section style="flex-shrink:0"><p style="margin:0px;padding:0px 0px ${spacing[2]};font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:2.8px;font-weight:800;white-space:nowrap">READING PATH</p><p style="margin:0px;font-size:16px;line-height:1.35;color:#1a1a1a;font-weight:700">阅读路线</p></section><p style="margin:0px;font-size:11px;color:#94a3b8;white-space:nowrap">${chapters.length} 个章节</p></section>`
@@ -60,6 +69,14 @@ export const ReadingPath_DA01: UnifiedComponentDef = {
     })
     html += `</section></section></section>`
     return html
+  },
+
+  /** 章节不足时经 warning 通道上报，避免 :::reading-path 空输出被静默吞掉 */
+  bodyWarning(rawBody: string): string | undefined {
+    if (extractChapters(rawBody).length < 2) {
+      return ':::reading-path 需要至少两行「- 章节名 | 描述」；如需自动提取文档章节，请改用 <reading-path> 标签'
+    }
+    return undefined
   },
 
   renderLegacy(attrs, body, t) {

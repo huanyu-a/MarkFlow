@@ -12,7 +12,7 @@
  */
 
 import type { BlockRenderer } from '../utils/blockRenderRegistry'
-import { parseAttrs, leaf, unclosedTagFallback } from '../utils/helpers'
+import { parseAttrs, leaf, unclosedTagFallback, unknownAttrWarning } from '../utils/helpers'
 import { restoreCodePlaceholdersToText } from '../utils/codeProtect'
 import {
   parseFields,
@@ -130,10 +130,14 @@ export function buildUnifiedRenderer(def: UnifiedComponentDef): BlockRenderer {
         return { html: fb.html, next: i + 1, warning: fb.warning }
       }
       const rawBody = prepareBody(bodyLines.join('\n').trim())
+      // 未声明属性告警 + 组件级 body 降级告警（如缺列被忽略的行），合并经 onWarning 上报
+      const warnings = [
+        unknownAttrWarning(attrs, def.spec.fields?.map((f) => f.name) ?? [], `:::${def.spec.name}`),
+        def.bodyWarning?.(rawBody),
+      ].filter((w): w is string => Boolean(w))
       try {
         const html = def.render(attrs, rawBody, parseBody(rawBody, def.spec.bodyFormat), ctx.t)
-        // bodyWarning：组件级格式降级警告（如缺列被忽略的行），经 onWarning 上报
-        return { html, next: j + 1, warning: def.bodyWarning?.(rawBody) }
+        return { html, next: j + 1, warning: warnings.length > 0 ? warnings.join('；') : undefined }
       } catch {
         // 组件渲染抛错：把容器 body 原文降级为纯文本（leaf 包 span 保留内容，行内语法丢弃可接受；
         // 注入面由出口 sanitizeHtml 统一净化），并经 warning 通道上报——return null 会让

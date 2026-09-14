@@ -1,5 +1,5 @@
 import type { ThemeColors } from '../composables/useTheme'
-import { esc, leaf, parseAttrs, safeUrl, unclosedTagFallback } from './helpers'
+import { esc, leaf, parseAttrs, safeUrl, unclosedTagFallback, unknownAttrWarning } from './helpers'
 import { inlineFormat } from './inlineFormat'
 import { renderCodeBlock } from './codeBlock'
 import type { CodeStore } from './codeProtect'
@@ -30,6 +30,7 @@ import { Img_DA01 } from '@engine/editor-components/Img_DA01'
 import { GovHeader_DA01 } from '@engine/editor-components/GovHeader_DA01'
 import { Align_DA01 } from '@engine/editor-components/Align_DA01'
 import { Table_DA01 } from '@engine/editor-components/Table_DA01'
+import { HintContainer_DA01 } from '@engine/editor-components/HintContainer_DA01'
 
 export interface BlockRenderContext {
   t: ThemeColors
@@ -160,6 +161,21 @@ function tk(ctx: BlockRenderContext): ResolvedTokens {
   return ctx.tokens ?? ctx.tokensRaw
 }
 
+/**
+ * 合并「已有告警（如未闭合降级）」与「未声明属性告警」。
+ * 单行 `<tag>` / 块标签路径逐点调用，覆盖不经 buildUnifiedRenderer 的组件。
+ */
+function mergeAttrWarning(
+  warning: string | undefined,
+  attrs: Record<string, string>,
+  declared: readonly string[] | undefined,
+  name: string,
+  aliases: readonly string[] = [],
+): string | undefined {
+  const attrWarn = unknownAttrWarning(attrs, declared ?? [], name, aliases)
+  return [warning, attrWarn].filter((w): w is string => Boolean(w)).join('；') || undefined
+}
+
 function hasTableBelow(lines: string[], index: number): boolean {
   for (let k = index + 1; k < lines.length; k++) {
     const line = lines[k].trim()
@@ -227,7 +243,8 @@ const stepsRenderer: BlockRenderer = {
       .filter((l: string) => /^-\s*.+\s*\|\s*.+/.test(l.trim())).length
     const useDA02 = block.attrs.type === 'DA02' || (!block.attrs.type && stepCount > 3)
     const renderer = useDA02 ? Steps_DA02 : Steps_DA01
-    return { html: renderer.renderLegacy(block.attrs, body, ctx.t), next: block.next, warning: block.warning }
+    const warning = mergeAttrWarning(block.warning, block.attrs, renderer.spec.fields?.map((f) => f.name), '<steps>', ['type'])
+    return { html: renderer.renderLegacy(block.attrs, body, ctx.t), next: block.next, warning }
   },
 }
 
@@ -237,7 +254,8 @@ const statementRenderer: BlockRenderer = {
   render: (ctx, _line, lines, i) => {
     const block = extractBlock(lines, i, /^<statement\b([^>]*)>(.*)$/, /<\/statement>/)
     if (!block) return null
-    return { html: Statement_DA01.render(block.attrs, block.body, ctx.t), next: block.next, warning: block.warning }
+    const warning = mergeAttrWarning(block.warning, block.attrs, Statement_DA01.attrs?.map((a) => a.key), '<statement>')
+    return { html: Statement_DA01.render(block.attrs, block.body, ctx.t), next: block.next, warning }
   },
 }
 
@@ -247,7 +265,8 @@ const badgesRenderer: BlockRenderer = {
   render: (ctx, _line, lines, i) => {
     const block = extractBlock(lines, i, /^<badges\b([^>]*)>(.*)$/, /<\/badges>/)
     if (!block) return null
-    return { html: Badges_DA01.render(block.attrs, block.body, ctx.t), next: block.next, warning: block.warning }
+    const warning = mergeAttrWarning(block.warning, block.attrs, Badges_DA01.attrs?.map((a) => a.key), '<badges>', ['tone'])
+    return { html: Badges_DA01.render(block.attrs, block.body, ctx.t), next: block.next, warning }
   },
 }
 
@@ -263,7 +282,8 @@ const leadContainerRenderer: BlockRenderer = {
   render: (ctx, _line, lines, i) => {
     const block = extractBlock(lines, i, /^:::\s*lead\b(.*)$/, /^:::\s*$/)
     if (!block) return null
-    return { html: Lead_DA01.render(block.attrs, block.body, ctx.t), next: block.next, warning: block.warning }
+    const warning = mergeAttrWarning(block.warning, block.attrs, Lead_DA01.attrs?.map((a) => a.key), '<lead>')
+    return { html: Lead_DA01.render(block.attrs, block.body, ctx.t), next: block.next, warning }
   },
 }
 
@@ -279,8 +299,20 @@ const hintContainerRenderer: BlockRenderer = {
     const m = line.match(/^(:{3,4})\s*(tip|note|warning|info|caution|important)\b\s*(.*)/)
     if (!m) return null
     const colonCount = m[1].length // 3 or 4
-    const type = m[2]
-    const customTitle = m[3].trim()
+    // 尾部文本既可能是属性（:::tip type="info" title="注意事项"）也可能是位置标题（:::tip 自定义标题）。
+    // 按属性解析：title 属性优先，其次去掉属性片段后的位置文本；attrs.type 与位置类型语义一致（可覆盖）。
+    const tail = m[3].trim()
+    const tailAttrs: Record<string, string> = {}
+    const tailAttrRe = /(\w[\w-.]*)=("[^"]*"|\S+)/g
+    let tailMatch: RegExpExecArray | null
+    while ((tailMatch = tailAttrRe.exec(tail))) {
+      let val = tailMatch[2]
+      if (val.startsWith('"') && val.endsWith('"')) val = val.slice(1, -1)
+      tailAttrs[tailMatch[1]] = val
+    }
+    const positionTitle = tail.replace(/(\w[\w-.]*)=("[^"]*"|\S+)/g, '').trim()
+    const type = tailAttrs.type || m[2]
+    const customTitle = tailAttrs.title || positionTitle
     // 收集容器内容直到相同数量的 :::
     const closeRe = new RegExp(`^:{${colonCount}}\\s*$`)
     const contentLines: string[] = []
@@ -320,7 +352,8 @@ const hintContainerRenderer: BlockRenderer = {
       html += `<section style="font-size:${fontSize.xl};color:${neutral.gray700};line-height:${lineHeight.looser};letter-spacing:${letterSpacing.wider};text-align:justify">${renderBody(body)}</section>`
     }
     html += `</section>`
-    return { html, next: j + 1 }
+    const attrWarn = unknownAttrWarning(tailAttrs, HintContainer_DA01.spec.fields?.map((f) => f.name) ?? [], `${m[1]}${m[2]}`)
+    return { html, next: j + 1, warning: attrWarn }
   },
 }
 
@@ -359,7 +392,10 @@ const tableContainerRenderer: BlockRenderer = {
       attrs[key] = val
       lastIndex = attrMatch.index + attrMatch[0].length
     }
-    const caption = rest.substring(lastIndex).trim()
+    // 位置标题（:::table 之后的文字）：作为 caption 兜底并统一交给 renderTable 消费，
+    // 避免容器与组件各渲染一次标题导致重复
+    const positionCaption = rest.substring(lastIndex).trim()
+    if (positionCaption && !attrs.title && !attrs.caption) attrs.caption = positionCaption
 
     // 构建 markdown 表格 body 传给 Table_DA01.render
     const markdownBody = contentLines.join('\n').trim()
@@ -368,10 +404,10 @@ const tableContainerRenderer: BlockRenderer = {
 
     const t = _ctx.t
 
-    // Footer：检查 ::: 闭合后的下一行
+    // Footer：footer 属性优先；否则取 ::: 闭合后紧邻的非表格行（无该属性时维持既有吞行行为）
     j++ // skip closing :::
-    let footer = ''
-    if (j < lines.length) {
+    let footer = attrs.footer || ''
+    if (!footer && j < lines.length) {
       const nextLine = lines[j].trim()
       if (nextLine && !nextLine.includes('|') && !/^:{3,4}/.test(nextLine)) {
         footer = nextLine
@@ -379,22 +415,16 @@ const tableContainerRenderer: BlockRenderer = {
       }
     }
 
-    let html = ''
-
-    // Caption
-    if (caption) {
-      html += `<section style="margin-bottom:${spacing[3]};padding:${spacing[3]} 0;text-align:center"><span style="display:inline-flex;align-items:center;gap:6px;font-size:${fontSize.sm};font-weight:${fontWeight.semibold};color:${t.accent}"><span style="display:inline-block;width:3px;height:14px;border-radius:2px;background:${t.accent}"></span>${esc(caption)}</span></section>`
-    }
-
-    // 使用 Table_DA01 渲染表格（返回完整闭合 HTML）
-    html += Table_DA01.renderLegacy(attrs, markdownBody, t)
+    // Caption 与表格统一由 Table_DA01 渲染（title/caption 优先级在其内部处理）
+    let html = Table_DA01.renderLegacy(attrs, markdownBody, t)
 
     // Footer
     if (footer) {
       html += `<p style="margin:${spacing[3]} ${spacing[3]} 0;text-align:right;font-size:11px;color:#94a3b8">${esc(footer)}</p>`
     }
 
-    return { html, next: j }
+    const attrWarn = unknownAttrWarning(attrs, Table_DA01.spec.fields?.map((f) => f.name) ?? [], ':::table')
+    return { html, next: j, warning: attrWarn }
   },
 }
 
@@ -406,7 +436,8 @@ const alignRenderer: BlockRenderer = {
   render: (ctx, _line, lines, i) => {
     const block = extractBlock(lines, i, /^<align\b([^>]*)>(.*)$/, /<\/align>/)
     if (!block) return null
-    return { html: Align_DA01.renderLegacy(block.attrs, block.body, ctx.t), next: block.next, warning: block.warning }
+    const warning = mergeAttrWarning(block.warning, block.attrs, Align_DA01.spec.fields?.map((f) => f.name), '<align>')
+    return { html: Align_DA01.renderLegacy(block.attrs, block.body, ctx.t), next: block.next, warning }
   },
 }
 
@@ -416,7 +447,8 @@ const leadTagRenderer: BlockRenderer = {
   render: (ctx, _line, lines, i) => {
     const block = extractBlock(lines, i, /^<lead\b([^>]*)>(.*)$/, /<\/lead>/)
     if (!block) return null
-    return { html: Lead_DA01.render(block.attrs, block.body, ctx.t), next: block.next, warning: block.warning }
+    const warning = mergeAttrWarning(block.warning, block.attrs, Lead_DA01.attrs?.map((a) => a.key), '<lead>')
+    return { html: Lead_DA01.render(block.attrs, block.body, ctx.t), next: block.next, warning }
   },
 }
 
@@ -428,7 +460,8 @@ const breakingRenderer: BlockRenderer = {
       extractBlock(lines, i, /^<breaking\b([^>]*)>(.*)$/, /<\/breaking>/) ||
       extractBlock(lines, i, /^<breaking\b([^>]*)>/, /<\/breaking>/)
     if (!block) return null
-    return { html: Breaking_DA01.renderLegacy(block.attrs, block.body, ctx.t), next: block.next, warning: block.warning }
+    const warning = mergeAttrWarning(block.warning, block.attrs, Breaking_DA01.spec.fields?.map((f) => f.name), '<breaking>')
+    return { html: Breaking_DA01.renderLegacy(block.attrs, block.body, ctx.t), next: block.next, warning }
   },
 }
 
@@ -506,12 +539,10 @@ const titleRenderer: BlockRenderer = {
     const attrs = parseAttrs(titleMatch[1])
     const body = titleMatch[2].trim()
     const type = (attrs.type || 'DA01').toUpperCase()
-    if (type === 'DA02') {
-      html += Title_DA02.render(attrs, body, ctx.t, ctx.md)
-    } else {
-      html += Title_DA01.render(attrs, body, ctx.t, ctx.md)
-    }
-    return { html, next: j + 1 }
+    const def = type === 'DA02' ? Title_DA02 : Title_DA01
+    html += def.render(attrs, body, ctx.t, ctx.md)
+    const warning = mergeAttrWarning(undefined, attrs, def.attrs?.map((a) => a.key), '<title>')
+    return { html, next: j + 1, warning }
   },
 }
 
@@ -535,7 +566,8 @@ const pTitleRenderer: BlockRenderer = {
     const attrs = parseAttrs(ptMatch[1])
     const body = ptMatch[2].trim()
     const html = PTitle.render(attrs, body, ctx.t).replace('<section', '<section data-block="ptitle"')
-    return { html, next: j + 1 }
+    const warning = mergeAttrWarning(undefined, attrs, PTitle.attrs?.map((a) => a.key), '<p-title>', ['num'])
+    return { html, next: j + 1, warning }
   },
 }
 
@@ -585,7 +617,8 @@ const caseFlowTagRenderer: BlockRenderer = {
       extractBlock(lines, i, /^<case-flow\b([^>]*)>(.*)$/, /<\/case-flow>/) ||
       extractBlock(lines, i, /^<case-flow\b([^>]*)>/, /<\/case-flow>/)
     if (!block) return null
-    return { html: LabeledFlow_DA01.renderLegacy(block.attrs, block.body, ctx.t), next: block.next, warning: block.warning }
+    const warning = mergeAttrWarning(block.warning, block.attrs, LabeledFlow_DA01.spec.fields?.map((f) => f.name), '<case-flow>')
+    return { html: LabeledFlow_DA01.renderLegacy(block.attrs, block.body, ctx.t), next: block.next, warning }
   },
 }
 
@@ -613,7 +646,8 @@ const timelineRenderer: BlockRenderer = {
       extractBlock(lines, i, /^<timeline\b([^>]*)>/, /<\/timeline>/)
     if (!block) return null
     // 叠加组件级 body 降级警告（缺列行被忽略），未闭合警告优先
-    return { html: Timeline_DA01.renderLegacy(block.attrs, block.body, ctx.t), next: block.next, warning: block.warning || Timeline_DA01.bodyWarning?.(block.body) }
+    const warning = mergeAttrWarning(block.warning || Timeline_DA01.bodyWarning?.(block.body), block.attrs, Timeline_DA01.spec.fields?.map((f) => f.name), '<timeline>')
+    return { html: Timeline_DA01.renderLegacy(block.attrs, block.body, ctx.t), next: block.next, warning }
   },
 }
 
@@ -623,28 +657,35 @@ const sliderRenderer: BlockRenderer = {
   render: (ctx, _line, lines, i) => {
     const block = extractBlock(lines, i, /^<slider\b([^>]*)>(.*)$/, /<\/slider>/)
     if (!block) return null
-    return { html: Slider_DA01.renderLegacy(block.attrs, block.body, ctx.t), next: block.next, warning: block.warning }
+    const warning = mergeAttrWarning(block.warning, block.attrs, Slider_DA01.spec.fields?.map((f) => f.name), '<slider>')
+    return { html: Slider_DA01.renderLegacy(block.attrs, block.body, ctx.t), next: block.next, warning }
   },
 }
 
 const engageRenderer: BlockRenderer = {
   name: 'engage',
   // engage-card / engage-label 是组件元数据注册的真实 tag（扩展页与 guide 示例即用此写法），
-  // <engage> 为通用别名（按 type 属性切换样式）；限定后缀，避免其它 engage-* 前缀标签误撞本路径
-  match: (line) => /^:\s*engage\b/.test(line) || /^<engage(?:-(?:card|label))?\b/.test(line),
+  // <engage> 为通用别名（按 type 属性切换样式）；限定后缀，避免其它 engage-* 前缀标签误撞本路径。
+  // 冒号前缀用 :{1,3}（而非 :\s*），使 ::engage / :::engage 与 ::: 家族一致可匹配
+  match: (line) => /^:{1,3}\s*engage\b/.test(line) || /^<engage(?:-(?:card|label))?\b/.test(line),
   render: (ctx, line, _lines, i) => {
     const attrs = parseAttrs(line)
-    // 精确 tag 直接路由到对应样式，subtitle/color 等属性不再丢失
-    if (/^<engage-card\b/.test(line)) {
-      return { html: Engage_DA02.render(attrs, '', ctx.t), next: i + 1 }
-    }
-    if (/^<engage-label\b/.test(line)) {
-      return { html: Engage_DA01.render(attrs, '', ctx.t), next: i + 1 }
-    }
-    if (attrs.type && attrs.type.toUpperCase() === 'DA02') {
-      return { html: Engage_DA02.render(attrs, '', ctx.t), next: i + 1 }
-    }
-    return { html: Engage_DA01.render(attrs, '', ctx.t), next: i + 1 }
+    // 精确 tag / type 别名直接路由到对应样式，subtitle/color 等属性不再丢失
+    const def = /^<engage-label\b/.test(line)
+      ? Engage_DA01
+      : /^<engage-card\b/.test(line)
+        ? Engage_DA02
+        : attrs.type && attrs.type.toUpperCase() === 'DA02'
+          ? Engage_DA02
+          : Engage_DA01
+    // parseAttrs 会把行首的 engage / engage-card 等标签名解析为布尔属性，type 用于样式路由，均计入别名
+    const warning = unknownAttrWarning(attrs, def.attrs?.map((a) => a.key) ?? [], '<engage>', [
+      'engage',
+      'engage-card',
+      'engage-label',
+      'type',
+    ])
+    return { html: def.render(attrs, '', ctx.t), next: i + 1, warning }
   },
 }
 
@@ -937,7 +978,9 @@ const imgTagRenderer: BlockRenderer = {
   match: (line) => /^<img\s/.test(line.trim()),
   render: (ctx, line, _lines, i) => {
     const attrs = parseAttrs(line)
-    return { html: Img_DA01.render(attrs, '', ctx.t), next: i + 1 }
+    // parseAttrs 会把行首 <img 标签名解析为布尔属性，计入别名
+    const warning = mergeAttrWarning(undefined, attrs, Img_DA01.attrs?.map((a) => a.key), '<img>', ['img'])
+    return { html: Img_DA01.render(attrs, '', ctx.t), next: i + 1, warning }
   },
 }
 
@@ -947,7 +990,8 @@ const govHeaderRenderer: BlockRenderer = {
   render: (ctx, _line, lines, i) => {
     const block = extractBlock(lines, i, /^<gov-header\b([^>]*)>(.*)$/, /<\/gov-header>/)
     if (!block) return null
-    return { html: GovHeader_DA01.renderLegacy(block.attrs, block.body, ctx.t), next: block.next, warning: block.warning }
+    const warning = mergeAttrWarning(block.warning, block.attrs, GovHeader_DA01.spec.fields?.map((f) => f.name), '<gov-header>', ['docNo'])
+    return { html: GovHeader_DA01.renderLegacy(block.attrs, block.body, ctx.t), next: block.next, warning }
   },
 }
 

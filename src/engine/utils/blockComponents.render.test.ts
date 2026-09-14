@@ -13,8 +13,10 @@
  */
 import { describe, it, expect } from 'vitest'
 import { parseMarkdown } from './markdownParser'
+import { parseAttrs } from './helpers'
 import { parseLangLineRanges } from './codeBlock'
 import { makeColors } from '../index'
+import { components } from '../editor-components'
 import { layoutModuleSpecs } from '../layout-modules'
 import { parseFields, parseRows, parseJsonObject, parseJsonArray } from '../layout-modules/parse'
 import { LAYOUT_EXAMPLES, fallbackExample } from '@/components/extension/data'
@@ -220,6 +222,56 @@ describe('editor-components 统一 ::: 组件渲染', () => {
       })
     },
   )
+})
+
+// ── B2. 官方示例属性金样（声明字段值必须落地） ─────────────────
+
+describe('官方示例属性金样（声明字段值必须出现在渲染产物中）', () => {
+  // 协议/开关/纯结构属性：渲染为结构或行为变化，不做字面文本断言
+  const EXCLUDE_KEYS = new Set([
+    'style', 'type', 'align', 'fit', 'line-numbers', 'size', 'level', 'active',
+    'light', 'round', 'hide', 'layout', 'tone',
+  ])
+  const squash = (s: string) => s.replace(/\s+/g, '')
+
+  /** 从容器首行 / 标签开标签中提取属性 */
+  function headerAttrs(example: string, unified: boolean): Record<string, string> {
+    if (unified) {
+      const m = example.split('\n')[0].match(/^:::\s*\S+\s*(.*)/)
+      return m && m[1].trim() ? parseAttrs(m[1]) : {}
+    }
+    const m = example.match(/<[\w-]+\s*([^>]*)>/)
+    return m && m[1].trim() ? parseAttrs(m[1]) : {}
+  }
+
+  /** 值可能被拆分为多段渲染（chips 用 |、images 用 ,），逐段校验 */
+  function segments(value: string): string[] {
+    return value.split(/[|,]/).map((s) => s.trim()).filter(Boolean)
+  }
+
+  function assertExample(name: string, example: string, keySet: Set<string>, unified: boolean) {
+    const warnings: string[] = []
+    const html = parseMarkdown(example, COLORS, undefined, undefined, (w) => warnings.push(w))
+    const attrs = headerAttrs(example, unified)
+    const relevant = Object.entries(attrs).filter(([k]) => keySet.has(k) && !EXCLUDE_KEYS.has(k))
+    const sq = squash(html)
+    for (const [key, value] of relevant) {
+      for (const seg of segments(value)) {
+        expect(sq, `${name} 声明字段 ${key} 的值「${seg}」未出现在渲染产物中`).toContain(squash(seg))
+      }
+    }
+    // 官方示例必须零告警（未知属性/格式降级均不得出现）
+    expect(warnings, `${name} 官方示例不应产生告警`).toEqual([])
+  }
+
+  it.each(UNIFIED_DEFS.map((d) => [d.spec.name, d] as const))(':::%s 示例字段落地', (name, def) => {
+    assertExample(`:::${name}`, def.spec.example, new Set((def.spec.fields ?? []).map((f) => f.name)), true)
+  })
+
+  it.each(components.map((c) => [c.id, c] as const))('<%s> 示例字段落地', (name, def) => {
+    if (!def.example) return
+    assertExample(`<${name}>`, def.example, new Set((def.attrs ?? []).map((a) => a.key)), false)
+  })
 })
 
 // ── C. 标签组件与用户实际语法 ─────────────────────────────────
@@ -653,6 +705,96 @@ describe('未闭合标签与容器降级（C-1/C-2）', () => {
     const html = parseMarkdown(':::cta title="容器标题" action="按钮文案"\n正文行内容', COLORS, undefined, undefined, (w) => warnings.push(w))
     expect(html).toContain('正文行内容')
     expect(warnings.some((w) => w.includes(':::cta') && w.includes('未闭合'))).toBe(true)
+  })
+})
+
+// ── F. 属性声明-消费对齐回归（第十轮） ─────────────────────────
+
+describe('属性声明-消费对齐回归', () => {
+  const renderWarn = (md: string) => {
+    const warnings: string[] = []
+    const html = parseMarkdown(md, COLORS, undefined, undefined, (w) => warnings.push(w))
+    return { html, warnings }
+  }
+
+  it(':::table title 渲染为标题，位置 footer 渲染为表注脚（用户原始输入）', () => {
+    const md = `:::table style="card" title="四种输出模式对比"
+| 输出方式 | 适合场景 | 输出格式 | 特点 |
+|----------|----------|----------|------|
+| 复制富文本 | 公众号、知乎、语雀 | HTML 内联样式 | 保留完整排版，粘贴即用 |
+| 导出长图 | 知识星球、社群传播 | PNG 长图 | 整篇内容一张图，方便转发 |
+| A4 文档 | 正式报告、打印交付 | PDF | 自动分页，支持页码页眉 |
+| 自由画布 | 网页 PPT、品牌页面 | HTML 源码 | 高度视觉化，可嵌入任意网页 |
+:::
+数据来源：MarkFlow 使用统计（2026 年 6 月）`
+    const { html, warnings } = renderWarn(md)
+    // 三部分齐全：标题 + 表格 + 注脚
+    expect(html).toContain('四种输出模式对比')
+    expect(html).toContain('复制富文本')
+    expect(html).toMatch(/text-align:right;font-size:11px;color:#94a3b8[^>]*>数据来源：MarkFlow 使用统计/)
+    // title 为声明属性，不得被报未声明
+    expect(warnings).toEqual([])
+  })
+
+  it(':::table caption= / footer= 键形式生效，priority：title > caption > 位置参数', () => {
+    const withKeys = renderWarn(
+      ':::table caption="季度数据" footer="来源：内部报表"\n| A | B |\n|---|---|\n| 1 | 2 |\n:::',
+    )
+    expect(withKeys.html).toContain('季度数据')
+    expect(withKeys.html).toContain('来源：内部报表')
+    // 位置标题（旧写法）继续兼容
+    const positional = renderWarn(':::table 项目进度表\n| A | B |\n|---|---|\n| 1 | 2 |\n:::')
+    expect(positional.html).toContain('项目进度表')
+    // title 覆盖 caption，位置参数被忽略
+    const titleWins = renderWarn(':::table title="标题优先" caption="应被忽略" 位置文字\n| A | B |\n|---|---|\n| 1 | 2 |\n:::')
+    expect(titleWins.html).toContain('标题优先')
+    expect(titleWins.html).not.toContain('应被忽略')
+  })
+
+  it(':::table 未声明属性经 onWarning 上报（机制 3：容器路径）', () => {
+    const { warnings } = renderWarn(':::table style="card" foo="bar"\n| A | B |\n|---|---|\n| 1 | 2 |\n:::')
+    expect(warnings.some((w) => w.includes(':::table') && w.includes('foo'))).toBe(true)
+  })
+
+  it('CTA 三条路径（:::cta / 单行 <cta> / 多行 <cta>）输出一致，color/light/body 均生效', () => {
+    const opts = 'title="行动标题" color="#e74c3c" light="#f1948a"'
+    const block = renderWarn(`:::cta ${opts}\n正文补充\n:::`).html
+    const inline = renderWarn(`<cta ${opts}>正文补充</cta>`).html
+    const multi = renderWarn(`<cta ${opts}>\n正文补充\n</cta>`).html
+    for (const [name, html] of [['block', block], ['inline', inline], ['multi', multi]] as const) {
+      expect(html, `${name} 缺标题`).toContain('行动标题')
+      expect(html.toLowerCase(), `${name} 缺 color`).toContain('e74c3c')
+      expect(html, `${name} 缺 body`).toContain('正文补充')
+    }
+  })
+
+  it(':::tip title= 属性解析为标题，不再输出字面 title="..."', () => {
+    const { html } = renderWarn(':::tip title="注意事项"\n正文内容\n:::')
+    expect(html).toContain('注意事项')
+    expect(html).not.toContain('title=&quot;注意事项&quot;')
+    expect(html).not.toContain('title="注意事项"')
+    // 位置标题向后兼容
+    expect(renderWarn(':::tip 自定义标题\n正文\n:::').html).toContain('自定义标题')
+    // attrs.type 生效（覆盖位置类型 tip）
+    const typed = renderWarn(':::tip type="warning" title="属性标题"\n正文\n:::').html
+    expect(typed).toContain('属性标题')
+    expect(typed).toContain('#ea580c')
+  })
+
+  it(':::engage / ::engage 冒号家族可匹配（P2-1）', () => {
+    expect(renderWarn(':::engage title="点赞转发甲"').html).toContain('点赞转发甲')
+    expect(renderWarn('::engage title="点赞转发乙"').html).toContain('点赞转发乙')
+    // <engage> 路径不受影响
+    expect(renderWarn('<engage title="点赞转发丙"></engage>').html).toContain('点赞转发丙')
+  })
+
+  it(':::reading-path 空 body 不再静默：输出降级提示并上报 warning（P2-3）', () => {
+    const { html, warnings } = renderWarn(':::reading-path\n:::')
+    expect(html).toContain('阅读路线需要至少两行')
+    expect(warnings.some((w) => w.includes('reading-path'))).toBe(true)
+    // 合法示例不误报
+    const ok = renderWarn(':::reading-path\n- 章节一 | 描述一\n- 章节二 | 描述二\n:::')
+    expect(ok.warnings).toEqual([])
   })
 })
 

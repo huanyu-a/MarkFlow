@@ -1,5 +1,5 @@
 import type { ThemeColors } from '../composables/useTheme'
-import { esc, leaf, parseAttrs, unclosedTagFallback } from './helpers'
+import { esc, leaf, parseAttrs, unclosedTagFallback, unknownAttrWarning } from './helpers'
 import { inlineFormat } from './inlineFormat'
 import { color, fontSize, fontWeight, letterSpacing, lineHeight, neutral, radius, shadowRaw, spacing } from '../tokens'
 import { CTA_DA01 } from '@engine/editor-components/Cta_DA01'
@@ -54,10 +54,13 @@ export function parseCtaBlock(
   start: number,
   t: ThemeColors,
 ): { html: string; next: number; warning?: string } | null {
-  let i = start
-  const attrs = parseAttrs(lines[i])
-  i++
-  while (i < lines.length && !/^:::\s*$/.test(lines[i])) i++
+  const attrs = parseAttrs(lines[start])
+  let i = start + 1
+  const bodyLines: string[] = []
+  while (i < lines.length && !/^:::\s*$/.test(lines[i])) {
+    bodyLines.push(lines[i])
+    i++
+  }
   // 未闭合 :::cta：消费定界符行（转义段落），后续各行交主循环逐行解析（正文不丢），
   // 并经 warning 通道上报——与 :::tip/:::table 等容器的未闭合降级策略统一
   if (i >= lines.length) {
@@ -65,17 +68,10 @@ export function parseCtaBlock(
     return { html: fb.html, next: start + 1, warning: fb.warning }
   }
   i++
-  // 按钮文案三条路径统一为 action 优先（CTA_DA01 主属性名），button 旧写法兼容
-  const btnText = attrs.action || attrs.button
-  let html = `<section style="margin:${spacing[10]} 0px;padding:${spacing[13]} ${spacing[9]};background:linear-gradient(135deg,${t.accent},${t.dark});border-radius:${radius['4xl']};text-align:center;color:${color.surface}">`
-  if (attrs.label)
-    html += `<p style="margin:0px 0px ${spacing[3]};font-size:${fontSize.xs};letter-spacing:${letterSpacing['5xl']};font-weight:${fontWeight.bold};opacity:0.8">${leaf(attrs.label)}</p>`
-  if (attrs.title)
-    html += `<p style="margin:0px 0px ${spacing[7]};font-size:${fontSize['4xl']};font-weight:${fontWeight.extrabold};line-height:${lineHeight.normal}">${leaf(attrs.title)}</p>`
-  if (btnText)
-    html += `<span style="display:inline-block;padding:${spacing[5]} ${spacing[9]};background:rgba(255,255,255,0.2);border-radius:${radius.lg};font-weight:${fontWeight.bold};letter-spacing:${letterSpacing.widest};backdrop-filter:blur(4px)">${leaf(btnText)}</span>`
-  html += `</section>`
-  return { html, next: i }
+  // 三条 CTA 路径统一委托 CTA_DA01.render：color/light/body 等属性不再被静默丢弃，消除重复实现。
+  // button 为 action 的兼容别名；parseAttrs 会把行首 :::cta 的标签名解析为布尔属性，计入别名
+  const warning = unknownAttrWarning(attrs, CTA_DA01.attrs?.map((a) => a.key) ?? [], ':::cta', ['button', 'cta'])
+  return { html: CTA_DA01.render(attrs, bodyLines.join('\n').trim(), t), next: i, warning }
 }
 
 export function parseCtaTag(
@@ -99,26 +95,23 @@ export function parseCtaTag(
     return { html: fb.html, next: start + 1, warning: fb.warning }
   }
   i++
-  return { html: CTA_DA01.render(attrs, body, t), next: i }
+  const warning = unknownAttrWarning(attrs, CTA_DA01.attrs?.map((a) => a.key) ?? [], '<cta>', ['button'])
+  return { html: CTA_DA01.render(attrs, body, t), next: i, warning }
 }
 
 export function parseCtaInline(
   lines: string[],
   start: number,
   t: ThemeColors,
-): { html: string; next: number } {
-  const attrs = parseAttrs(lines[start])
-  // 按钮文案三条路径统一为 action 优先（CTA_DA01 主属性名），button 旧写法兼容
-  const btnText = attrs.action || attrs.button
-  let html = `<section style="margin:24px 0px;padding:32px 24px;background:linear-gradient(135deg,${t.accent},${t.dark});border-radius:16px;text-align:center;color:rgb(255,255,255)">`
-  if (attrs.label)
-    html += `<p style="margin:0px 0px 8px;font-size:11px;letter-spacing:3px;font-weight:700;opacity:0.8">${leaf(attrs.label)}</p>`
-  if (attrs.title)
-    html += `<p style="margin:0px 0px 16px;font-size:20px;font-weight:800;line-height:1.4">${leaf(attrs.title)}</p>`
-  if (btnText)
-    html += `<span style="display:inline-block;padding:12px 32px;background:rgba(255,255,255,0.2);border-radius:8px;font-weight:700;letter-spacing:1px;backdrop-filter:blur(4px)">${leaf(btnText)}</span>`
-  html += `</section>`
-  return { html, next: start + 1 }
+): { html: string; next: number; warning?: string } {
+  const line = lines[start]
+  // 单行 <cta ...>内容</cta>：从开标签提取属性，标签内文本作为 body（供 CTA_DA01 渲染）
+  const openMatch = line.match(/^<cta\b([^>]*)>/)
+  const attrs = openMatch?.[1] ? parseAttrs(openMatch[1]) : {}
+  const bodyMatch = line.match(/^<cta\b[^>]*>([\s\S]*?)<\/cta>/)
+  const body = bodyMatch?.[1] ?? ''
+  const warning = unknownAttrWarning(attrs, CTA_DA01.attrs?.map((a) => a.key) ?? [], '<cta>', ['button'])
+  return { html: CTA_DA01.render(attrs, body, t), next: start + 1, warning }
 }
 
 // parseCompare 已移除，对比功能由 :::compare（Layout_DA08）提供

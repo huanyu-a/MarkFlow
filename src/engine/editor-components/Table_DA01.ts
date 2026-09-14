@@ -17,7 +17,13 @@
  *   :::
  *
  * 属性：
- *   style - 表格风格：default / striped / card
+ *   style   - 表格风格：default / striped / card
+ *   title   - 标题（caption 的别名，优先级最高）
+ *   caption - 标题（title 的等价写法）
+ *   footer  - 表注脚（覆盖容器闭合后紧邻行的隐式注脚）
+ *
+ * 标题优先级：title > caption > 容器位置参数（::: table 后面的文字）/ body 首行
+ * 表注脚优先级：footer > 容器闭合后紧邻行 / body 表格后的尾行
  */
 import type { ThemeColors } from '@engine/composables/useTheme'
 import { fontSize, fontWeight, neutral, radius, spacing } from '@engine/tokens'
@@ -37,17 +43,17 @@ function renderTable(attrs: Record<string, string>, body: string, t: ThemeColors
 
   // 解析 body
   const lines = body.trim().split('\n')
-  let caption = ''
-  let footer = ''
+  let positionCaption = ''
+  let bodyFooter = ''
   let rowStart = 0
 
-  // 提取 ::: table 标题
+  // 提取 ::: table 标题（容器语法；容器渲染器已剥离头部，此处兜底 unified/preview 路径）
   const containerMatch = lines[0]?.match(/^:{3,4}\s*table\b\s*(.*)/)
   if (containerMatch) {
-    caption = containerMatch[1]?.trim() || ''
+    positionCaption = containerMatch[1]?.trim() || ''
     rowStart = 1
   } else if (lines[0] && !lines[0].includes('|')) {
-    caption = lines[0].trim()
+    positionCaption = lines[0].trim()
     rowStart = 1
   }
 
@@ -62,12 +68,17 @@ function renderTable(attrs: Record<string, string>, body: string, t: ThemeColors
       tableLines.push(ln)
     } else if (ln && tableLines.length >= 2) {
       // 表格之后的内容作为 footer
-      footer = ln
+      bodyFooter = ln
       break
     }
   }
 
   if (tableLines.length < 2) return `<p style="color:#999">表格至少需要表头行和一行数据</p>`
+
+  // 标题：title 为 caption 的别名，优先级 title > caption > 位置参数/首行
+  const caption = attrs.title || attrs.caption || positionCaption
+  // 表注脚：footer 属性优先，其次 body 尾行（容器路径下由容器传入的紧邻行兜底）
+  const footer = attrs.footer || bodyFooter
 
   const headers = parseRow(tableLines[0])
   const rows = tableLines.slice(1).map(parseRow)
@@ -147,7 +158,9 @@ export const Table_DA01: UnifiedComponentDef = {
 数据来源：MarkFlow 使用统计（2026 年 6 月）`,
     fields: [
       { name: 'style', required: false, description: '表格风格（default/striped/card）' },
-      { name: 'title', required: false, description: '标题' },
+      { name: 'title', required: false, description: '标题（caption 的别名，优先级高于 caption 与位置参数）' },
+      { name: 'caption', required: false, description: '标题（与 title 等价；优先级低于 title、高于 :::table 后的位置文字）' },
+      { name: 'footer', required: false, description: '表注脚（覆盖容器闭合后紧邻的非表格行）' },
     ],
   },
 
