@@ -416,7 +416,9 @@ const tableContainerRenderer: BlockRenderer = {
     }
 
     // Caption 与表格统一由 Table_DA01 渲染（title/caption 优先级在其内部处理）
-    let html = Table_DA01.renderLegacy(attrs, markdownBody, t)
+    // footer 由本容器统一渲染（右对齐小字，含属性与隐式两种来源），故不透传给组件，避免 tfoot 重复输出
+    const { footer: _footerAttr, ...tableAttrs } = attrs
+    let html = Table_DA01.renderLegacy(tableAttrs, markdownBody, t)
 
     // Footer
     if (footer) {
@@ -666,8 +668,9 @@ const engageRenderer: BlockRenderer = {
   name: 'engage',
   // engage-card / engage-label 是组件元数据注册的真实 tag（扩展页与 guide 示例即用此写法），
   // <engage> 为通用别名（按 type 属性切换样式）；限定后缀，避免其它 engage-* 前缀标签误撞本路径。
-  // 冒号前缀用 :{1,3}（而非 :\s*），使 ::engage / :::engage 与 ::: 家族一致可匹配
-  match: (line) => /^:{1,3}\s*engage\b/.test(line) || /^<engage(?:-(?:card|label))?\b/.test(line),
+  // 冒号前缀用 :{1,3}（而非 :\s*），使 ::engage / :::engage 与 ::: 家族一致可匹配；
+  // (?!-) 排除 engage-card / engage-label —— 这两个后缀写法由统一组件渲染器按各自 spec 处理（含 subtitle 等属性）
+  match: (line) => /^:{1,3}\s*engage(?!-)\b/.test(line) || /^<engage(?:-(?:card|label))?\b/.test(line),
   render: (ctx, line, _lines, i) => {
     const attrs = parseAttrs(line)
     // 精确 tag / type 别名直接路由到对应样式，subtitle/color 等属性不再丢失
@@ -679,7 +682,7 @@ const engageRenderer: BlockRenderer = {
           ? Engage_DA02
           : Engage_DA01
     // parseAttrs 会把行首的 engage / engage-card 等标签名解析为布尔属性，type 用于样式路由，均计入别名
-    const warning = unknownAttrWarning(attrs, def.attrs?.map((a) => a.key) ?? [], '<engage>', [
+    const warning = unknownAttrWarning(attrs, def.attrs?.map((a) => a.key) ?? [], line.startsWith('<') ? '<engage>' : ':::engage', [
       'engage',
       'engage-card',
       'engage-label',

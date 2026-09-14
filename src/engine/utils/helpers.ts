@@ -164,9 +164,10 @@ export function safeUrl(url: string, type: 'src' | 'href' = 'src'): string {
 
 export function parseAttrs(s: string): Record<string, string> {
   const attrs: Record<string, string> = {}
-  // 匹配 key="value"、key=value（无引号）和无值布尔属性（如 round）
+  // 匹配 key="value"、key=value（无引号）和无值布尔属性（如 round）；
+  // 等号两侧允许空白（`title = "x"`），否则 key 会被误判为布尔属性、值静默丢失
   s.replace(
-    /([\w-]+)="([^"]*)"|([\w-]+)=([\w-]+)|([\w-]+)/g,
+    /([\w-]+)\s*=\s*"([^"]*)"|([\w-]+)\s*=\s*([^\s"=]+)|([\w-]+)/g,
     (_, k1: string, v: string, k2: string, v2: string, k3: string) => {
       if (k1) attrs[k1] = v
       else if (k2) attrs[k2] = v2

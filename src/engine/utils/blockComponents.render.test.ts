@@ -38,6 +38,12 @@ import type { UnifiedComponentDef } from '../editor-components/unifiedRender'
 
 const COLORS = makeColors('#27ae60', '#1e8449')
 const render = (md: string) => parseMarkdown(md, COLORS)
+/** 带告警收集的渲染（parseMarkdown 仅返回 html，warning 走 onWarning 回调） */
+const renderWithWarnings = (md: string) => {
+  const warnings: string[] = []
+  const html = parseMarkdown(md, COLORS, undefined, undefined, (w) => warnings.push(w))
+  return { html, warnings }
+}
 
 /** 从示例文本中提取一个「纯中文连续片段」作为内容探针（不受 pangu/空格影响） */
 function cjkNeedle(text: string): string | null {
@@ -358,7 +364,40 @@ describe('标签组件渲染', () => {
   })
 })
 
-// ── C2. myth-fact 旧关键字协议回归（myth | 内容 / fact | 内容） ──
+// ── C3b. table footer 只渲染一次（属性与隐式两种来源） ──
+
+describe(':::table footer 单次渲染回归', () => {
+  const table = '| A | B |\n| --- | --- |\n| 1 | 2 |'
+
+  it('footer 属性只出现一次（不与组件 tfoot 重复）', () => {
+    const html = render(`:::table style="card" title="表标题" footer="来源：内部统计"\n${table}\n:::`)
+    expect(html).toContain('表标题')
+    expect(html.split('来源：内部统计').length - 1).toBe(1)
+  })
+
+  it('隐式 footer（闭合后紧邻行）只出现一次', () => {
+    const html = render(`:::table\n${table}\n:::\n数据来源：问卷`)
+    expect(html.split('数据来源：问卷').length - 1).toBe(1)
+  })
+})
+
+// ── C3c. 属性解析与冒号组件回归 ──
+
+describe('属性解析与冒号组件回归', () => {
+  it('等号两侧带空格的属性不再丢值', () => {
+    const html = render('<cta title = "空格标题" action="点我">正文B</cta>')
+    expect(html).toContain('空格标题')
+    expect(html).not.toContain('title="true"')
+  })
+
+  it(':::engage-card 走卡片组件（subtitle 生效、不误报告警）', () => {
+    const { html, warnings } = renderWithWarnings(':::engage-card\ntitle: 关注后续\nsubtitle: 每周更新\n:::')
+    expect(html).toContain('每周更新')
+    expect(warnings).toEqual([])
+  })
+})
+
+// ── C4. myth-fact 旧关键字协议回归（myth | 内容 / fact | 内容） ──
 
 describe('myth-fact 旧关键字协议回归', () => {
   it('myth 行渲染为误解卡且内容不丢', () => {
