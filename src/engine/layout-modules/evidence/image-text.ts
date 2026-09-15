@@ -22,7 +22,7 @@ function render(body: LayoutBody, ctx: BlockRenderContext): string {
     html += `<img src="${esc(img)}" alt="${esc(f.title || '')}" style="width:100%;display:block;border-radius:12px">`
     html += `</section>`
   }
-  html += `<section style="flex:1;min-width:0">`
+  html += `<section style="flex:1;min-width:0;overflow-wrap:anywhere">`
   if (f.body) {
     html += `<section style="font-size:15px;color:#475569;line-height:1.8;letter-spacing:0.3px;text-align:justify">${inlineFormat(f.body, ctx.t)}</section>`
   }

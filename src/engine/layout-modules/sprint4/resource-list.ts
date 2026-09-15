@@ -55,7 +55,7 @@ const resourceListRenderer: BlockRenderer = {
       if (icon) {
         html += `<span style="font-size:22px;flex-shrink:0;margin-top:2px">${esc(icon)}</span>`
       }
-      html += `<section style="flex:1;min-width:0">`
+      html += `<section style="flex:1;min-width:0;overflow-wrap:anywhere">`
       if (name) {
         if (url) {
           html += `<p style="margin:0px 0px 4px;font-size:15px;font-weight:700"><a href="${esc(safeUrl(url, 'href'))}" style="color:${ctx.t.accent};text-decoration:none" target="_blank" rel="noopener noreferrer">${esc(name)}</a></p>`

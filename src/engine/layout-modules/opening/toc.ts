@@ -24,7 +24,7 @@ function render(body: LayoutBody, ctx: BlockRenderContext, _raw: string): string
     const desc = cells[2] ?? ''
     html += `<section style="display:flex;align-items:flex-start;gap:14px">`
     html += `<span style="display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:32px;height:32px;border-radius:50%;background:${accent}15;color:${accent};font-size:13px;font-weight:800;letter-spacing:0.5px">${esc(num)}</span>`
-    html += `<section style="flex:1;min-width:0">`
+    html += `<section style="flex:1;min-width:0;overflow-wrap:anywhere">`
     html += `<p style="margin:0px 0px 2px;font-size:15px;font-weight:700;color:#1a1a1a;line-height:1.4">${esc(title)}</p>`
     if (desc) html += `<p style="margin:0px;font-size:13px;color:#94a3b8;line-height:1.5">${esc(desc)}</p>`
     html += `</section></section>`

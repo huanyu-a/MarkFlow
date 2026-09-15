@@ -119,6 +119,64 @@ describe('layout-modules 全组件渲染', () => {
   })
 })
 
+// ── A3. 长 token 横向溢出契约（flex 文本子项必须可断行） ─────────
+//
+// designPrompts/utils.ts 已约定：正文不可横向溢出，长单词/代码需 overflow-wrap:anywhere。
+// flex 子项默认 min-width:auto 不会收缩到内容最小宽度以下，超长 URL 会撑破容器；
+// 且 overflow-wrap:break-word 不参与 min-content 计算，在 flex 子项上等于没写——
+// 因此承载文本的 flex 子项必须同时带 min-width:0 与 overflow-wrap:anywhere。
+
+describe('长 token 横向溢出契约', () => {
+  // 典型溢出输入：百分号编码超长 URL（无断点）
+  const LONG_URL = 'https://iaipie.com/2026%E5%B9%B49%E6%9C%8814%E6%97%A5ai%E8%A1%8C%E4%B8%9A%E8%B5%84%E8%AE%AF%E9%80%9F%E8%A7%88/'
+
+  /** 取所有 style 含 flex:1 的子节点，返回其 style 串（按标签切分近似） */
+  function flexChildStyles(html: string): string[] {
+    return (html.match(/<[a-z]+[^>]*style="[^"]*flex:1[^"]*"[^>]*>/gi) ?? []).map((tag) =>
+      (tag.match(/style="([^"]*)"/i)?.[1] ?? ''),
+    )
+  }
+
+  it('有序列表长 URL：flex 子项同时具备 min-width:0 与 overflow-wrap:anywhere', () => {
+    const html = render(`1. 无矩 AI：${LONG_URL}\n2. AITOP：https://aitop.news/daily/2026-09-14`)
+    const styles = flexChildStyles(html)
+    expect(styles.length).toBeGreaterThan(0)
+    for (const s of styles) {
+      expect(s).toContain('min-width:0')
+      expect(s).toContain('overflow-wrap:anywhere')
+    }
+  })
+
+  it('无序列表长 URL：flex 子项同时具备 min-width:0 与 overflow-wrap:anywhere', () => {
+    const html = render(`- 参考：${LONG_URL}\n- 备用：https://aitop.news/daily/2026-09-14`)
+    const styles = flexChildStyles(html)
+    expect(styles.length).toBeGreaterThan(0)
+    for (const s of styles) {
+      expect(s).toContain('min-width:0')
+      expect(s).toContain('overflow-wrap:anywhere')
+    }
+  })
+
+  it('不得使用 overflow-wrap:break-word 兜底 flex 文本子项（不参与 min-content 计算）', () => {
+    const html = render(`1. 参考：${LONG_URL}`)
+    for (const s of flexChildStyles(html)) {
+      expect(s).not.toContain('overflow-wrap:break-word')
+    }
+  })
+
+  it('全量排版模块与统一组件示例：flex:1 文本子项均带 min-width:0', () => {
+    const offenders: string[] = []
+    for (const spec of layoutModuleSpecs) {
+      const example = LAYOUT_EXAMPLES[spec.name] ?? fallbackExample(spec.bodyFormat)
+      const html = render(buildLayoutSnippet(spec.name, example))
+      for (const s of flexChildStyles(html)) {
+        if (!s.includes('min-width:0') && !s.includes('min-width:140px')) offenders.push(`${spec.name}: ${s}`)
+      }
+    }
+    expect(offenders).toEqual([])
+  })
+})
+
 // ── A2. 官方示例字段完整性契约 ────────────────────────────────
 //
 // 示例 = 官方承诺：fields/json/rows 模块的官方示例中，每个字段值（或其分段）

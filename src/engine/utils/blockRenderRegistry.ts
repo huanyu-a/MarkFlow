@@ -922,9 +922,9 @@ const unorderedListRenderer: BlockRenderer = {
         const checkSvg = isChecked
           ? '<svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M5 9l3 3 5-5" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'
           : `<svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="1" y="1" width="16" height="16" rx="3" stroke="${uncheckedBorder}" stroke-width="1.5" fill="none"/></svg>`
-        html += `<section style="margin:${spacing[1]} 0px"><span style="display:inline-flex;align-items:center;gap:${spacing[3]}"><span style="width:18px;height:18px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;${isChecked ? `background:${t.accent};border-radius:${radius.sm}` : ''}">${checkSvg}</span><span>${inlineFormat(cb[2], t, formulaMap)}</span></span></section>`
+        html += `<section style="margin:${spacing[1]} 0px"><span style="display:inline-flex;align-items:center;gap:${spacing[3]}"><span style="width:18px;height:18px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;${isChecked ? `background:${t.accent};border-radius:${radius.sm}` : ''}">${checkSvg}</span><span style="min-width:0;overflow-wrap:anywhere">${inlineFormat(cb[2], t, formulaMap)}</span></span></section>`
       } else {
-        html += `<section style="margin:${spacing[1]} 0px;line-height:${lineHeight.loosest};letter-spacing:${letterSpacing.wider};display:flex;align-items:flex-start"><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background-color:${t.accent};margin-right:${spacing[5]};margin-top:${spacing[5]};flex-shrink:0"></span><span style="flex:1">${inlineFormat(li, t, formulaMap)}</span></section>`
+        html += `<section style="margin:${spacing[1]} 0px;line-height:${lineHeight.loosest};letter-spacing:${letterSpacing.wider};display:flex;align-items:flex-start"><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background-color:${t.accent};margin-right:${spacing[5]};margin-top:${spacing[5]};flex-shrink:0"></span><span style="flex:1;min-width:0;overflow-wrap:anywhere">${inlineFormat(li, t, formulaMap)}</span></section>`
       }
       j++
     }
@@ -944,7 +944,7 @@ const orderedListRenderer: BlockRenderer = {
       const match = lines[j].match(/^\s*(\d+)\.\s/)
       const num = match ? match[1] : '1'
       const content = lines[j].replace(/^\s*\d+\.\s/, '')
-      html += `<section style="margin:${spacing[1]} 0px;line-height:${lineHeight.loosest};letter-spacing:${letterSpacing.wider};display:flex;align-items:flex-start"><span style="color:${t.accent};font-weight:${fontWeight.extrabold};margin-right:${spacing[3]};flex-shrink:0;min-width:16px">${num}.</span><span style="flex:1">${inlineFormat(content, t, formulaMap)}</span></section>`
+      html += `<section style="margin:${spacing[1]} 0px;line-height:${lineHeight.loosest};letter-spacing:${letterSpacing.wider};display:flex;align-items:flex-start"><span style="color:${t.accent};font-weight:${fontWeight.extrabold};margin-right:${spacing[3]};flex-shrink:0;min-width:16px">${num}.</span><span style="flex:1;min-width:0;overflow-wrap:anywhere">${inlineFormat(content, t, formulaMap)}</span></section>`
       j++
     }
     html += `</section>`

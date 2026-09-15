@@ -25,7 +25,7 @@ function render(body: LayoutBody, ctx: BlockRenderContext): string {
     const name = (row[1] ?? '').trim()
     const desc = (row[2] ?? '').trim()
     const isLast = idx === rows.length - 1
-    html += `<section style="flex:1 0 150px;display:flex;flex-direction:column;align-items:flex-start;text-align:left;position:relative;padding:0px 14px">`
+    html += `<section style="flex:1 0 150px;min-width:0;overflow-wrap:anywhere;display:flex;flex-direction:column;align-items:flex-start;text-align:left;position:relative;padding:0px 14px">`
     // 圆形序号
     html += `<section style="width:38px;height:38px;border-radius:50%;background:${accent};color:#ffffff;font-size:15px;font-weight:800;display:flex;align-items:center;justify-content:center;margin-bottom:14px;box-shadow:0 2px 6px ${accent}44;z-index:1;position:relative">${esc(num)}</section>`
     // 连接线

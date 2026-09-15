@@ -25,7 +25,7 @@ function render(body: LayoutBody, ctx: BlockRenderContext): string {
     html += `<section style="flex-shrink:0;width:64px;height:64px;border-radius:50%;background:${accent}15;border:2px solid ${accent}22;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:900;color:${accent}">${initial}</section>`
   }
   // 右侧信息
-  html += `<section style="flex:1;min-width:0">`
+  html += `<section style="flex:1;min-width:0;overflow-wrap:anywhere">`
   if (f.title) html += `<p style="margin:0px 0px 4px;font-size:18px;font-weight:800;color:${ctx.t.dark};line-height:1.3;letter-spacing:-0.3px">${esc(f.title)}</p>`
   if (f.role) html += `<p style="margin:0px 0px 8px;font-size:12px;font-weight:700;color:${accent};letter-spacing:1.2px;text-transform:uppercase">${esc(f.role)}</p>`
   if (f.bio) html += `<p style="margin:0px 0px 12px;font-size:14px;color:#64748b;line-height:1.7;letter-spacing:0.3px">${esc(f.bio)}</p>`

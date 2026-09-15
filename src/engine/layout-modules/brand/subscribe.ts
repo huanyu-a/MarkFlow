@@ -19,7 +19,7 @@ function render(body: LayoutBody, ctx: BlockRenderContext): string {
   if (f.placeholder || f.btn) {
     html += `<section style="margin:24px auto 0px;max-width:320px;display:flex;gap:8px;align-items:stretch">`
     if (f.placeholder) {
-      html += `<section style="flex:1;min-width:0;padding:10px 14px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;text-align:left">`
+      html += `<section style="flex:1;min-width:0;overflow-wrap:anywhere;padding:10px 14px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;text-align:left">`
       html += `<p style="margin:0px;font-size:13px;color:#94a3b8;letter-spacing:0.3px">${esc(f.placeholder)}</p>`
       html += `</section>`
     }

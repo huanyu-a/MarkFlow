@@ -56,7 +56,7 @@ export const Engage_DA02 = {
     <section style="display:flex;justify-content:center;align-items:flex-start;gap:0;">
 
       <!-- 点赞 -->
-      <section style="flex:1;text-align:center;padding:0 6px;">
+      <section style="flex:1;min-width:0;overflow-wrap:anywhere;text-align:center;padding:0 6px;">
         <section style="width:48px;height:48px;border-radius:50%;background:#fff;margin:0 auto 10px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px ${colors[0].glow};">
           <svg viewBox="0 0 24 24" width="24" height="24" fill="${colors[0].icon}" xmlns="http://www.w3.org/2000/svg"><path d="M1 21h4V9H1v12zm22-11c0-1.1-.9-2-2-2h-6.31l.95-4.57.03-.32c0-.41-.17-.79-.44-1.06L14.17 1 7.59 7.59C7.22 7.95 7 8.45 7 9v10c0 1.1.9 2 2 2h9c.83 0 1.54-.5 1.84-1.22l3.02-7.05c.09-.23.14-.47.14-.73v-2z"/></svg>
         </section>
@@ -68,7 +68,7 @@ export const Engage_DA02 = {
       </section>
 
       <!-- 转发（中间列，左右虚线边框做分隔） -->
-      <section style="flex:1;text-align:center;padding:0 6px;border-left:1px dashed #e0e0e0;border-right:1px dashed #e0e0e0;">
+      <section style="flex:1;min-width:0;overflow-wrap:anywhere;text-align:center;padding:0 6px;border-left:1px dashed #e0e0e0;border-right:1px dashed #e0e0e0;">
         <section style="width:48px;height:48px;border-radius:50%;background:#fff;margin:0 auto 10px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px ${colors[1].glow};">
           <svg viewBox="0 0 24 24" width="28" height="28" fill="${colors[1].icon}" xmlns="http://www.w3.org/2000/svg"><path d="M21 12l-7-7v4C7 10 4 15 3 20c2.5-3.5 6-5.1 11-5.1V19l7-7z"/></svg>
         </section>
@@ -80,7 +80,7 @@ export const Engage_DA02 = {
       </section>
 
       <!-- 推荐 -->
-      <section style="flex:1;text-align:center;padding:0 6px;">
+      <section style="flex:1;min-width:0;overflow-wrap:anywhere;text-align:center;padding:0 6px;">
         <section style="width:48px;height:48px;border-radius:50%;background:#fff;margin:0 auto 10px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px ${colors[2].glow};">
           <svg viewBox="0 0 24 24" width="24" height="24" fill="${colors[2].icon}" xmlns="http://www.w3.org/2000/svg"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
         </section>

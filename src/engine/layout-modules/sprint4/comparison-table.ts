@@ -53,7 +53,7 @@ const comparisonTableRenderer: BlockRenderer = {
     for (let r = 0; r < maxRows; r++) {
       const item = leftItems[r] ?? ''
       const bg = r % 2 === 0 ? '#eff6ff' : '#dbeafe'
-      html += `<section style="padding:12px 18px;background:${bg};border-top:1px solid #bfdbfe;flex:1;display:flex;align-items:center">`
+      html += `<section style="padding:12px 18px;background:${bg};border-top:1px solid #bfdbfe;flex:1;min-width:0;overflow-wrap:anywhere;display:flex;align-items:center">`
       html += `<p style="margin:0px;font-size:14px;color:#1e40af;line-height:1.6">${esc(item)}</p>`
       html += `</section>`
     }
@@ -66,7 +66,7 @@ const comparisonTableRenderer: BlockRenderer = {
     for (let r = 0; r < maxRows; r++) {
       const item = rightItems[r] ?? ''
       const bg = r % 2 === 0 ? '#f8fafc' : '#f1f5f9'
-      html += `<section style="padding:12px 18px;background:${bg};border-top:1px solid #e2e8f0;flex:1;display:flex;align-items:center">`
+      html += `<section style="padding:12px 18px;background:${bg};border-top:1px solid #e2e8f0;flex:1;min-width:0;overflow-wrap:anywhere;display:flex;align-items:center">`
       html += `<p style="margin:0px;font-size:14px;color:#334155;line-height:1.6">${esc(item)}</p>`
       html += `</section>`
     }

@@ -19,7 +19,7 @@ function render(body: LayoutBody, ctx: BlockRenderContext): string {
     const avatarUrl = row[3]?.trim() ?? ''
     const isUrl = /^https?:\/\//i.test(avatarUrl) || avatarUrl.startsWith('data:image/')
     const initial = esc(name.charAt(0).toUpperCase() || '?')
-    html += `<section style="flex:1;min-width:140px;padding:18px 16px;background:#fff;border:1px solid #e2e8f0;border-radius:14px;text-align:center">`
+    html += `<section style="flex:1;min-width:140px;overflow-wrap:anywhere;padding:18px 16px;background:#fff;border:1px solid #e2e8f0;border-radius:14px;text-align:center">`
     if (isUrl) {
       // 图片头像：圆角 + object-fit:cover，与首字母圆风格协调
       html += `<section style="margin:0px auto 12px;width:48px;height:48px;border-radius:50%;overflow:hidden;border:2px solid ${accent}22"><img src="${esc(avatarUrl)}" alt="${esc(name)}" style="width:100%;height:100%;object-fit:cover;display:block"></section>`

@@ -47,7 +47,7 @@ const definitionRenderer: BlockRenderer = {
     }
     html += `<p style="margin:0px;font-size:20px;font-weight:800;color:#fff;letter-spacing:-0.5px">${esc(term)}</p>`
     html += `</section>`
-    html += `<section style="flex:1;padding:18px 20px;background:#fff;display:flex;align-items:center">`
+    html += `<section style="flex:1;min-width:0;overflow-wrap:anywhere;padding:18px 20px;background:#fff;display:flex;align-items:center">`
     html += `<p style="margin:0px;font-size:15px;color:#475569;line-height:1.75;letter-spacing:0.3px">${esc(def)}</p>`
     html += `</section>`
     html += `</section>`

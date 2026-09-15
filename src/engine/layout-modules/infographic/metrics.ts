@@ -27,7 +27,7 @@ function render(body: LayoutBody, ctx: BlockRenderContext): string {
     const valueColor = accentRow ? '#ffffff' : accent
     const nameColor = accentRow ? 'rgba(255,255,255,0.85)' : '#64748b'
     const descColor = accentRow ? 'rgba(255,255,255,0.75)' : '#94a3b8'
-    html += `<section style="flex:1 1 calc(25% - 14px);min-width:140px;padding:18px 16px;background:${cardBg};border-radius:14px;border:1px solid ${cardBorder};position:relative;overflow:hidden">`
+    html += `<section style="flex:1 1 calc(25% - 14px);min-width:140px;overflow-wrap:anywhere;padding:18px 16px;background:${cardBg};border-radius:14px;border:1px solid ${cardBorder};position:relative;overflow:hidden">`
     if (name) html += `<p style="margin:0px 0px 8px;font-size:11px;letter-spacing:2px;font-weight:700;color:${nameColor};text-transform:uppercase;line-height:1.4">${esc(name)}</p>`
     if (value) html += `<p style="margin:0px 0px 6px;font-size:32px;font-weight:900;color:${valueColor};line-height:1.1">${esc(value)}</p>`
     if (desc) html += `<p style="margin:0px;font-size:13px;color:${descColor};line-height:1.5">${esc(desc)}</p>`

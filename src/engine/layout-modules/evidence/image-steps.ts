@@ -25,7 +25,7 @@ function render(body: LayoutBody, ctx: BlockRenderContext): string {
     }
     html += `</section>`
     // 内容
-    html += `<section style="flex:1;min-width:0;padding-top:4px">`
+    html += `<section style="flex:1;min-width:0;overflow-wrap:anywhere;padding-top:4px">`
     if (desc) html += `<p style="margin:0px;font-size:15px;color:#1a1a1a;font-weight:700;line-height:1.5">${esc(desc)}</p>`
     if (img) {
       html += `<section style="margin-top:10px;border-radius:10px;overflow:hidden;border:1px solid #e2e8f0">`

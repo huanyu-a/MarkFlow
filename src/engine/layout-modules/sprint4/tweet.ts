@@ -50,7 +50,7 @@ const tweetRenderer: BlockRenderer = {
     let html = `<section style="margin:16px 0px;padding:18px 20px;background:#fff;border:1px solid #e2e8f0;border-radius:14px">`
     html += `<section style="display:flex;align-items:center;gap:12px;margin-bottom:12px">`
     html += `<span style="width:42px;height:42px;border-radius:50%;background:${ctx.t.accent};display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:700;color:#fff;flex-shrink:0">${esc(initial)}</span>`
-    html += `<section style="flex:1;min-width:0">`
+    html += `<section style="flex:1;min-width:0;overflow-wrap:anywhere">`
     html += `<p style="margin:0px;font-size:15px;font-weight:700;color:#1e293b;line-height:1.3">${esc(name)}${verified ? `<svg width="16" height="16" viewBox="0 0 24 24" style="display:inline-block;vertical-align:-2px;margin-left:4px"><path fill="#1d9bf0" d="M22.25 12c0-1.43-.88-2.67-2.19-3.34.46-1.39.2-2.9-.81-3.91s-2.52-1.27-3.91-.81C14.67 2.63 13.43 1.75 12 1.75s-2.67.88-3.34 2.19c-1.39-.46-2.9-.2-3.91.81s-1.27 2.52-.81 3.91C2.63 9.33 1.75 10.57 1.75 12s.88 2.67 2.19 3.34c-.46 1.39-.2 2.9.81 3.91s2.52 1.27 3.91.81c.67 1.31 1.91 2.19 3.34 2.19s2.67-.88 3.34-2.19c1.39.46 2.9.2 3.91-.81s1.27-2.52.81-3.91c1.31-.67 2.19-1.91 2.19-3.34zm-11.71 4.2L6.8 12.46l1.41-1.42 2.26 2.26 4.8-5.23 1.47 1.36-6.2 6.77z"/></svg>` : ''}</p>`
     if (handle) {
       html += `<p style="margin:2px 0px 0px;font-size:13px;color:#94a3b8">${esc(handle)}</p>`

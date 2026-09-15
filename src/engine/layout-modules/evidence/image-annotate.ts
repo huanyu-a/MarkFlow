@@ -54,7 +54,7 @@ function render(body: LayoutBody, ctx: BlockRenderContext, raw: string): string 
       const display = label || num
       html += `<section style="display:flex;align-items:flex-start;gap:10px;padding:8px 12px;background:#f8fafc;border-radius:10px">`
       html += `<span style="flex-shrink:0;width:24px;height:24px;border-radius:50%;background:${accent}15;color:${accent};font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;line-height:1">${esc(num)}</span>`
-      html += `<section style="flex:1;min-width:0">`
+      html += `<section style="flex:1;min-width:0;overflow-wrap:anywhere">`
       html += `<p style="margin:0px;font-size:14px;font-weight:700;color:#1a1a1a;line-height:1.4">${esc(display)}</p>`
       if (desc) html += `<p style="margin:4px 0px 0px;font-size:13px;color:#64748b;line-height:1.6">${esc(desc)}</p>`
       html += `</section>`
